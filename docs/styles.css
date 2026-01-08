@@ -28,6 +28,16 @@ body{
 }
 
 .brand{ font-weight: 600; }
+.topbar-link {
+  font-weight: normal;
+  font-size: 14px;
+  margin-left: 25px;
+  color: var(--accent);
+  text-decoration: none;
+  vertical-align: middle;
+}
+.topbar-link:hover { text-decoration: underline; }
+
 .topnav{ display:flex; align-items:center; gap:10px; color: var(--muted); }
 .navlink{ color: var(--accent); text-decoration:none; }
 .navlink:hover{ text-decoration:underline; }

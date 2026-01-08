@@ -1,0 +1,240 @@
+const DATA_URL = "./data/tree.json";
+
+const state = {
+  data: null,
+  mode: "focused",          // "focused" | "universal"
+  selectedCatId: null,
+  scheme: "devanagari",     // devanagari | iast | hk | itrans | slp1
+  expanded: new Set(),      // node ids expanded in sidebar
+};
+
+// --- utils
+
+function isExpandAllGesture(ev) {
+  // macOS: Option=altKey. Windows/Linux: Alt=altKey.
+  // Fallbacks: Shift (browser-safe), Ctrl / Cmd.
+  return !!(ev.altKey || ev.shiftKey || ev.ctrlKey || ev.metaKey);
+}
+
+function sanscriptMapScheme(s) {
+  // sanscript uses "devanagari" as a script name; treat it as "no transliteration"
+  // For output schemes, we target roman schemes.
+  return s;
+}
+
+function translitText(s) {
+  if (!s) return s;
+  if (state.scheme === "devanagari") return s;
+
+  // Default assumption: source is Devanagari.
+  // If later you have mixed scripts, you can add per-node hints and route here.
+  try {
+    return window.Sanscript.t(s, "devanagari", sanscriptMapScheme(state.scheme));
+  } catch {
+    return s;
+  }
+}
+
+// “exceptional one we’ll target for deletion” hook:
+// if you want to strip/normalize one weird pattern globally, do it here.
+function normalizeTitleForDisplay(s) {
+  // placeholder: implement later
+  return s;
+}
+
+function displayTitle(raw) {
+  return translitText(normalizeTitleForDisplay(raw));
+}
+
+function walkCategories(node, fn) {
+  if (node.type === "category") fn(node);
+  for (const ch of (node.children || [])) walkCategories(ch, fn);
+}
+
+// Find category node by id
+function findCatById(node, id) {
+  if (!node) return null;
+  if (node.type === "category" && node.id === id) return node;
+  for (const ch of (node.children || [])) {
+    const hit = findCatById(ch, id);
+    if (hit) return hit;
+  }
+  return null;
+}
+
+function gatherDescendantCatIds(catNode) {
+  const ids = [];
+  walkCategories(catNode, (c) => ids.push(c.id));
+  return ids;
+}
+
+function setExpandedDeep(catNode, expand) {
+  walkCategories(catNode, (c) => {
+    if (expand) state.expanded.add(c.id);
+    else state.expanded.delete(c.id);
+  });
+}
+
+// --- rendering
+
+function el(tag, attrs = {}, ...kids) {
+  const n = document.createElement(tag);
+  for (const [k, v] of Object.entries(attrs)) {
+    if (k === "class") n.className = v;
+    else if (k === "onclick") n.addEventListener("click", v);
+    else if (k === "dataset") Object.assign(n.dataset, v);
+    else n.setAttribute(k, v);
+  }
+  for (const kid of kids) {
+    if (kid == null) continue;
+    if (typeof kid === "string") n.appendChild(document.createTextNode(kid));
+    else n.appendChild(kid);
+  }
+  return n;
+}
+
+function renderSidebarTree() {
+  const root = state.data.root;
+  const host = document.getElementById("sidebarTree");
+  host.innerHTML = "";
+
+  const tree = renderSidebarNode(root, 0);
+  host.appendChild(tree);
+}
+
+function renderSidebarNode(catNode, depth) {
+  const isExpanded = state.expanded.has(catNode.id);
+  const hasKids = (catNode.children || []).length > 0;
+
+  const twisty = el("span", {
+    class: "twisty",
+    onclick: (ev) => {
+      ev.stopPropagation();
+      const expandAll = isExpandAllGesture(ev);
+
+      if (expandAll) {
+        const expand = !state.expanded.has(catNode.id);
+        setExpandedDeep(catNode, expand);
+      } else {
+        if (isExpanded) state.expanded.delete(catNode.id);
+        else state.expanded.add(catNode.id);
+      }
+      renderSidebarTree();
+      renderMain();
+    }
+  }, hasKids ? (isExpanded ? "▾" : "▸") : "·");
+
+  const row = el("div", {
+    class: "row" + (state.selectedCatId === catNode.id ? " selected" : ""),
+    onclick: () => {
+      state.selectedCatId = catNode.id;
+      renderSidebarTree();
+      renderMain();
+    }
+  },
+    twisty,
+    el("span", { class: "title", title: catNode.title }, displayTitle(catNode.title))
+  );
+
+  const wrap = el("div", { class: depth ? "indent" : "" }, row);
+
+  if (hasKids && isExpanded) {
+    for (const ch of catNode.children) {
+      wrap.appendChild(renderSidebarNode(ch, depth + 1));
+    }
+  }
+  return wrap;
+}
+
+function renderMain() {
+  const host = document.getElementById("content");
+  host.innerHTML = "";
+
+  const root = state.data.root;
+
+  if (state.mode === "universal") {
+    host.appendChild(renderCategoryBlock(root, { includePages: true, depth: 0, isRoot: true }));
+    return;
+  }
+
+  // focused
+  const selected = findCatById(root, state.selectedCatId) || root;
+  host.appendChild(renderCategoryBlock(selected, { includePages: true, depth: 0, isRoot: true }));
+}
+
+function renderCategoryBlock(catNode, { includePages, depth, isRoot }) {
+  const isExpanded = true; // main pane always renders expanded blocks by default (you can change later)
+
+  const header = el("div", {},
+    el("div", {}, displayTitle(catNode.title)),
+    el("div", { class: "small" }, catNode.id)
+  );
+
+  const block = el("div", { class: "block" }, header);
+
+  if (!isExpanded) return block;
+
+  // child categories
+  for (const ch of (catNode.children || [])) {
+    block.appendChild(el("div", { style: "margin-top:10px" },
+      renderCategoryBlock(ch, { includePages, depth: depth + 1, isRoot: false })
+    ));
+  }
+
+  // pages
+  if (includePages && (catNode.pages || []).length) {
+    const ul = el("ul", {});
+    for (const p of catNode.pages) {
+      const a = el("a", { href: p.url, target: "_blank", rel: "noreferrer" }, displayTitle(p.title));
+      const meta = p.stats?.bytes != null ? ` (${p.stats.bytes} bytes)` : "";
+      ul.appendChild(el("li", {}, a, meta ? el("span", { class: "small" }, meta) : null));
+    }
+    block.appendChild(el("div", { style: "margin-top:10px" },
+      el("div", { class: "small" }, "Pages"),
+      ul
+    ));
+  }
+
+  return block;
+}
+
+// --- wiring
+
+async function loadData() {
+  const r = await fetch(DATA_URL, { cache: "no-store" });
+  if (!r.ok) throw new Error(`Failed to load ${DATA_URL}: ${r.status}`);
+  state.data = await r.json();
+
+  state.selectedCatId = state.data.root.id;
+  state.expanded.add(state.data.root.id);
+}
+
+function setMode(mode) {
+  state.mode = mode;
+  document.getElementById("modeFocused").classList.toggle("active", mode === "focused");
+  document.getElementById("modeUniversal").classList.toggle("active", mode === "universal");
+  renderMain();
+}
+
+function initUI() {
+  document.getElementById("modeFocused").addEventListener("click", () => setMode("focused"));
+  document.getElementById("modeUniversal").addEventListener("click", () => setMode("universal"));
+
+  document.getElementById("viewAllLink").addEventListener("click", (ev) => {
+    ev.preventDefault();
+    setMode("universal");
+  });
+
+  document.getElementById("schemeSelect").addEventListener("change", (ev) => {
+    state.scheme = ev.target.value;
+    renderSidebarTree();
+    renderMain();
+  });
+}
+
+(async function main() {
+  initUI();
+  await loadData();
+  renderSidebarTree();
+  renderMain();
+})();

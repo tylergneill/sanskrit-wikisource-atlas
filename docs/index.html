@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Wikisource Category Tree</title>
+  <link rel="stylesheet" href="./styles.css" />
+
+  <!-- Sanscript: pick one source you like; this one is commonly used -->
+  <script src="https://cdn.jsdelivr.net/npm/sanscript@1.2.6/sanscript.min.js"></script>
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">Tree Viewer</div>
+
+    <nav class="topnav">
+      <a href="#" id="viewAllLink" class="navlink">View All</a>
+      <span class="sep">|</span>
+      <label class="navlabel" for="schemeSelect">Transliteration:</label>
+      <select id="schemeSelect">
+        <option value="devanagari" selected>Devanagari (native)</option>
+        <option value="iast">IAST</option>
+        <option value="itrans">ITRANS</option>
+        <option value="hk">Harvard-Kyoto</option>
+        <option value="slp1">SLP1</option>
+      </select>
+    </nav>
+  </header>
+
+  <div class="layout">
+    <aside class="sidenav">
+      <div class="panelTitle">Categories</div>
+      <div class="hint">
+        Click ▸ to expand. Alt/Option-click (or Shift-click) expands all.
+      </div>
+      <div id="sidebarTree" class="tree"></div>
+    </aside>
+
+    <main class="mainpane">
+      <div class="modebar">
+        <button id="modeFocused" class="modebtn active">Focused</button>
+        <button id="modeUniversal" class="modebtn">Universal</button>
+      </div>
+
+      <section id="content" class="content"></section>
+    </main>
+  </div>
+
+  <script type="module" src="./app.js"></script>
+</body>
+</html>

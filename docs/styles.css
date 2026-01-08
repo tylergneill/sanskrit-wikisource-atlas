@@ -1,0 +1,118 @@
+:root{
+  --bg: #0b0d10;
+  --panel: #10141a;
+  --panel2: #0f1318;
+  --text: #e6e6e6;
+  --muted: #a8b3c2;
+  --border: #222b36;
+  --accent: #66a3ff;
+}
+
+* { box-sizing: border-box; }
+html, body { height: 100%; }
+body{
+  margin:0;
+  font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+  background: var(--bg);
+  color: var(--text);
+}
+
+.topbar{
+  height: 48px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  padding: 0 14px;
+  background: var(--panel);
+  border-bottom: 1px solid var(--border);
+}
+
+.brand{ font-weight: 600; }
+.topnav{ display:flex; align-items:center; gap:10px; color: var(--muted); }
+.navlink{ color: var(--accent); text-decoration:none; }
+.navlink:hover{ text-decoration:underline; }
+.sep{ opacity:.6; }
+.navlabel{ font-size: 13px; }
+#schemeSelect{
+  background: var(--panel2);
+  color: var(--text);
+  border: 1px solid var(--border);
+  padding: 4px 8px;
+  border-radius: 6px;
+}
+
+.layout{
+  height: calc(100% - 48px);
+  display:grid;
+  grid-template-columns: 340px 1fr;
+}
+
+.sidenav{
+  border-right: 1px solid var(--border);
+  background: var(--panel2);
+  padding: 12px;
+  overflow:auto;
+}
+
+.panelTitle{ font-weight: 600; margin-bottom: 6px; }
+.hint{ font-size: 12px; color: var(--muted); margin-bottom: 10px; }
+
+.mainpane{
+  padding: 14px;
+  overflow:auto;
+}
+
+.modebar{ display:flex; gap: 8px; margin-bottom: 12px; }
+.modebtn{
+  background: var(--panel);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 7px 10px;
+  cursor:pointer;
+}
+.modebtn.active{
+  border-color: var(--accent);
+}
+
+.tree .row{
+  display:flex;
+  align-items:center;
+  gap: 6px;
+  padding: 3px 2px;
+  border-radius: 6px;
+}
+.tree .row:hover{ background: rgba(255,255,255,0.04); }
+.tree .row.selected{ background: rgba(102,163,255,0.18); }
+
+.twisty{
+  width: 18px;
+  height: 18px;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  cursor:pointer;
+  user-select:none;
+  color: var(--muted);
+}
+.title{
+  cursor:pointer;
+  user-select:none;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+.indent{ margin-left: 18px; }
+
+.content .block{
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 10px 12px;
+  margin-bottom: 10px;
+}
+
+.content a{ color: var(--accent); text-decoration:none; }
+.content a:hover{ text-decoration:underline; }
+
+.small{ font-size: 12px; color: var(--muted); }

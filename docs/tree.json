@@ -1,0 +1,2435 @@
+{
+    "root": {
+        "id": "cat:ग्रन्थाः",
+        "type": "bcategory",
+        "title": "वर्गः:ग्रन्थाः",
+        "children": [
+            {
+                "id": "cat:अनिर्दिष्टानि पुटानि",
+                "type": "category",
+                "title": "वर्गः:अनिर्दिष्टानि पुटानि",
+                "children": [],
+                "pages": [
+                    {
+                        "id": "page:साहाय्यम्:आन्तर्यम्",
+                        "type": "page",
+                        "title": "साहाय्यम्:आन्तर्यम्",
+                        "url": "https://sa.wikisource.org/wiki/साहाय्यम्:आन्तर्यम्",
+                        "stats": {
+                            "bytes": 65037
+                        }
+                    }
+                ],
+                "stats": {
+                    "bytes": 65037
+                }
+            },
+            {
+                "id": "cat:अन्यग्रन्थाः",
+                "type": "category",
+                "title": "वर्गः:अन्यग्रन्थाः",
+                "children": [],
+                "pages": [
+                    {
+                        "id": "page:चित्रलक्षणम्",
+                        "type": "page",
+                        "title": "चित्रलक्षणम्",
+                        "url": "https://sa.wikisource.org/wiki/चित्रलक्षणम्",
+                        "stats": {
+                            "bytes": 147932
+                        }
+                    },
+                    {
+                        "id": "page:पाकदर्पणम्",
+                        "type": "page",
+                        "title": "पाकदर्पणम्",
+                        "url": "https://sa.wikisource.org/wiki/पाकदर्पणम्",
+                        "stats": {
+                            "bytes": 78897
+                        }
+                    },
+                    {
+                        "id": "page:बिस्मिलस्य बलिदान-कथा",
+                        "type": "page",
+                        "title": "बिस्मिलस्य बलिदान-कथा",
+                        "url": "https://sa.wikisource.org/wiki/बिस्मिलस्य_बलिदान-कथा",
+                        "stats": {
+                            "bytes": 70350
+                        }
+                    },
+                    {
+                        "id": "page:बैबल्",
+                        "type": "page",
+                        "title": "बैबल्",
+                        "url": "https://sa.wikisource.org/wiki/बैबल्",
+                        "stats": {
+                            "bytes": 62818
+                        }
+                    }
+                ],
+                "stats": {
+                    "bytes": 359997
+                }
+            },
+            {
+                "id": "cat:आगमः",
+                "type": "category",
+                "title": "वर्गः:आगमः",
+                "children": [],
+                "pages": [
+                    {
+                        "id": "page:अंशुमत्काश्यपागमः",
+                        "type": "page",
+                        "title": "अंशुमत्काश्यपागमः",
+                        "url": "https://sa.wikisource.org/wiki/अंशुमत्काश्यपागमः",
+                        "stats": {
+                            "bytes": 105871
+                        }
+                    },
+                    {
+                        "id": "page:अकुलवीरतन्त्रम्",
+                        "type": "page",
+                        "title": "अकुलवीरतन्त्रम्",
+                        "url": "https://sa.wikisource.org/wiki/अकुलवीरतन्त्रम्",
+                        "stats": {
+                            "bytes": 96241
+                        }
+                    },
+                    {
+                        "id": "page:अगस्त्यसंहिता",
+                        "type": "page",
+                        "title": "अगस्त्यसंहिता",
+                        "url": "https://sa.wikisource.org/wiki/अगस्त्यसंहिता",
+                        "stats": {
+                            "bytes": 378349
+                        }
+                    },
+                    {
+                        "id": "page:अग्निकार्यपद्धतिः",
+                        "type": "page",
+                        "title": "अग्निकार्यपद्धतिः",
+                        "url": "https://sa.wikisource.org/wiki/अग्निकार्यपद्धतिः",
+                        "stats": {
+                            "bytes": 645707
+                        }
+                    },
+                    {
+                        "id": "page:आगमप्रामाण्यम्",
+                        "type": "page",
+                        "title": "आगमप्रामाण्यम्",
+                        "url": "https://sa.wikisource.org/wiki/आगमप्रामाण्यम्",
+                        "stats": {
+                            "bytes": 354631
+                        }
+                    },
+                    {
+                        "id": "page:कामिकागमः - पूर्वभागः",
+                        "type": "page",
+                        "title": "कामिकागमः - पूर्वभागः",
+                        "url": "https://sa.wikisource.org/wiki/कामिकागमः_-_पूर्वभागः",
+                        "stats": {
+                            "bytes": 1550335
+                        }
+                    },
+                    {
+                        "id": "page:तन्त्रसारः",
+                        "type": "page",
+                        "title": "तन्त्रसारः",
+                        "url": "https://sa.wikisource.org/wiki/तन्त्रसारः",
+                        "stats": {
+                            "bytes": 358009
+                        }
+                    },
+                    {
+                        "id": "page:तन्त्रालोकः",
+                        "type": "page",
+                        "title": "तन्त्रालोकः",
+                        "url": "https://sa.wikisource.org/wiki/तन्त्रालोकः",
+                        "stats": {
+                            "bytes": 76920
+                        }
+                    },
+                    {
+                        "id": "page:देव्याः कवचम्",
+                        "type": "page",
+                        "title": "देव्याः कवचम्",
+                        "url": "https://sa.wikisource.org/wiki/देव्याः_कवचम्",
+                        "stats": {
+                            "bytes": 78091
+                        }
+                    },
+                    {
+                        "id": "page:प्रयोगमञ्जरी",
+                        "type": "page",
+                        "title": "प्रयोगमञ्जरी",
+                        "url": "https://sa.wikisource.org/wiki/प्रयोगमञ्जरी",
+                        "stats": {
+                            "bytes": 63434
+                        }
+                    },
+                    {
+                        "id": "page:योगपादः",
+                        "type": "page",
+                        "title": "योगपादः",
+                        "url": "https://sa.wikisource.org/wiki/योगपादः",
+                        "stats": {
+                            "bytes": 56410
+                        }
+                    },
+                    {
+                        "id": "page:साधनदीपिका",
+                        "type": "page",
+                        "title": "साधनदीपिका",
+                        "url": "https://sa.wikisource.org/wiki/साधनदीपिका",
+                        "stats": {
+                            "bytes": 58887
+                        }
+                    },
+                    {
+                        "id": "page:हयशीर्षपञ्चरात्रम्",
+                        "type": "page",
+                        "title": "हयशीर्षपञ्चरात्रम्",
+                        "url": "https://sa.wikisource.org/wiki/हयशीर्षपञ्चरात्रम्",
+                        "stats": {
+                            "bytes": 368907
+                        }
+                    }
+                ],
+                "stats": {
+                    "bytes": 4191792
+                }
+            },
+            {
+                "id": "cat:उपनिषदः",
+                "type": "category",
+                "title": "वर्गः:उपनिषदः",
+                "children": [],
+                "pages": [
+                    {
+                        "id": "page:अक्षमालिकोपनिषत्",
+                        "type": "page",
+                        "title": "अक्षमालिकोपनिषत्",
+                        "url": "https://sa.wikisource.org/wiki/अक्षमालिकोपनिषत्",
+                        "stats": {
+                            "bytes": 85564
+                        }
+                    },
+                    {
+                        "id": "page:अक्ष्युपनिषत्",
+                        "type": "page",
+                        "title": "अक्ष्युपनिषत्",
+                        "url": "https://sa.wikisource.org/wiki/अक्ष्युपनिषत्",
+                        "stats": {
+                            "bytes": 76838
+                        }
+                    },
+                    {
+                        "id": "page:अथर्वशिखउपनिषद्",
+                        "type": "page",
+                        "title": "अथर्वशिखउपनिषद्",
+                        "url": "https://sa.wikisource.org/wiki/अथर्वशिखउपनिषद्",
+                        "stats": {
+                            "bytes": 70444
+                        }
+                    },
+                    {
+                        "id": "page:अथर्वशिरउपनिषद्",
+                        "type": "page",
+                        "title": "अथर्वशिरउपनिषद्",
+                        "url": "https://sa.wikisource.org/wiki/अथर्वशिरउपनिषद्",
+                        "stats": {
+                            "bytes": 92847
+                        }
+                    },
+                    {
+                        "id": "page:अद्वयतारकोपनिषत्",
+                        "type": "page",
+                        "title": "अद्वयतारकोपनिषत्",
+                        "url": "https://sa.wikisource.org/wiki/अद्वयतारकोपनिषत्",
+                        "stats": {
+                            "bytes": 110626
+                        }
+                    },
+                    {
+                        "id": "page:अन्नपूर्णोपनिषत्",
+                        "type": "page",
+                        "title": "अन्नपूर्णोपनिषत्",
+                        "url": "https://sa.wikisource.org/wiki/अन्नपूर्णोपनिषत्",
+                        "stats": {
+                            "bytes": 154011
+                        }
+                    },
+                    {
+                        "id": "page:अमृतनादोपनिषत्",
+                        "type": "page",
+                        "title": "अमृतनादोपनिषत्",
+                        "url": "https://sa.wikisource.org/wiki/अमृतनादोपनिषत्",
+                        "stats": {
+                            "bytes": 67743
+                        }
+                    },
+                    {
+                        "id": "page:अमृतबिन्दूपनिषद्",
+                        "type": "page",
+                        "title": "अमृतबिन्दूपनिषद्",
+                        "url": "https://sa.wikisource.org/wiki/अमृतबिन्दूपनिषद्",
+                        "stats": {
+                            "bytes": 64335
+                        }
+                    },
+                    {
+                        "id": "page:अवधूतोपनिषत्",
+                        "type": "page",
+                        "title": "अवधूतोपनिषत्",
+                        "url": "https://sa.wikisource.org/wiki/अवधूतोपनिषत्",
+                        "stats": {
+                            "bytes": 72620
+                        }
+                    },
+                    {
+                        "id": "page:अव्यक्तोपनिषत्",
+                        "type": "page",
+                        "title": "अव्यक्तोपनिषत्",
+                        "url": "https://sa.wikisource.org/wiki/अव्यक्तोपनिषत्",
+                        "stats": {
+                            "bytes": 80931
+                        }
+                    },
+                    {
+                        "id": "page:आत्मबोधोपनिषत्",
+                        "type": "page",
+                        "title": "आत्मबोधोपनिषत्",
+                        "url": "https://sa.wikisource.org/wiki/आत्मबोधोपनिषत्",
+                        "stats": {
+                            "bytes": 77108
+                        }
+                    },
+                    {
+                        "id": "page:आत्मोपनिषत्",
+                        "type": "page",
+                        "title": "आत्मोपनिषत्",
+                        "url": "https://sa.wikisource.org/wiki/आत्मोपनिषत्",
+                        "stats": {
+                            "bytes": 72992
+                        }
+                    },
+                    {
+                        "id": "page:आरुणेयोपनिषद्",
+                        "type": "page",
+                        "title": "आरुणेयोपनिषद्",
+                        "url": "https://sa.wikisource.org/wiki/आरुणेयोपनिषद्",
+                        "stats": {
+                            "bytes": 69617
+                        }
+                    },
+                    {
+                        "id": "page:आर्षेयोपनिषत्",
+                        "type": "page",
+                        "title": "आर्षेयोपनिषत्",
+                        "url": "https://sa.wikisource.org/wiki/आर्षेयोपनिषत्",
+                        "stats": {
+                            "bytes": 72048
+                        }
+                    },
+                    {
+                        "id": "page:इतिहासोपनिषत्",
+                        "type": "page",
+                        "title": "इतिहासोपनिषत्",
+                        "url": "https://sa.wikisource.org/wiki/इतिहासोपनिषत्",
+                        "stats": {
+                            "bytes": 88228
+                        }
+                    },
+                    {
+                        "id": "page:ईशादिविंशोत्तरशतोपनिषदः",
+                        "type": "page",
+                        "title": "ईशादिविंशोत्तरशतोपनिषदः",
+                        "url": "https://sa.wikisource.org/wiki/ईशादिविंशोत्तरशतोपनिषदः",
+                        "stats": {
+                            "bytes": 70341
+                        }
+                    },
+                    {
+                        "id": "page:ईशावास्योपनिषद्भाष्यम् शङ्कराचार्यकृतम्",
+                        "type": "page",
+                        "title": "ईशावास्योपनिषद्भाष्यम् शङ्कराचार्यकृतम्",
+                        "url": "https://sa.wikisource.org/wiki/ईशावास्योपनिषद्भाष्यम्_शङ्कराचार्यकृतम्",
+                        "stats": {
+                            "bytes": 93117
+                        }
+                    },
+                    {
+                        "id": "page:उपनिषदः",
+                        "type": "page",
+                        "title": "उपनिषदः",
+                        "url": "https://sa.wikisource.org/wiki/उपनिषदः",
+                        "stats": {
+                            "bytes": 100502
+                        }
+                    },
+                    {
+                        "id": "page:एकाक्षरोपनिषत्",
+                        "type": "page",
+                        "title": "एकाक्षरोपनिषत्",
+                        "url": "https://sa.wikisource.org/wiki/एकाक्षरोपनिषत्",
+                        "stats": {
+                            "bytes": 67348
+                        }
+                    },
+                    {
+                        "id": "page:ऐतरेयोपनिषद्",
+                        "type": "page",
+                        "title": "ऐतरेयोपनिषद्",
+                        "url": "https://sa.wikisource.org/wiki/ऐतरेयोपनिषद्",
+                        "stats": {
+                            "bytes": 77193
+                        }
+                    },
+                    {
+                        "id": "page:कठरुद्रोपनिषत्",
+                        "type": "page",
+                        "title": "कठरुद्रोपनिषत्",
+                        "url": "https://sa.wikisource.org/wiki/कठरुद्रोपनिषत्",
+                        "stats": {
+                            "bytes": 78731
+                        }
+                    },
+                    {
+                        "id": "page:कलिसन्तरणोपनिषत्",
+                        "type": "page",
+                        "title": "कलिसन्तरणोपनिषत्",
+                        "url": "https://sa.wikisource.org/wiki/कलिसन्तरणोपनिषत्",
+                        "stats": {
+                            "bytes": 65672
+                        }
+                    },
+                    {
+                        "id": "page:काठकोपनिषत्",
+                        "type": "page",
+                        "title": "काठकोपनिषत्",
+                        "url": "https://sa.wikisource.org/wiki/काठकोपनिषत्",
+                        "stats": {
+                            "bytes": 1158139
+                        }
+                    },
+                    {
+                        "id": "page:कालाग्निरुद्रोपनिषत्",
+                        "type": "page",
+                        "title": "कालाग्निरुद्रोपनिषत्",
+                        "url": "https://sa.wikisource.org/wiki/कालाग्निरुद्रोपनिषत्",
+                        "stats": {
+                            "bytes": 70040
+                        }
+                    },
+                    {
+                        "id": "page:कुण्डिकोपनिषत्",
+                        "type": "page",
+                        "title": "कुण्डिकोपनिषत्",
+                        "url": "https://sa.wikisource.org/wiki/कुण्डिकोपनिषत्",
+                        "stats": {
+                            "bytes": 72786
+                        }
+                    },
+                    {
+                        "id": "page:कृष्णोपनिषत्",
+                        "type": "page",
+                        "title": "कृष्णोपनिषत्",
+                        "url": "https://sa.wikisource.org/wiki/कृष्णोपनिषत्",
+                        "stats": {
+                            "bytes": 79426
+                        }
+                    },
+                    {
+                        "id": "page:केनोपनिषद्",
+                        "type": "page",
+                        "title": "केनोपनिषद्",
+                        "url": "https://sa.wikisource.org/wiki/केनोपनिषद्",
+                        "stats": {
+                            "bytes": 78884
+                        }
+                    },
+                    {
+                        "id": "page:कैवल्योपनिषद्",
+                        "type": "page",
+                        "title": "कैवल्योपनिषद्",
+                        "url": "https://sa.wikisource.org/wiki/कैवल्योपनिषद्",
+                        "stats": {
+                            "bytes": 73317
+                        }
+                    },
+                    {
+                        "id": "page:कौलोपनिषत्",
+                        "type": "page",
+                        "title": "कौलोपनिषत्",
+                        "url": "https://sa.wikisource.org/wiki/कौलोपनिषत्",
+                        "stats": {
+                            "bytes": 63703
+                        }
+                    },
+                    {
+                        "id": "page:कौषीतकिब्राह्मणोपनिषत्",
+                        "type": "page",
+                        "title": "कौषीतकिब्राह्मणोपनिषत्",
+                        "url": "https://sa.wikisource.org/wiki/कौषीतकिब्राह्मणोपनिषत्",
+                        "stats": {
+                            "bytes": 134512
+                        }
+                    },
+                    {
+                        "id": "page:कौषीतकीब्राह्मणोपनिषद्",
+                        "type": "page",
+                        "title": "कौषीतकीब्राह्मणोपनिषद्",
+                        "url": "https://sa.wikisource.org/wiki/कौषीतकीब्राह्मणोपनिषद्",
+                        "stats": {
+                            "bytes": 129531
+                        }
+                    },
+                    {
+                        "id": "page:क्षुरिकोपनिषत्",
+                        "type": "page",
+                        "title": "क्षुरिकोपनिषत्",
+                        "url": "https://sa.wikisource.org/wiki/क्षुरिकोपनिषत्",
+                        "stats": {
+                            "bytes": 71213
+                        }
+                    },
+                    {
+                        "id": "page:क्षुरिकोपनिषद्विवरणम्",
+                        "type": "page",
+                        "title": "क्षुरिकोपनिषद्विवरणम्",
+                        "url": "https://sa.wikisource.org/wiki/क्षुरिकोपनिषद्विवरणम्",
+                        "stats": {
+                            "bytes": 92075
+                        }
+                    },
+                    {
+                        "id": "page:गणपत्यथर्वशीर्षोपनिषत्",
+                        "type": "page",
+                        "title": "गणपत्यथर्वशीर्षोपनिषत्",
+                        "url": "https://sa.wikisource.org/wiki/गणपत्यथर्वशीर्षोपनिषत्",
+                        "stats": {
+                            "bytes": 74362
+                        }
+                    },
+                    {
+                        "id": "page:गरुडोपनिषत्",
+                        "type": "page",
+                        "title": "गरुडोपनिषत्",
+                        "url": "https://sa.wikisource.org/wiki/गरुडोपनिषत्",
+                        "stats": {
+                            "bytes": 79479
+                        }
+                    },
+                    {
+                        "id": "page:गर्भोपनिषद्",
+                        "type": "page",
+                        "title": "गर्भोपनिषद्",
+                        "url": "https://sa.wikisource.org/wiki/गर्भोपनिषद्",
+                        "stats": {
+                            "bytes": 71927
+                        }
+                    },
+                    {
+                        "id": "page:गोपालतापिन्युपनिषत्",
+                        "type": "page",
+                        "title": "गोपालतापिन्युपनिषत्",
+                        "url": "https://sa.wikisource.org/wiki/गोपालतापिन्युपनिषत्",
+                        "stats": {
+                            "bytes": 113106
+                        }
+                    },
+                    {
+                        "id": "page:चाक्षुष उपनिषद",
+                        "type": "page",
+                        "title": "चाक्षुष उपनिषद",
+                        "url": "https://sa.wikisource.org/wiki/चाक्षुष_उपनिषद",
+                        "stats": {
+                            "bytes": 66587
+                        }
+                    },
+                    {
+                        "id": "page:छान्दोग्योपनिषद्",
+                        "type": "page",
+                        "title": "छान्दोग्योपनिषद्",
+                        "url": "https://sa.wikisource.org/wiki/छान्दोग्योपनिषद्",
+                        "stats": {
+                            "bytes": 66232
+                        }
+                    },
+                    {
+                        "id": "page:छान्दोग्योपनिषद्भाष्यम्",
+                        "type": "page",
+                        "title": "छान्दोग्योपनिषद्भाष्यम्",
+                        "url": "https://sa.wikisource.org/wiki/छान्दोग्योपनिषद्भाष्यम्",
+                        "stats": {
+                            "bytes": 1392364
+                        }
+                    },
+                    {
+                        "id": "page:जाबालोपनिषत् (यजुर्वेदः)",
+                        "type": "page",
+                        "title": "जाबालोपनिषत् (यजुर्वेदः)",
+                        "url": "https://sa.wikisource.org/wiki/जाबालोपनिषत्_(यजुर्वेदः)",
+                        "stats": {
+                            "bytes": 75369
+                        }
+                    },
+                    {
+                        "id": "page:जाबालोपनिषत् (सामवेदः)",
+                        "type": "page",
+                        "title": "जाबालोपनिषत् (सामवेदः)",
+                        "url": "https://sa.wikisource.org/wiki/जाबालोपनिषत्_(सामवेदः)",
+                        "stats": {
+                            "bytes": 73974
+                        }
+                    },
+                    {
+                        "id": "page:तारसारोपनिषत्",
+                        "type": "page",
+                        "title": "तारसारोपनिषत्",
+                        "url": "https://sa.wikisource.org/wiki/तारसारोपनिषत्",
+                        "stats": {
+                            "bytes": 72613
+                        }
+                    },
+                    {
+                        "id": "page:तुरीयातीतोपनिषत्",
+                        "type": "page",
+                        "title": "तुरीयातीतोपनिषत्",
+                        "url": "https://sa.wikisource.org/wiki/तुरीयातीतोपनिषत्",
+                        "stats": {
+                            "bytes": 68538
+                        }
+                    },
+                    {
+                        "id": "page:तेजोबिन्दूपनिषद्",
+                        "type": "page",
+                        "title": "तेजोबिन्दूपनिषद्",
+                        "url": "https://sa.wikisource.org/wiki/तेजोबिन्दूपनिषद्",
+                        "stats": {
+                            "bytes": 244961
+                        }
+                    },
+                    {
+                        "id": "page:तैत्तरीयोपनिषद्भाष्यम्",
+                        "type": "page",
+                        "title": "तैत्तरीयोपनिषद्भाष्यम्",
+                        "url": "https://sa.wikisource.org/wiki/तैत्तरीयोपनिषद्भाष्यम्",
+                        "stats": {
+                            "bytes": 384041
+                        }
+                    },
+                    {
+                        "id": "page:त्रिपुरातापिन्युपनिषत्",
+                        "type": "page",
+                        "title": "त्रिपुरातापिन्युपनिषत्",
+                        "url": "https://sa.wikisource.org/wiki/त्रिपुरातापिन्युपनिषत्",
+                        "stats": {
+                            "bytes": 123381
+                        }
+                    },
+                    {
+                        "id": "page:त्रिपुरोपनिषत्",
+                        "type": "page",
+                        "title": "त्रिपुरोपनिषत्",
+                        "url": "https://sa.wikisource.org/wiki/त्रिपुरोपनिषत्",
+                        "stats": {
+                            "bytes": 69356
+                        }
+                    },
+                    {
+                        "id": "page:त्रिशिखिब्राह्मणोपनिषत्",
+                        "type": "page",
+                        "title": "त्रिशिखिब्राह्मणोपनिषत्",
+                        "url": "https://sa.wikisource.org/wiki/त्रिशिखिब्राह्मणोपनिषत्",
+                        "stats": {
+                            "bytes": 113497
+                        }
+                    },
+                    {
+                        "id": "page:दक्षिणामूर्त्युपनिषत्",
+                        "type": "page",
+                        "title": "दक्षिणामूर्त्युपनिषत्",
+                        "url": "https://sa.wikisource.org/wiki/दक्षिणामूर्त्युपनिषत्",
+                        "stats": {
+                            "bytes": 85172
+                        }
+                    },
+                    {
+                        "id": "page:दत्तात्रेय उपनिषद्",
+                        "type": "page",
+                        "title": "दत्तात्रेय उपनिषद्",
+                        "url": "https://sa.wikisource.org/wiki/दत्तात्रेय_उपनिषद्",
+                        "stats": {
+                            "bytes": 76758
+                        }
+                    },
+                    {
+                        "id": "page:दत्तात्रेयोपनिषत्",
+                        "type": "page",
+                        "title": "दत्तात्रेयोपनिषत्",
+                        "url": "https://sa.wikisource.org/wiki/दत्तात्रेयोपनिषत्",
+                        "stats": {
+                            "bytes": 70483
+                        }
+                    },
+                    {
+                        "id": "page:दर्शनोपनिषत्",
+                        "type": "page",
+                        "title": "दर्शनोपनिषत्",
+                        "url": "https://sa.wikisource.org/wiki/दर्शनोपनिषत्",
+                        "stats": {
+                            "bytes": 139311
+                        }
+                    },
+                    {
+                        "id": "page:देव्युपनिषत्",
+                        "type": "page",
+                        "title": "देव्युपनिषत्",
+                        "url": "https://sa.wikisource.org/wiki/देव्युपनिषत्",
+                        "stats": {
+                            "bytes": 80838
+                        }
+                    },
+                    {
+                        "id": "page:नादबिन्दूपनिषत्",
+                        "type": "page",
+                        "title": "नादबिन्दूपनिषत्",
+                        "url": "https://sa.wikisource.org/wiki/नादबिन्दूपनिषत्",
+                        "stats": {
+                            "bytes": 82152
+                        }
+                    },
+                    {
+                        "id": "page:नारदपरिव्राजकोपनिषत्",
+                        "type": "page",
+                        "title": "नारदपरिव्राजकोपनिषत्",
+                        "url": "https://sa.wikisource.org/wiki/नारदपरिव्राजकोपनिषत्",
+                        "stats": {
+                            "bytes": 194340
+                        }
+                    },
+                    {
+                        "id": "page:नारायणपूर्वतापिनीयोपनिषत्",
+                        "type": "page",
+                        "title": "नारायणपूर्वतापिनीयोपनिषत्",
+                        "url": "https://sa.wikisource.org/wiki/नारायणपूर्वतापिनीयोपनिषत्",
+                        "stats": {
+                            "bytes": 88901
+                        }
+                    },
+                    {
+                        "id": "page:नारायणोत्तरतापिनीयोपनिषत्",
+                        "type": "page",
+                        "title": "नारायणोत्तरतापिनीयोपनिषत्",
+                        "url": "https://sa.wikisource.org/wiki/नारायणोत्तरतापिनीयोपनिषत्",
+                        "stats": {
+                            "bytes": 74466
+                        }
+                    },
+                    {
+                        "id": "page:नारायणोपनिषद्",
+                        "type": "page",
+                        "title": "नारायणोपनिषद्",
+                        "url": "https://sa.wikisource.org/wiki/नारायणोपनिषद्",
+                        "stats": {
+                            "bytes": 77012
+                        }
+                    },
+                    {
+                        "id": "page:निरालम्बोपनिषत्",
+                        "type": "page",
+                        "title": "निरालम्बोपनिषत्",
+                        "url": "https://sa.wikisource.org/wiki/निरालम्बोपनिषत्",
+                        "stats": {
+                            "bytes": 77218
+                        }
+                    },
+                    {
+                        "id": "page:निरुक्तोपनिषत्",
+                        "type": "page",
+                        "title": "निरुक्तोपनिषत्",
+                        "url": "https://sa.wikisource.org/wiki/निरुक्तोपनिषत्",
+                        "stats": {
+                            "bytes": 62161
+                        }
+                    },
+                    {
+                        "id": "page:निर्वाणोपनिषत्",
+                        "type": "page",
+                        "title": "निर्वाणोपनिषत्",
+                        "url": "https://sa.wikisource.org/wiki/निर्वाणोपनिषत्",
+                        "stats": {
+                            "bytes": 69524
+                        }
+                    },
+                    {
+                        "id": "page:नृसिंहतापनी उपनिषद्-1",
+                        "type": "page",
+                        "title": "नृसिंहतापनी उपनिषद्-1",
+                        "url": "https://sa.wikisource.org/wiki/नृसिंहतापनी_उपनिषद्-1",
+                        "stats": {
+                            "bytes": 117795
+                        }
+                    },
+                    {
+                        "id": "page:नृसिंहोत्तरतापनीयोपनिषद",
+                        "type": "page",
+                        "title": "नृसिंहोत्तरतापनीयोपनिषद",
+                        "url": "https://sa.wikisource.org/wiki/नृसिंहोत्तरतापनीयोपनिषद",
+                        "stats": {
+                            "bytes": 117939
+                        }
+                    },
+                    {
+                        "id": "page:पञ्चब्रह्मोपनिषत्",
+                        "type": "page",
+                        "title": "पञ्चब्रह्मोपनिषत्",
+                        "url": "https://sa.wikisource.org/wiki/पञ्चब्रह्मोपनिषत्",
+                        "stats": {
+                            "bytes": 73994
+                        }
+                    },
+                    {
+                        "id": "page:परब्रह्मोपनिषत्",
+                        "type": "page",
+                        "title": "परब्रह्मोपनिषत्",
+                        "url": "https://sa.wikisource.org/wiki/परब्रह्मोपनिषत्",
+                        "stats": {
+                            "bytes": 78648
+                        }
+                    },
+                    {
+                        "id": "page:परमहंसपरिव्राजकोपनिषत्",
+                        "type": "page",
+                        "title": "परमहंसपरिव्राजकोपनिषत्",
+                        "url": "https://sa.wikisource.org/wiki/परमहंसपरिव्राजकोपनिषत्",
+                        "stats": {
+                            "bytes": 85303
+                        }
+                    },
+                    {
+                        "id": "page:परमहंसोपनिषद्",
+                        "type": "page",
+                        "title": "परमहंसोपनिषद्",
+                        "url": "https://sa.wikisource.org/wiki/परमहंसोपनिषद्",
+                        "stats": {
+                            "bytes": 68121
+                        }
+                    },
+                    {
+                        "id": "page:परिव्रात् उपनिषद् (नारदपरिव्राजक)",
+                        "type": "page",
+                        "title": "परिव्रात् उपनिषद् (नारदपरिव्राजक)",
+                        "url": "https://sa.wikisource.org/wiki/परिव्रात्_उपनिषद्_(नारदपरिव्राजक)",
+                        "stats": {
+                            "bytes": 66754
+                        }
+                    },
+                    {
+                        "id": "page:पाशुपतब्रह्मोपनिषत्",
+                        "type": "page",
+                        "title": "पाशुपतब्रह्मोपनिषत्",
+                        "url": "https://sa.wikisource.org/wiki/पाशुपतब्रह्मोपनिषत्",
+                        "stats": {
+                            "bytes": 86298
+                        }
+                    },
+                    {
+                        "id": "page:पिण्डोपनिषत्",
+                        "type": "page",
+                        "title": "पिण्डोपनिषत्",
+                        "url": "https://sa.wikisource.org/wiki/पिण्डोपनिषत्",
+                        "stats": {
+                            "bytes": 57860
+                        }
+                    },
+                    {
+                        "id": "page:पैङ्गलोपनिषत्",
+                        "type": "page",
+                        "title": "पैङ्गलोपनिषत्",
+                        "url": "https://sa.wikisource.org/wiki/पैङ्गलोपनिषत्",
+                        "stats": {
+                            "bytes": 95768
+                        }
+                    },
+                    {
+                        "id": "page:प्रणवोपनिषत् (१)",
+                        "type": "page",
+                        "title": "प्रणवोपनिषत् (१)",
+                        "url": "https://sa.wikisource.org/wiki/प्रणवोपनिषत्_(१)",
+                        "stats": {
+                            "bytes": 59839
+                        }
+                    },
+                    {
+                        "id": "page:प्रश्न उपनिषद्",
+                        "type": "page",
+                        "title": "प्रश्न उपनिषद्",
+                        "url": "https://sa.wikisource.org/wiki/प्रश्न_उपनिषद्",
+                        "stats": {
+                            "bytes": 91198
+                        }
+                    },
+                    {
+                        "id": "page:प्राणाग्निहोत्रोपनिषत्",
+                        "type": "page",
+                        "title": "प्राणाग्निहोत्रोपनिषत्",
+                        "url": "https://sa.wikisource.org/wiki/प्राणाग्निहोत्रोपनिषत्",
+                        "stats": {
+                            "bytes": 76378
+                        }
+                    },
+                    {
+                        "id": "page:बह्वृचोपनिषत्",
+                        "type": "page",
+                        "title": "बह्वृचोपनिषत्",
+                        "url": "https://sa.wikisource.org/wiki/बह्वृचोपनिषत्",
+                        "stats": {
+                            "bytes": 68369
+                        }
+                    },
+                    {
+                        "id": "page:बृहज्जाबालोपनिषत्",
+                        "type": "page",
+                        "title": "बृहज्जाबालोपनिषत्",
+                        "url": "https://sa.wikisource.org/wiki/बृहज्जाबालोपनिषत्",
+                        "stats": {
+                            "bytes": 124952
+                        }
+                    },
+                    {
+                        "id": "page:बृहदारण्यकोपनिषद्",
+                        "type": "page",
+                        "title": "बृहदारण्यकोपनिषद्",
+                        "url": "https://sa.wikisource.org/wiki/बृहदारण्यकोपनिषद्",
+                        "stats": {
+                            "bytes": 70085
+                        }
+                    },
+                    {
+                        "id": "page:ब्रह्मबिन्दूपनिषद्",
+                        "type": "page",
+                        "title": "ब्रह्मबिन्दूपनिषद्",
+                        "url": "https://sa.wikisource.org/wiki/ब्रह्मबिन्दूपनिषद्",
+                        "stats": {
+                            "bytes": 72343
+                        }
+                    },
+                    {
+                        "id": "page:ब्रह्मविद्योपनिषत्",
+                        "type": "page",
+                        "title": "ब्रह्मविद्योपनिषत्",
+                        "url": "https://sa.wikisource.org/wiki/ब्रह्मविद्योपनिषत्",
+                        "stats": {
+                            "bytes": 95076
+                        }
+                    },
+                    {
+                        "id": "page:ब्रह्मोपनिषद्",
+                        "type": "page",
+                        "title": "ब्रह्मोपनिषद्",
+                        "url": "https://sa.wikisource.org/wiki/ब्रह्मोपनिषद्",
+                        "stats": {
+                            "bytes": 73218
+                        }
+                    },
+                    {
+                        "id": "page:भस्मजाबालोपनिषत्",
+                        "type": "page",
+                        "title": "भस्मजाबालोपनिषत्",
+                        "url": "https://sa.wikisource.org/wiki/भस्मजाबालोपनिषत्",
+                        "stats": {
+                            "bytes": 98625
+                        }
+                    },
+                    {
+                        "id": "page:भावोपनिषत्",
+                        "type": "page",
+                        "title": "भावोपनिषत्",
+                        "url": "https://sa.wikisource.org/wiki/भावोपनिषत्",
+                        "stats": {
+                            "bytes": 68567
+                        }
+                    },
+                    {
+                        "id": "page:भिक्षुकोपनिषत्",
+                        "type": "page",
+                        "title": "भिक्षुकोपनिषत्",
+                        "url": "https://sa.wikisource.org/wiki/भिक्षुकोपनिषत्",
+                        "stats": {
+                            "bytes": 66003
+                        }
+                    },
+                    {
+                        "id": "page:मण्डलब्राह्मणोपनिषत्",
+                        "type": "page",
+                        "title": "मण्डलब्राह्मणोपनिषत्",
+                        "url": "https://sa.wikisource.org/wiki/मण्डलब्राह्मणोपनिषत्",
+                        "stats": {
+                            "bytes": 89129
+                        }
+                    },
+                    {
+                        "id": "page:महानारायणोपनिषत्",
+                        "type": "page",
+                        "title": "महानारायणोपनिषत्",
+                        "url": "https://sa.wikisource.org/wiki/महानारायणोपनिषत्",
+                        "stats": {
+                            "bytes": 268646
+                        }
+                    },
+                    {
+                        "id": "page:महावाक्योपनिषत्",
+                        "type": "page",
+                        "title": "महावाक्योपनिषत्",
+                        "url": "https://sa.wikisource.org/wiki/महावाक्योपनिषत्",
+                        "stats": {
+                            "bytes": 67170
+                        }
+                    },
+                    {
+                        "id": "page:महोपनिषत्",
+                        "type": "page",
+                        "title": "महोपनिषत्",
+                        "url": "https://sa.wikisource.org/wiki/महोपनिषत्",
+                        "stats": {
+                            "bytes": 210347
+                        }
+                    },
+                    {
+                        "id": "page:मान्त्रिकोपनिषत्",
+                        "type": "page",
+                        "title": "मान्त्रिकोपनिषत्",
+                        "url": "https://sa.wikisource.org/wiki/मान्त्रिकोपनिषत्",
+                        "stats": {
+                            "bytes": 68664
+                        }
+                    },
+                    {
+                        "id": "page:मुक्तिकोपनिषत्",
+                        "type": "page",
+                        "title": "मुक्तिकोपनिषत्",
+                        "url": "https://sa.wikisource.org/wiki/मुक्तिकोपनिषत्",
+                        "stats": {
+                            "bytes": 104806
+                        }
+                    },
+                    {
+                        "id": "page:मुण्डकोपनिषद्",
+                        "type": "page",
+                        "title": "मुण्डकोपनिषद्",
+                        "url": "https://sa.wikisource.org/wiki/मुण्डकोपनिषद्",
+                        "stats": {
+                            "bytes": 89825
+                        }
+                    },
+                    {
+                        "id": "page:मुद्गलोपनिषत्",
+                        "type": "page",
+                        "title": "मुद्गलोपनिषत्",
+                        "url": "https://sa.wikisource.org/wiki/मुद्गलोपनिषत्",
+                        "stats": {
+                            "bytes": 81836
+                        }
+                    },
+                    {
+                        "id": "page:मैत्रायण्युपनिषत्",
+                        "type": "page",
+                        "title": "मैत्रायण्युपनिषत्",
+                        "url": "https://sa.wikisource.org/wiki/मैत्रायण्युपनिषत्",
+                        "stats": {
+                            "bytes": 404461
+                        }
+                    },
+                    {
+                        "id": "page:मैत्रेय्युपनिषत्",
+                        "type": "page",
+                        "title": "मैत्रेय्युपनिषत्",
+                        "url": "https://sa.wikisource.org/wiki/मैत्रेय्युपनिषत्",
+                        "stats": {
+                            "bytes": 93003
+                        }
+                    },
+                    {
+                        "id": "page:याज्ञवल्क्योपनिषत्",
+                        "type": "page",
+                        "title": "याज्ञवल्क्योपनिषत्",
+                        "url": "https://sa.wikisource.org/wiki/याज्ञवल्क्योपनिषत्",
+                        "stats": {
+                            "bytes": 78969
+                        }
+                    },
+                    {
+                        "id": "page:योगकुण्डल्युपनिषत्",
+                        "type": "page",
+                        "title": "योगकुण्डल्युपनिषत्",
+                        "url": "https://sa.wikisource.org/wiki/योगकुण्डल्युपनिषत्",
+                        "stats": {
+                            "bytes": 108344
+                        }
+                    },
+                    {
+                        "id": "page:योगचूडामण्युपनिषत्",
+                        "type": "page",
+                        "title": "योगचूडामण्युपनिषत्",
+                        "url": "https://sa.wikisource.org/wiki/योगचूडामण्युपनिषत्",
+                        "stats": {
+                            "bytes": 125078
+                        }
+                    },
+                    {
+                        "id": "page:योगतत्त्वोपनिषत्",
+                        "type": "page",
+                        "title": "योगतत्त्वोपनिषत्",
+                        "url": "https://sa.wikisource.org/wiki/योगतत्त्वोपनिषत्",
+                        "stats": {
+                            "bytes": 101500
+                        }
+                    },
+                    {
+                        "id": "page:योगतत्त्वोपनिषद्",
+                        "type": "page",
+                        "title": "योगतत्त्वोपनिषद्",
+                        "url": "https://sa.wikisource.org/wiki/योगतत्त्वोपनिषद्",
+                        "stats": {
+                            "bytes": 95655
+                        }
+                    },
+                    {
+                        "id": "page:योगशिक्षोपनिषद्",
+                        "type": "page",
+                        "title": "योगशिक्षोपनिषद्",
+                        "url": "https://sa.wikisource.org/wiki/योगशिक्षोपनिषद्",
+                        "stats": {
+                            "bytes": 160579
+                        }
+                    },
+                    {
+                        "id": "page:योगशिखोपनिषत्",
+                        "type": "page",
+                        "title": "योगशिखोपनिषत्",
+                        "url": "https://sa.wikisource.org/wiki/योगशिखोपनिषत्",
+                        "stats": {
+                            "bytes": 163787
+                        }
+                    },
+                    {
+                        "id": "page:रामतापिन्युपनिषत्",
+                        "type": "page",
+                        "title": "रामतापिन्युपनिषत्",
+                        "url": "https://sa.wikisource.org/wiki/रामतापिन्युपनिषत्",
+                        "stats": {
+                            "bytes": 149723
+                        }
+                    },
+                    {
+                        "id": "page:रामरहस्योपनिषत्",
+                        "type": "page",
+                        "title": "रामरहस्योपनिषत्",
+                        "url": "https://sa.wikisource.org/wiki/रामरहस्योपनिषत्",
+                        "stats": {
+                            "bytes": 117394
+                        }
+                    },
+                    {
+                        "id": "page:रुद्रहृदयोपनिषत्",
+                        "type": "page",
+                        "title": "रुद्रहृदयोपनिषत्",
+                        "url": "https://sa.wikisource.org/wiki/रुद्रहृदयोपनिषत्",
+                        "stats": {
+                            "bytes": 77060
+                        }
+                    },
+                    {
+                        "id": "page:रुद्राक्षजाबालोपनिषत्",
+                        "type": "page",
+                        "title": "रुद्राक्षजाबालोपनिषत्",
+                        "url": "https://sa.wikisource.org/wiki/रुद्राक्षजाबालोपनिषत्",
+                        "stats": {
+                            "bytes": 83226
+                        }
+                    },
+                    {
+                        "id": "page:वज्रसूच्युपनिषत्",
+                        "type": "page",
+                        "title": "वज्रसूच्युपनिषत्",
+                        "url": "https://sa.wikisource.org/wiki/वज्रसूच्युपनिषत्",
+                        "stats": {
+                            "bytes": 72504
+                        }
+                    },
+                    {
+                        "id": "page:वराहोपनिषत्",
+                        "type": "page",
+                        "title": "वराहोपनिषत्",
+                        "url": "https://sa.wikisource.org/wiki/वराहोपनिषत्",
+                        "stats": {
+                            "bytes": 135501
+                        }
+                    },
+                    {
+                        "id": "page:वासुदेवोपनिषत्",
+                        "type": "page",
+                        "title": "वासुदेवोपनिषत्",
+                        "url": "https://sa.wikisource.org/wiki/वासुदेवोपनिषत्",
+                        "stats": {
+                            "bytes": 72376
+                        }
+                    },
+                    {
+                        "id": "page:शरभोपनिषत्",
+                        "type": "page",
+                        "title": "शरभोपनिषत्",
+                        "url": "https://sa.wikisource.org/wiki/शरभोपनिषत्",
+                        "stats": {
+                            "bytes": 74834
+                        }
+                    },
+                    {
+                        "id": "page:शाट्यायनीयोपनिषत्",
+                        "type": "page",
+                        "title": "शाट्यायनीयोपनिषत्",
+                        "url": "https://sa.wikisource.org/wiki/शाट्यायनीयोपनिषत्",
+                        "stats": {
+                            "bytes": 79863
+                        }
+                    },
+                    {
+                        "id": "page:शाण्डिल्योपनिषत्",
+                        "type": "page",
+                        "title": "शाण्डिल्योपनिषत्",
+                        "url": "https://sa.wikisource.org/wiki/शाण्डिल्योपनिषत्",
+                        "stats": {
+                            "bytes": 118736
+                        }
+                    },
+                    {
+                        "id": "page:शारीरकोपनिषत्",
+                        "type": "page",
+                        "title": "शारीरकोपनिषत्",
+                        "url": "https://sa.wikisource.org/wiki/शारीरकोपनिषत्",
+                        "stats": {
+                            "bytes": 68782
+                        }
+                    },
+                    {
+                        "id": "page:संन्यासोपनिषत्",
+                        "type": "page",
+                        "title": "संन्यासोपनिषत्",
+                        "url": "https://sa.wikisource.org/wiki/संन्यासोपनिषत्",
+                        "stats": {
+                            "bytes": 105314
+                        }
+                    },
+                    {
+                        "id": "page:सरस्वतीरहस्योपनिषत्",
+                        "type": "page",
+                        "title": "सरस्वतीरहस्योपनिषत्",
+                        "url": "https://sa.wikisource.org/wiki/सरस्वतीरहस्योपनिषत्",
+                        "stats": {
+                            "bytes": 93574
+                        }
+                    },
+                    {
+                        "id": "page:सर्वसारोपनिषत्",
+                        "type": "page",
+                        "title": "सर्वसारोपनिषत्",
+                        "url": "https://sa.wikisource.org/wiki/सर्वसारोपनिषत्",
+                        "stats": {
+                            "bytes": 74358
+                        }
+                    },
+                    {
+                        "id": "page:सावित्र्युपनिषत्",
+                        "type": "page",
+                        "title": "सावित्र्युपनिषत्",
+                        "url": "https://sa.wikisource.org/wiki/सावित्र्युपनिषत्",
+                        "stats": {
+                            "bytes": 70521
+                        }
+                    },
+                    {
+                        "id": "page:सीतोपनिषत्",
+                        "type": "page",
+                        "title": "सीतोपनिषत्",
+                        "url": "https://sa.wikisource.org/wiki/सीतोपनिषत्",
+                        "stats": {
+                            "bytes": 80667
+                        }
+                    },
+                    {
+                        "id": "page:सुबालोपनिषत्",
+                        "type": "page",
+                        "title": "सुबालोपनिषत्",
+                        "url": "https://sa.wikisource.org/wiki/सुबालोपनिषत्",
+                        "stats": {
+                            "bytes": 115318
+                        }
+                    },
+                    {
+                        "id": "page:सूर्योपनिषत्",
+                        "type": "page",
+                        "title": "सूर्योपनिषत्",
+                        "url": "https://sa.wikisource.org/wiki/सूर्योपनिषत्",
+                        "stats": {
+                            "bytes": 90795
+                        }
+                    },
+                    {
+                        "id": "page:सौभाग्यलक्ष्म्युपनिषत्",
+                        "type": "page",
+                        "title": "सौभाग्यलक्ष्म्युपनिषत्",
+                        "url": "https://sa.wikisource.org/wiki/सौभाग्यलक्ष्म्युपनिषत्",
+                        "stats": {
+                            "bytes": 82999
+                        }
+                    },
+                    {
+                        "id": "page:स्कन्द उपनिषद्",
+                        "type": "page",
+                        "title": "स्कन्द उपनिषद्",
+                        "url": "https://sa.wikisource.org/wiki/स्कन्द_उपनिषद्",
+                        "stats": {
+                            "bytes": 60734
+                        }
+                    },
+                    {
+                        "id": "page:हंसोपनिषद्",
+                        "type": "page",
+                        "title": "हंसोपनिषद्",
+                        "url": "https://sa.wikisource.org/wiki/हंसोपनिषद्",
+                        "stats": {
+                            "bytes": 70043
+                        }
+                    },
+                    {
+                        "id": "page:हयग्रीवोपनिषत्",
+                        "type": "page",
+                        "title": "हयग्रीवोपनिषत्",
+                        "url": "https://sa.wikisource.org/wiki/हयग्रीवोपनिषत्",
+                        "stats": {
+                            "bytes": 66471
+                        }
+                    }
+                ],
+                "stats": {
+                    "bytes": 14186330
+                }
+            },
+            {
+                "id": "cat:कलाः",
+                "type": "category",
+                "title": "वर्गः:कलाः",
+                "children": [],
+                "pages": [
+                    {
+                        "id": "page:बृहद्देशी",
+                        "type": "page",
+                        "title": "बृहद्देशी",
+                        "url": "https://sa.wikisource.org/wiki/बृहद्देशी",
+                        "stats": {
+                            "bytes": 488230
+                        }
+                    },
+                    {
+                        "id": "page:सङ्गीतरत्नाकरः",
+                        "type": "page",
+                        "title": "सङ्गीतरत्नाकरः",
+                        "url": "https://sa.wikisource.org/wiki/सङ्गीतरत्नाकरः",
+                        "stats": {
+                            "bytes": 64387
+                        }
+                    },
+                    {
+                        "id": "page:सङ्गीतसारसंग्रहः",
+                        "type": "page",
+                        "title": "सङ्गीतसारसंग्रहः",
+                        "url": "https://sa.wikisource.org/wiki/सङ्गीतसारसंग्रहः",
+                        "stats": {
+                            "bytes": 95448
+                        }
+                    },
+                    {
+                        "id": "page:समराङ्गणसूत्रधार",
+                        "type": "page",
+                        "title": "समराङ्गणसूत्रधार",
+                        "url": "https://sa.wikisource.org/wiki/समराङ्गणसूत्रधार",
+                        "stats": {
+                            "bytes": 104967
+                        }
+                    }
+                ],
+                "stats": {
+                    "bytes": 753032
+                }
+            },
+            {
+                "id": "cat:कोशग्रन्थाः",
+                "type": "category",
+                "title": "वर्गः:कोशग्रन्थाः",
+                "children": [],
+                "pages": [
+                    {
+                        "id": "page:A Dictionary of Sanskrit Grammar",
+                        "type": "page",
+                        "title": "A Dictionary of Sanskrit Grammar",
+                        "url": "https://sa.wikisource.org/wiki/A_Dictionary_of_Sanskrit_Grammar",
+                        "stats": {
+                            "bytes": 1949893
+                        }
+                    },
+                    {
+                        "id": "page:अभिधानप्पदीपिका",
+                        "type": "page",
+                        "title": "अभिधानप्पदीपिका",
+                        "url": "https://sa.wikisource.org/wiki/अभिधानप्पदीपिका",
+                        "stats": {
+                            "bytes": 584454
+                        }
+                    },
+                    {
+                        "id": "page:अभिधानराजेन्द्रः",
+                        "type": "page",
+                        "title": "अभिधानराजेन्द्रः",
+                        "url": "https://sa.wikisource.org/wiki/अभिधानराजेन्द्रः",
+                        "stats": {
+                            "bytes": 69867
+                        }
+                    },
+                    {
+                        "id": "page:अमरकोशः",
+                        "type": "page",
+                        "title": "अमरकोशः",
+                        "url": "https://sa.wikisource.org/wiki/अमरकोशः",
+                        "stats": {
+                            "bytes": 64929
+                        }
+                    },
+                    {
+                        "id": "page:अमरकोषः (अमरविवेकव्याख्यासहितः)",
+                        "type": "page",
+                        "title": "अमरकोषः (अमरविवेकव्याख्यासहितः)",
+                        "url": "https://sa.wikisource.org/wiki/अमरकोषः_(अमरविवेकव्याख्यासहितः)",
+                        "stats": {
+                            "bytes": 2246119
+                        }
+                    },
+                    {
+                        "id": "page:अष्टाङ्गनिघण्टु",
+                        "type": "page",
+                        "title": "अष्टाङ्गनिघण्टु",
+                        "url": "https://sa.wikisource.org/wiki/अष्टाङ्गनिघण्टु",
+                        "stats": {
+                            "bytes": 178798
+                        }
+                    },
+                    {
+                        "id": "page:एकाक्षरकोशः",
+                        "type": "page",
+                        "title": "एकाक्षरकोशः",
+                        "url": "https://sa.wikisource.org/wiki/एकाक्षरकोशः",
+                        "stats": {
+                            "bytes": 67864
+                        }
+                    },
+                    {
+                        "id": "page:एकार्थनाममाला",
+                        "type": "page",
+                        "title": "एकार्थनाममाला",
+                        "url": "https://sa.wikisource.org/wiki/एकार्थनाममाला",
+                        "stats": {
+                            "bytes": 93021
+                        }
+                    },
+                    {
+                        "id": "page:अनुक्रमणिका:मेदिनीकोशः.djvu",
+                        "type": "page",
+                        "title": "अनुक्रमणिका:मेदिनीकोशः.djvu",
+                        "url": "https://sa.wikisource.org/wiki/अनुक्रमणिका:मेदिनीकोशः.djvu",
+                        "stats": {
+                            "bytes": 174945
+                        }
+                    },
+                    {
+                        "id": "page:प्रवीणः",
+                        "type": "page",
+                        "title": "प्रवीणः",
+                        "url": "https://sa.wikisource.org/wiki/प्रवीणः",
+                        "stats": {
+                            "bytes": 455715
+                        }
+                    },
+                    {
+                        "id": "page:वाचस्पत्यम्",
+                        "type": "page",
+                        "title": "वाचस्पत्यम्",
+                        "url": "https://sa.wikisource.org/wiki/वाचस्पत्यम्",
+                        "stats": {
+                            "bytes": 108269
+                        }
+                    },
+                    {
+                        "id": "page:शब्दकल्पद्रुमः",
+                        "type": "page",
+                        "title": "शब्दकल्पद्रुमः",
+                        "url": "https://sa.wikisource.org/wiki/शब्दकल्पद्रुमः",
+                        "stats": {
+                            "bytes": 122405
+                        }
+                    }
+                ],
+                "stats": {
+                    "bytes": 6116279
+                }
+            },
+            {
+                "id": "cat:दर्शनानि",
+                "type": "category",
+                "title": "वर्गः:दर्शनानि",
+                "children": [],
+                "pages": [
+                    {
+                        "id": "page:तत्त्वोपप्लवमीमांसा",
+                        "type": "page",
+                        "title": "तत्त्वोपप्लवमीमांसा",
+                        "url": "https://sa.wikisource.org/wiki/तत्त्वोपप्लवमीमांसा",
+                        "stats": {
+                            "bytes": 555824
+                        }
+                    },
+                    {
+                        "id": "page:प्रत्यभिज्ञाहृदयम्",
+                        "type": "page",
+                        "title": "प्रत्यभिज्ञाहृदयम्",
+                        "url": "https://sa.wikisource.org/wiki/प्रत्यभिज्ञाहृदयम्",
+                        "stats": {
+                            "bytes": 152669
+                        }
+                    },
+                    {
+                        "id": "page:षड्‌दर्शनसमुच्चयः",
+                        "type": "page",
+                        "title": "षड्‌दर्शनसमुच्चयः",
+                        "url": "https://sa.wikisource.org/wiki/षड्‌दर्शनसमुच्चयः",
+                        "stats": {
+                            "bytes": 343543
+                        }
+                    }
+                ],
+                "stats": {
+                    "bytes": 1052036
+                }
+            },
+            {
+                "id": "cat:धर्मशास्त्रम्",
+                "type": "category",
+                "title": "वर्गः:धर्मशास्त्रम्",
+                "children": [],
+                "pages": [
+                    {
+                        "id": "page:आपस्तम्बसंहिता",
+                        "type": "page",
+                        "title": "आपस्तम्बसंहिता",
+                        "url": "https://sa.wikisource.org/wiki/आपस्तम्बसंहिता",
+                        "stats": {
+                            "bytes": 112485
+                        }
+                    },
+                    {
+                        "id": "page:आप्तमीमांसा",
+                        "type": "page",
+                        "title": "आप्तमीमांसा",
+                        "url": "https://sa.wikisource.org/wiki/आप्तमीमांसा",
+                        "stats": {
+                            "bytes": 124104
+                        }
+                    },
+                    {
+                        "id": "page:आशौच्यदीपिका",
+                        "type": "page",
+                        "title": "आशौच्यदीपिका",
+                        "url": "https://sa.wikisource.org/wiki/आशौच्यदीपिका",
+                        "stats": {
+                            "bytes": 268093
+                        }
+                    },
+                    {
+                        "id": "page:उपनिधिप्रकरणम्",
+                        "type": "page",
+                        "title": "उपनिधिप्रकरणम्",
+                        "url": "https://sa.wikisource.org/wiki/उपनिधिप्रकरणम्",
+                        "stats": {
+                            "bytes": 57288
+                        }
+                    },
+                    {
+                        "id": "page:ऋणादानप्रकरणम्",
+                        "type": "page",
+                        "title": "ऋणादानप्रकरणम्",
+                        "url": "https://sa.wikisource.org/wiki/ऋणादानप्रकरणम्",
+                        "stats": {
+                            "bytes": 65612
+                        }
+                    },
+                    {
+                        "id": "page:कात्यायनसंहिता",
+                        "type": "page",
+                        "title": "कात्यायनसंहिता",
+                        "url": "https://sa.wikisource.org/wiki/कात्यायनसंहिता",
+                        "stats": {
+                            "bytes": 195518
+                        }
+                    },
+                    {
+                        "id": "page:कालहस्तीशविलासः",
+                        "type": "page",
+                        "title": "कालहस्तीशविलासः",
+                        "url": "https://sa.wikisource.org/wiki/कालहस्तीशविलासः",
+                        "stats": {
+                            "bytes": 283797
+                        }
+                    },
+                    {
+                        "id": "page:कौशिकपद्धतिः",
+                        "type": "page",
+                        "title": "कौशिकपद्धतिः",
+                        "url": "https://sa.wikisource.org/wiki/कौशिकपद्धतिः",
+                        "stats": {
+                            "bytes": 60398
+                        }
+                    },
+                    {
+                        "id": "page:गौतमसंहिता",
+                        "type": "page",
+                        "title": "गौतमसंहिता",
+                        "url": "https://sa.wikisource.org/wiki/गौतमसंहिता",
+                        "stats": {
+                            "bytes": 166813
+                        }
+                    },
+                    {
+                        "id": "page:ज्ञानरत्नावली",
+                        "type": "page",
+                        "title": "ज्ञानरत्नावली",
+                        "url": "https://sa.wikisource.org/wiki/ज्ञानरत्नावली",
+                        "stats": {
+                            "bytes": 1825216
+                        }
+                    },
+                    {
+                        "id": "page:अनुक्रमणिका:याज्ञवल्क्यस्मृतिः.pdf",
+                        "type": "page",
+                        "title": "अनुक्रमणिका:याज्ञवल्क्यस्मृतिः.pdf",
+                        "url": "https://sa.wikisource.org/wiki/अनुक्रमणिका:याज्ञवल्क्यस्मृतिः.pdf",
+                        "stats": {
+                            "bytes": 108590
+                        }
+                    },
+                    {
+                        "id": "page:नारदस्मृतिः/मातृकाः/व्यवहारः",
+                        "type": "page",
+                        "title": "नारदस्मृतिः/मातृकाः/व्यवहारः",
+                        "url": "https://sa.wikisource.org/wiki/नारदस्मृतिः/मातृकाः/व्यवहारः",
+                        "stats": {
+                            "bytes": 81850
+                        }
+                    },
+                    {
+                        "id": "page:बृहस्पतिसंहिता",
+                        "type": "page",
+                        "title": "बृहस्पतिसंहिता",
+                        "url": "https://sa.wikisource.org/wiki/बृहस्पतिसंहिता",
+                        "stats": {
+                            "bytes": 77138
+                        }
+                    },
+                    {
+                        "id": "page:वसिष्ठसंहिता",
+                        "type": "page",
+                        "title": "वसिष्ठसंहिता",
+                        "url": "https://sa.wikisource.org/wiki/वसिष्ठसंहिता",
+                        "stats": {
+                            "bytes": 184494
+                        }
+                    },
+                    {
+                        "id": "page:वासिष्ठधर्मशास्त्रम्",
+                        "type": "page",
+                        "title": "वासिष्ठधर्मशास्त्रम्",
+                        "url": "https://sa.wikisource.org/wiki/वासिष्ठधर्मशास्त्रम्",
+                        "stats": {
+                            "bytes": 241434
+                        }
+                    },
+                    {
+                        "id": "page:वीरमित्रोदयः - आह्निकप्रकाशः",
+                        "type": "page",
+                        "title": "वीरमित्रोदयः - आह्निकप्रकाशः",
+                        "url": "https://sa.wikisource.org/wiki/वीरमित्रोदयः_-_आह्निकप्रकाशः",
+                        "stats": {
+                            "bytes": 441910
+                        }
+                    },
+                    {
+                        "id": "page:वीरमित्रोदयः - समयप्रकाशः",
+                        "type": "page",
+                        "title": "वीरमित्रोदयः - समयप्रकाशः",
+                        "url": "https://sa.wikisource.org/wiki/वीरमित्रोदयः_-_समयप्रकाशः",
+                        "stats": {
+                            "bytes": 1382490
+                        }
+                    },
+                    {
+                        "id": "page:व्याससंहिता",
+                        "type": "page",
+                        "title": "व्याससंहिता",
+                        "url": "https://sa.wikisource.org/wiki/व्याससंहिता",
+                        "stats": {
+                            "bytes": 129279
+                        }
+                    },
+                    {
+                        "id": "page:शङ्खसंहिता",
+                        "type": "page",
+                        "title": "शङ्खसंहिता",
+                        "url": "https://sa.wikisource.org/wiki/शङ्खसंहिता",
+                        "stats": {
+                            "bytes": 150276
+                        }
+                    },
+                    {
+                        "id": "page:शातातपसंहिता",
+                        "type": "page",
+                        "title": "शातातपसंहिता",
+                        "url": "https://sa.wikisource.org/wiki/शातातपसंहिता",
+                        "stats": {
+                            "bytes": 118064
+                        }
+                    }
+                ],
+                "stats": {
+                    "bytes": 6074849
+                }
+            },
+            {
+                "id": "cat:निष्कासनाय",
+                "type": "category",
+                "title": "वर्गः:निष्कासनाय",
+                "children": [],
+                "pages": [
+                    {
+                        "id": "page:ए आर् क्रुष्णा शास्त्रीमहाभागः",
+                        "type": "page",
+                        "title": "ए आर् क्रुष्णा शास्त्रीमहाभागः",
+                        "url": "https://sa.wikisource.org/wiki/ए_आर्_क्रुष्णा_शास्त्रीमहाभागः",
+                        "stats": {
+                            "bytes": 69610
+                        }
+                    },
+                    {
+                        "id": "page:कथक्",
+                        "type": "page",
+                        "title": "कथक्",
+                        "url": "https://sa.wikisource.org/wiki/कथक्",
+                        "stats": {
+                            "bytes": 62139
+                        }
+                    }
+                ],
+                "stats": {
+                    "bytes": 131749
+                }
+            },
+            {
+                "id": "cat:पुराणानि",
+                "type": "category",
+                "title": "वर्गः:पुराणानि",
+                "children": [],
+                "pages": [
+                    {
+                        "id": "page:कल्किपुराणम्",
+                        "type": "page",
+                        "title": "कल्किपुराणम्",
+                        "url": "https://sa.wikisource.org/wiki/कल्किपुराणम्",
+                        "stats": {
+                            "bytes": 76477
+                        }
+                    },
+                    {
+                        "id": "page:कालिकापुराणम्",
+                        "type": "page",
+                        "title": "कालिकापुराणम्",
+                        "url": "https://sa.wikisource.org/wiki/कालिकापुराणम्",
+                        "stats": {
+                            "bytes": 88460
+                        }
+                    },
+                    {
+                        "id": "page:देवीभागवतपुराणम्",
+                        "type": "page",
+                        "title": "देवीभागवतपुराणम्",
+                        "url": "https://sa.wikisource.org/wiki/देवीभागवतपुराणम्",
+                        "stats": {
+                            "bytes": 71308
+                        }
+                    },
+                    {
+                        "id": "page:पद्मपुराणम्",
+                        "type": "page",
+                        "title": "पद्मपुराणम्",
+                        "url": "https://sa.wikisource.org/wiki/पद्मपुराणम्",
+                        "stats": {
+                            "bytes": 72532
+                        }
+                    },
+                    {
+                        "id": "page:भविष्यपुराणम्",
+                        "type": "page",
+                        "title": "भविष्यपुराणम्",
+                        "url": "https://sa.wikisource.org/wiki/भविष्यपुराणम्",
+                        "stats": {
+                            "bytes": 70461
+                        }
+                    },
+                    {
+                        "id": "page:भीष्मस्तुतिः",
+                        "type": "page",
+                        "title": "भीष्मस्तुतिः",
+                        "url": "https://sa.wikisource.org/wiki/भीष्मस्तुतिः",
+                        "stats": {
+                            "bytes": 64842
+                        }
+                    },
+                    {
+                        "id": "page:मार्कण्डेयपुराणम्",
+                        "type": "page",
+                        "title": "मार्कण्डेयपुराणम्",
+                        "url": "https://sa.wikisource.org/wiki/मार्कण्डेयपुराणम्",
+                        "stats": {
+                            "bytes": 117524
+                        }
+                    },
+                    {
+                        "id": "page:लक्ष्मीनारायणसंहिता",
+                        "type": "page",
+                        "title": "लक्ष्मीनारायणसंहिता",
+                        "url": "https://sa.wikisource.org/wiki/लक्ष्मीनारायणसंहिता",
+                        "stats": {
+                            "bytes": 60846
+                        }
+                    },
+                    {
+                        "id": "page:विष्णुधर्मोत्तरपुराणम्",
+                        "type": "page",
+                        "title": "विष्णुधर्मोत्तरपुराणम्",
+                        "url": "https://sa.wikisource.org/wiki/विष्णुधर्मोत्तरपुराणम्",
+                        "stats": {
+                            "bytes": 68342
+                        }
+                    },
+                    {
+                        "id": "page:शिवपुराणम्",
+                        "type": "page",
+                        "title": "शिवपुराणम्",
+                        "url": "https://sa.wikisource.org/wiki/शिवपुराणम्",
+                        "stats": {
+                            "bytes": 66562
+                        }
+                    },
+                    {
+                        "id": "page:श्रीमद्भागवतपुराणम्",
+                        "type": "page",
+                        "title": "श्रीमद्भागवतपुराणम्",
+                        "url": "https://sa.wikisource.org/wiki/श्रीमद्भागवतपुराणम्",
+                        "stats": {
+                            "bytes": 75814
+                        }
+                    },
+                    {
+                        "id": "page:श्रीमद्भागवतपुराणम्/श्रीस्कान्दे माहात्म्यम्",
+                        "type": "page",
+                        "title": "श्रीमद्भागवतपुराणम्/श्रीस्कान्दे माहात्म्यम्",
+                        "url": "https://sa.wikisource.org/wiki/श्रीमद्भागवतपुराणम्/श्रीस्कान्दे_माहात्म्यम्",
+                        "stats": {
+                            "bytes": 69739
+                        }
+                    },
+                    {
+                        "id": "page:हरिवंशपुराणम्",
+                        "type": "page",
+                        "title": "हरिवंशपुराणम्",
+                        "url": "https://sa.wikisource.org/wiki/हरिवंशपुराणम्",
+                        "stats": {
+                            "bytes": 59118
+                        }
+                    }
+                ],
+                "stats": {
+                    "bytes": 962025
+                }
+            },
+            {
+                "id": "cat:महाभारतम्",
+                "type": "category",
+                "title": "वर्गः:महाभारतम्",
+                "children": [],
+                "pages": [
+                    {
+                        "id": "page:नलोपाख्यानम्",
+                        "type": "page",
+                        "title": "नलोपाख्यानम्",
+                        "url": "https://sa.wikisource.org/wiki/नलोपाख्यानम्",
+                        "stats": {
+                            "bytes": 294742
+                        }
+                    },
+                    {
+                        "id": "page:महाभारतम्",
+                        "type": "page",
+                        "title": "महाभारतम्",
+                        "url": "https://sa.wikisource.org/wiki/महाभारतम्",
+                        "stats": {
+                            "bytes": 79373
+                        }
+                    },
+                    {
+                        "id": "page:श्रीमद्भागवतम् (१०.२९ - १०.३३) - भावार्थदीपिका",
+                        "type": "page",
+                        "title": "श्रीमद्भागवतम् (१०.२९ - १०.३३) - भावार्थदीपिका",
+                        "url": "https://sa.wikisource.org/wiki/श्रीमद्भागवतम्_(१०.२९_-_१०.३३)_-_भावार्थदीपिका",
+                        "stats": {
+                            "bytes": 225927
+                        }
+                    }
+                ],
+                "stats": {
+                    "bytes": 600042
+                }
+            },
+            {
+                "id": "cat:रामायणम्",
+                "type": "category",
+                "title": "वर्गः:रामायणम्",
+                "children": [],
+                "pages": [
+                    {
+                        "id": "page:अक्षररामायणम्",
+                        "type": "page",
+                        "title": "अक्षररामायणम्",
+                        "url": "https://sa.wikisource.org/wiki/अक्षररामायणम्",
+                        "stats": {
+                            "bytes": 71441
+                        }
+                    },
+                    {
+                        "id": "page:अध्यात्मरामायणम्",
+                        "type": "page",
+                        "title": "अध्यात्मरामायणम्",
+                        "url": "https://sa.wikisource.org/wiki/अध्यात्मरामायणम्",
+                        "stats": {
+                            "bytes": 344287
+                        }
+                    },
+                    {
+                        "id": "page:उपशम प्रकरण",
+                        "type": "page",
+                        "title": "उपशम प्रकरण",
+                        "url": "https://sa.wikisource.org/wiki/उपशम_प्रकरण",
+                        "stats": {
+                            "bytes": 77349
+                        }
+                    },
+                    {
+                        "id": "page:गायत्रीरामायणम्",
+                        "type": "page",
+                        "title": "गायत्रीरामायणम्",
+                        "url": "https://sa.wikisource.org/wiki/गायत्रीरामायणम्",
+                        "stats": {
+                            "bytes": 63693
+                        }
+                    },
+                    {
+                        "id": "page:योगवासिष्ठः",
+                        "type": "page",
+                        "title": "योगवासिष्ठः",
+                        "url": "https://sa.wikisource.org/wiki/योगवासिष्ठः",
+                        "stats": {
+                            "bytes": 65630
+                        }
+                    }
+                ],
+                "stats": {
+                    "bytes": 622400
+                }
+            },
+            {
+                "id": "cat:विज्ञानम्",
+                "type": "category",
+                "title": "वर्गः:विज्ञानम्",
+                "children": [],
+                "pages": [
+                    {
+                        "id": "page:कृषिपराशरम्",
+                        "type": "page",
+                        "title": "कृषिपराशरम्",
+                        "url": "https://sa.wikisource.org/wiki/कृषिपराशरम्",
+                        "stats": {
+                            "bytes": 130689
+                        }
+                    }
+                ],
+                "stats": {
+                    "bytes": 130689
+                }
+            },
+            {
+                "id": "cat:वेदाः",
+                "type": "category",
+                "title": "वर्गः:वेदाः",
+                "children": [],
+                "pages": [
+                    {
+                        "id": "page:ऋग्वेदादिभाष्यभूमिका (दयानन्दसरस्वतीविरचिता)",
+                        "type": "page",
+                        "title": "ऋग्वेदादिभाष्यभूमिका (दयानन्दसरस्वतीविरचिता)",
+                        "url": "https://sa.wikisource.org/wiki/ऋग्वेदादिभाष्यभूमिका_(दयानन्दसरस्वतीविरचिता)",
+                        "stats": {
+                            "bytes": 98432
+                        }
+                    }
+                ],
+                "stats": {
+                    "bytes": 98432
+                }
+            },
+            {
+                "id": "cat:वेदाङ्गानि",
+                "type": "category",
+                "title": "वर्गः:वेदाङ्गानि",
+                "children": [],
+                "pages": [
+                    {
+                        "id": "page:अनुक्रमणिका:बृहद्देवता.djvu",
+                        "type": "page",
+                        "title": "अनुक्रमणिका:बृहद्देवता.djvu",
+                        "url": "https://sa.wikisource.org/wiki/अनुक्रमणिका:बृहद्देवता.djvu",
+                        "stats": {
+                            "bytes": 139185
+                        }
+                    }
+                ],
+                "stats": {
+                    "bytes": 139185
+                }
+            },
+            {
+                "id": "cat:साहित्यम्",
+                "type": "category",
+                "title": "वर्गः:साहित्यम्",
+                "children": [],
+                "pages": [
+                    {
+                        "id": "page:नारायणीयम् (भक्तप्रियव्याख्यासहितम्)",
+                        "type": "page",
+                        "title": "नारायणीयम् (भक्तप्रियव्याख्यासहितम्)",
+                        "url": "https://sa.wikisource.org/wiki/नारायणीयम्_(भक्तप्रियव्याख्यासहितम्)",
+                        "stats": {
+                            "bytes": 2185461
+                        }
+                    },
+                    {
+                        "id": "page:निबन्धसाहित्यम्",
+                        "type": "page",
+                        "title": "निबन्धसाहित्यम्",
+                        "url": "https://sa.wikisource.org/wiki/निबन्धसाहित्यम्",
+                        "stats": {
+                            "bytes": 89406
+                        }
+                    },
+                    {
+                        "id": "page:भोजप्रबन्धः",
+                        "type": "page",
+                        "title": "भोजप्रबन्धः",
+                        "url": "https://sa.wikisource.org/wiki/भोजप्रबन्धः",
+                        "stats": {
+                            "bytes": 514041
+                        }
+                    },
+                    {
+                        "id": "page:राजतरङ्गिणी",
+                        "type": "page",
+                        "title": "राजतरङ्गिणी",
+                        "url": "https://sa.wikisource.org/wiki/राजतरङ्गिणी",
+                        "stats": {
+                            "bytes": 69097
+                        }
+                    },
+                    {
+                        "id": "page:ललितविस्तरः",
+                        "type": "page",
+                        "title": "ललितविस्तरः",
+                        "url": "https://sa.wikisource.org/wiki/ललितविस्तरः",
+                        "stats": {
+                            "bytes": 1376839
+                        }
+                    },
+                    {
+                        "id": "page:साहित्यशास्त्रम्",
+                        "type": "page",
+                        "title": "साहित्यशास्त्रम्",
+                        "url": "https://sa.wikisource.org/wiki/साहित्यशास्त्रम्",
+                        "stats": {
+                            "bytes": 72228
+                        }
+                    }
+                ],
+                "stats": {
+                    "bytes": 4307072
+                }
+            },
+            {
+                "id": "cat:सुभाषितग्रन्थाः",
+                "type": "category",
+                "title": "वर्गः:सुभाषितग्रन्थाः",
+                "children": [],
+                "pages": [
+                    {
+                        "id": "page:वल्लभदेवः सुभाषितावलिः",
+                        "type": "page",
+                        "title": "वल्लभदेवः सुभाषितावलिः",
+                        "url": "https://sa.wikisource.org/wiki/वल्लभदेवः_सुभाषितावलिः",
+                        "stats": {
+                            "bytes": 508595
+                        }
+                    },
+                    {
+                        "id": "page:सुभाषितरत्नकरण्डकः",
+                        "type": "page",
+                        "title": "सुभाषितरत्नकरण्डकः",
+                        "url": "https://sa.wikisource.org/wiki/सुभाषितरत्नकरण्डकः",
+                        "stats": {
+                            "bytes": 141907
+                        }
+                    },
+                    {
+                        "id": "page:सुभाषितरत्नकोशः",
+                        "type": "page",
+                        "title": "सुभाषितरत्नकोशः",
+                        "url": "https://sa.wikisource.org/wiki/सुभाषितरत्नकोशः",
+                        "stats": {
+                            "bytes": 80708
+                        }
+                    },
+                    {
+                        "id": "page:सुभाषितरत्नकोशः/१ सुगतव्रज्या",
+                        "type": "page",
+                        "title": "सुभाषितरत्नकोशः/१ सुगतव्रज्या",
+                        "url": "https://sa.wikisource.org/wiki/सुभाषितरत्नकोशः/१_सुगतव्रज्या",
+                        "stats": {
+                            "bytes": 77790
+                        }
+                    },
+                    {
+                        "id": "page:सुभाषितरत्नकोशः/२० समाप्तनिधुवनचिह्नव्रज्या",
+                        "type": "page",
+                        "title": "सुभाषितरत्नकोशः/२० समाप्तनिधुवनचिह्नव्रज्या",
+                        "url": "https://sa.wikisource.org/wiki/सुभाषितरत्नकोशः/२०_समाप्तनिधुवनचिह्नव्रज्या",
+                        "stats": {
+                            "bytes": 78583
+                        }
+                    },
+                    {
+                        "id": "page:सुभाषितरत्नकोशः/५० कविस्तुतिव्रज्या",
+                        "type": "page",
+                        "title": "सुभाषितरत्नकोशः/५० कविस्तुतिव्रज्या",
+                        "url": "https://sa.wikisource.org/wiki/सुभाषितरत्नकोशः/५०_कविस्तुतिव्रज्या",
+                        "stats": {
+                            "bytes": 84874
+                        }
+                    },
+                    {
+                        "id": "page:सुभाषितानि",
+                        "type": "page",
+                        "title": "सुभाषितानि",
+                        "url": "https://sa.wikisource.org/wiki/सुभाषितानि",
+                        "stats": {
+                            "bytes": 89363
+                        }
+                    }
+                ],
+                "stats": {
+                    "bytes": 1061820
+                }
+            },
+            {
+                "id": "cat:स्मृतयः",
+                "type": "category",
+                "title": "वर्गः:स्मृतयः",
+                "children": [],
+                "pages": [
+                    {
+                        "id": "page:अग्निवेश्यगृह्यसूत्रम्",
+                        "type": "page",
+                        "title": "अग्निवेश्यगृह्यसूत्रम्",
+                        "url": "https://sa.wikisource.org/wiki/अग्निवेश्यगृह्यसूत्रम्",
+                        "stats": {
+                            "bytes": 680895
+                        }
+                    },
+                    {
+                        "id": "page:आङ्गिरसस्मृतिः",
+                        "type": "page",
+                        "title": "आङ्गिरसस्मृतिः",
+                        "url": "https://sa.wikisource.org/wiki/आङ्गिरसस्मृतिः",
+                        "stats": {
+                            "bytes": 441105
+                        }
+                    },
+                    {
+                        "id": "page:कश्यपस्मृतिः",
+                        "type": "page",
+                        "title": "कश्यपस्मृतिः",
+                        "url": "https://sa.wikisource.org/wiki/कश्यपस्मृतिः",
+                        "stats": {
+                            "bytes": 70089
+                        }
+                    },
+                    {
+                        "id": "page:कात्यायनस्मृतिः",
+                        "type": "page",
+                        "title": "कात्यायनस्मृतिः",
+                        "url": "https://sa.wikisource.org/wiki/कात्यायनस्मृतिः",
+                        "stats": {
+                            "bytes": 448911
+                        }
+                    },
+                    {
+                        "id": "page:देवलस्मृतिः",
+                        "type": "page",
+                        "title": "देवलस्मृतिः",
+                        "url": "https://sa.wikisource.org/wiki/देवलस्मृतिः",
+                        "stats": {
+                            "bytes": 85160
+                        }
+                    },
+                    {
+                        "id": "page:नारदस्मृतिः",
+                        "type": "page",
+                        "title": "नारदस्मृतिः",
+                        "url": "https://sa.wikisource.org/wiki/नारदस्मृतिः",
+                        "stats": {
+                            "bytes": 57507
+                        }
+                    },
+                    {
+                        "id": "page:नारदस्मृतिः/मातृकाः/भाषा",
+                        "type": "page",
+                        "title": "नारदस्मृतिः/मातृकाः/भाषा",
+                        "url": "https://sa.wikisource.org/wiki/नारदस्मृतिः/मातृकाः/भाषा",
+                        "stats": {
+                            "bytes": 73731
+                        }
+                    },
+                    {
+                        "id": "page:पराशरस्मृतिः",
+                        "type": "page",
+                        "title": "पराशरस्मृतिः",
+                        "url": "https://sa.wikisource.org/wiki/पराशरस्मृतिः",
+                        "stats": {
+                            "bytes": 61703
+                        }
+                    },
+                    {
+                        "id": "page:पुलस्त्यस्मृतिः",
+                        "type": "page",
+                        "title": "पुलस्त्यस्मृतिः",
+                        "url": "https://sa.wikisource.org/wiki/पुलस्त्यस्मृतिः",
+                        "stats": {
+                            "bytes": 63744
+                        }
+                    },
+                    {
+                        "id": "page:बृहद्यमस्मृतिः",
+                        "type": "page",
+                        "title": "बृहद्यमस्मृतिः",
+                        "url": "https://sa.wikisource.org/wiki/बृहद्यमस्मृतिः",
+                        "stats": {
+                            "bytes": 103575
+                        }
+                    },
+                    {
+                        "id": "page:बृहस्पति-स्मृतिः",
+                        "type": "page",
+                        "title": "बृहस्पति-स्मृतिः",
+                        "url": "https://sa.wikisource.org/wiki/बृहस्पति-स्मृतिः",
+                        "stats": {
+                            "bytes": 76836
+                        }
+                    },
+                    {
+                        "id": "page:बृहस्पतिस्मृतिः",
+                        "type": "page",
+                        "title": "बृहस्पतिस्मृतिः",
+                        "url": "https://sa.wikisource.org/wiki/बृहस्पतिस्मृतिः",
+                        "stats": {
+                            "bytes": 69038
+                        }
+                    },
+                    {
+                        "id": "page:यमस्मृतिः",
+                        "type": "page",
+                        "title": "यमस्मृतिः",
+                        "url": "https://sa.wikisource.org/wiki/यमस्मृतिः",
+                        "stats": {
+                            "bytes": 74691
+                        }
+                    },
+                    {
+                        "id": "page:विश्वामित्रस्मृतिः",
+                        "type": "page",
+                        "title": "विश्वामित्रस्मृतिः",
+                        "url": "https://sa.wikisource.org/wiki/विश्वामित्रस्मृतिः",
+                        "stats": {
+                            "bytes": 199073
+                        }
+                    },
+                    {
+                        "id": "page:विष्णुस्मृतिः",
+                        "type": "page",
+                        "title": "विष्णुस्मृतिः",
+                        "url": "https://sa.wikisource.org/wiki/विष्णुस्मृतिः",
+                        "stats": {
+                            "bytes": 104720
+                        }
+                    }
+                ],
+                "stats": {
+                    "bytes": 2610778
+                }
+            }
+        ],
+        "pages": [
+            {
+                "id": "page:जयाख्यसंहिता",
+                "type": "page",
+                "title": "जयाख्यसंहिता",
+                "url": "https://sa.wikisource.org/wiki/जयाख्यसंहिता",
+                "stats": {
+                    "bytes": 66001
+                }
+            },
+            {
+                "id": "page:तन्त्रयुक्तिः",
+                "type": "page",
+                "title": "तन्त्रयुक्तिः",
+                "url": "https://sa.wikisource.org/wiki/तन्त्रयुक्तिः",
+                "stats": {
+                    "bytes": 91536
+                }
+            },
+            {
+                "id": "page:पद्मसंहिता",
+                "type": "page",
+                "title": "पद्मसंहिता",
+                "url": "https://sa.wikisource.org/wiki/पद्मसंहिता",
+                "stats": {
+                    "bytes": 57467
+                }
+            },
+            {
+                "id": "page:परमपुरुषसंहिता",
+                "type": "page",
+                "title": "परमपुरुषसंहिता",
+                "url": "https://sa.wikisource.org/wiki/परमपुरुषसंहिता",
+                "stats": {
+                    "bytes": 60896
+                }
+            },
+            {
+                "id": "page:परमेश्वरसंहिता",
+                "type": "page",
+                "title": "परमेश्वरसंहिता",
+                "url": "https://sa.wikisource.org/wiki/परमेश्वरसंहिता",
+                "stats": {
+                    "bytes": 66464
+                }
+            },
+            {
+                "id": "page:भगवद्गीता",
+                "type": "page",
+                "title": "भगवद्गीता",
+                "url": "https://sa.wikisource.org/wiki/भगवद्गीता",
+                "stats": {
+                    "bytes": 75592
+                }
+            },
+            {
+                "id": "page:भार्गवतन्त्रम्",
+                "type": "page",
+                "title": "भार्गवतन्त्रम्",
+                "url": "https://sa.wikisource.org/wiki/भार्गवतन्त्रम्",
+                "stats": {
+                    "bytes": 66267
+                }
+            },
+            {
+                "id": "page:भावप्रकाशसंहिता",
+                "type": "page",
+                "title": "भावप्रकाशसंहिता",
+                "url": "https://sa.wikisource.org/wiki/भावप्रकाशसंहिता",
+                "stats": {
+                    "bytes": 58874
+                }
+            },
+            {
+                "id": "page:भावप्रकाशसंहिता/पूर्वखण्डः",
+                "type": "page",
+                "title": "भावप्रकाशसंहिता/पूर्वखण्डः",
+                "url": "https://sa.wikisource.org/wiki/भावप्रकाशसंहिता/पूर्वखण्डः",
+                "stats": {
+                    "bytes": 62299
+                }
+            },
+            {
+                "id": "page:भावप्रकाशसंहिता/मध्यखण्डः",
+                "type": "page",
+                "title": "भावप्रकाशसंहिता/मध्यखण्डः",
+                "url": "https://sa.wikisource.org/wiki/भावप्रकाशसंहिता/मध्यखण्डः",
+                "stats": {
+                    "bytes": 62971
+                }
+            },
+            {
+                "id": "page:भैषज्यरत्नावली",
+                "type": "page",
+                "title": "भैषज्यरत्नावली",
+                "url": "https://sa.wikisource.org/wiki/भैषज्यरत्नावली",
+                "stats": {
+                    "bytes": 103567
+                }
+            },
+            {
+                "id": "page:राजनिघण्टुः",
+                "type": "page",
+                "title": "राजनिघण्टुः",
+                "url": "https://sa.wikisource.org/wiki/राजनिघण्टुः",
+                "stats": {
+                    "bytes": 65859
+                }
+            },
+            {
+                "id": "page:लक्ष्मीतन्त्रम्",
+                "type": "page",
+                "title": "लक्ष्मीतन्त्रम्",
+                "url": "https://sa.wikisource.org/wiki/लक्ष्मीतन्त्रम्",
+                "stats": {
+                    "bytes": 78120
+                }
+            }
+        ],
+        "stats": {
+            "bytes": 44379457
+        }
+    }
+}

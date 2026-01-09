@@ -95,7 +95,7 @@ body{
 .tree .row:hover{ background: rgba(255,255,255,0.04); }
 .tree .row.selected{ background: rgba(102,163,255,0.18); }
 
-.twisty{
+.toggleArrow{
   width: 18px;
   height: 18px;
   display:inline-flex;

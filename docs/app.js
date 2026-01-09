@@ -47,14 +47,14 @@ function displayTitle(raw) {
 }
 
 function walkCategories(node, fn) {
-  if (node.type === "category") fn(node);
+  if (node.id) fn(node);
   for (const ch of (node.children || [])) walkCategories(ch, fn);
 }
 
 // Find category node by id
 function findCatById(node, id) {
   if (!node) return null;
-  if (node.type === "category" && node.id === id) return node;
+  if ((node.type === "category" || node.type === "collection") && node.id === id) return node;
   for (const ch of (node.children || [])) {
     const hit = findCatById(ch, id);
     if (hit) return hit;
@@ -106,18 +106,23 @@ function renderSidebarNode(catNode, depth) {
   const isExpanded = state.expanded.has(catNode.id);
   const hasKids = (catNode.children || []).length > 0;
 
-  const twisty = el("span", {
-    class: "twisty",
+  const toggleArrow = el("span", {
+    class: "toggleArrow",
     onclick: (ev) => {
       ev.stopPropagation();
       const expandAll = isExpandAllGesture(ev);
+      const currentlyExpanded = state.expanded.has(catNode.id);
 
-      if (expandAll) {
-        const expand = !state.expanded.has(catNode.id);
-        setExpandedDeep(catNode, expand);
+      if (currentlyExpanded) {
+        // Collapsing: always collapse deep so that re-opening shows only immediate children
+        setExpandedDeep(catNode, false);
       } else {
-        if (isExpanded) state.expanded.delete(catNode.id);
-        else state.expanded.add(catNode.id);
+        // Expanding
+        if (expandAll) {
+          setExpandedDeep(catNode, true);
+        } else {
+          state.expanded.add(catNode.id);
+        }
       }
       renderSidebarTree();
       renderMain();
@@ -132,7 +137,7 @@ function renderSidebarNode(catNode, depth) {
       renderMain();
     }
   },
-    twisty,
+    toggleArrow,
     el("span", { class: "title", title: catNode.title }, displayTitle(catNode.title))
   );
 
@@ -204,6 +209,10 @@ async function loadData() {
   const r = await fetch(DATA_URL, { cache: "no-store" });
   if (!r.ok) throw new Error(`Failed to load ${DATA_URL}: ${r.status}`);
   state.data = await r.json();
+
+  // Safety: ensure root has an ID and Title
+  if (!state.data.root.id) state.data.root.id = "root";
+  if (!state.data.root.title) state.data.root.title = "ग्रन्थाः (धर्मशास्त्राणि च)";
 
   state.selectedCatId = state.data.root.id;
   state.expanded.add(state.data.root.id);

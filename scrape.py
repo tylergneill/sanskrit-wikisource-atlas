@@ -303,6 +303,8 @@ def main() -> None:
 
     out = {
         "root": {
+            "id": "root",
+            "title": "ग्रन्थाः (धर्मशास्त्राणि च)",
             "type": "collection",
             "children": children_json,
             "stats": {"bytes": total_bytes},

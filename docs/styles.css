@@ -83,14 +83,15 @@ body{
 .tree .row.selected{ background: rgba(102,163,255,0.18); }
 
 .toggleArrow{
-  width: 18px;
-  height: 18px;
+  width: 26px;
+  height: 26px;
   display:inline-flex;
   align-items:center;
   justify-content:center;
   cursor:pointer;
   user-select:none;
   color: var(--muted);
+  font-size: 1.3rem;
 }
 .title{
   cursor:pointer;

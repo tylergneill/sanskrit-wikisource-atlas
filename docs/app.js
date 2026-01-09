@@ -172,7 +172,6 @@ function renderCategoryBlock(catNode, { includePages, depth, isRoot }) {
 
   const header = el("div", {},
     el("div", {}, displayTitle(catNode.title)),
-    el("div", { class: "small" }, catNode.id)
   );
 
   const block = el("div", { class: "block" }, header);
@@ -191,11 +190,10 @@ function renderCategoryBlock(catNode, { includePages, depth, isRoot }) {
     const ul = el("ul", {});
     for (const p of catNode.pages) {
       const a = el("a", { href: p.url, target: "_blank", rel: "noreferrer" }, displayTitle(p.title));
-      const meta = p.stats?.bytes != null ? ` (${p.stats.bytes} bytes)` : "";
+      const meta = p.stats?.bytes != null ? ` (${(p.stats.bytes / 1024).toFixed(2)} kb)` : "";
       ul.appendChild(el("li", {}, a, meta ? el("span", { class: "small" }, meta) : null));
     }
     block.appendChild(el("div", { style: "margin-top:10px" },
-      el("div", { class: "small" }, "Pages"),
       ul
     ));
   }

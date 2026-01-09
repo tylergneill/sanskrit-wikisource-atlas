@@ -125,4 +125,13 @@ body{
 .content a{ color: var(--accent); text-decoration:none; }
 .content a:hover{ text-decoration:underline; }
 
+.content ul {
+  list-style: none;
+  padding: 0;
+  margin: 8px 0 0 12px;
+}
+.content li {
+  margin-bottom: 4px;
+}
+
 .small{ font-size: 12px; color: var(--muted); }

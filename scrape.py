@@ -179,6 +179,8 @@ def build_skeleton(
         sub_full = m.get("title", "")
         if not sub_full:
             continue
+        if strip_cat_prefix(sub_full) == "अवैध एचटीएमएल टैग का उपयोग कर रहे पृष्ठ":
+            continue
         sub_skeletons.append(
             build_skeleton(
                 sub_full,

@@ -72,19 +72,6 @@ body{
   overflow:auto;
 }
 
-.modebar{ display:flex; gap: 8px; margin-bottom: 12px; }
-.modebtn{
-  background: var(--panel);
-  color: var(--text);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  padding: 7px 10px;
-  cursor:pointer;
-}
-.modebtn.active{
-  border-color: var(--accent);
-}
-
 .tree .row{
   display:flex;
   align-items:center;

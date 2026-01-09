@@ -2,7 +2,6 @@ const DATA_URL = "./data/tree.json";
 
 const state = {
   data: null,
-  mode: "focused",          // "focused" | "universal"
   selectedCatId: null,
   scheme: "devanagari",     // devanagari | iast | hk | itrans | slp1
   expanded: new Set(),      // node ids expanded in sidebar
@@ -157,11 +156,6 @@ function renderMain() {
 
   const root = state.data.root;
 
-  if (state.mode === "universal") {
-    host.appendChild(renderCategoryBlock(root, { includePages: true, depth: 0, isRoot: true }));
-    return;
-  }
-
   // focused
   const selected = findCatById(root, state.selectedCatId) || root;
   host.appendChild(renderCategoryBlock(selected, { includePages: true, depth: 0, isRoot: true }));
@@ -216,22 +210,7 @@ async function loadData() {
   state.expanded.add(state.data.root.id);
 }
 
-function setMode(mode) {
-  state.mode = mode;
-  document.getElementById("modeFocused").classList.toggle("active", mode === "focused");
-  document.getElementById("modeUniversal").classList.toggle("active", mode === "universal");
-  renderMain();
-}
-
 function initUI() {
-  document.getElementById("modeFocused").addEventListener("click", () => setMode("focused"));
-  document.getElementById("modeUniversal").addEventListener("click", () => setMode("universal"));
-
-  document.getElementById("viewAllLink").addEventListener("click", (ev) => {
-    ev.preventDefault();
-    setMode("universal");
-  });
-
   document.getElementById("schemeSelect").addEventListener("change", (ev) => {
     state.scheme = ev.target.value;
     renderSidebarTree();

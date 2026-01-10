@@ -37,7 +37,7 @@ body{
   text-decoration: none;
   vertical-align: middle;
 }
-.topbar-link:hover { text-decoration: underline; }
+a.topbar-link:hover { text-decoration: underline; }
 
 .topnav{ display:flex; align-items:center; gap:10px; color: var(--muted); }
 .navlink{ color: var(--accent); text-decoration:none; }

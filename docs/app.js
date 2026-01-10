@@ -218,8 +218,25 @@ function initUI() {
   });
 }
 
+async function loadVersion() {
+  try {
+    const r = await fetch("./VERSION");
+    if (!r.ok) return;
+    const text = await r.text();
+    const firstLine = text.split("\n")[0];
+    if (firstLine.includes("=")) {
+      const version = firstLine.split("=")[1].trim().replace(/['"]/g, "");
+      const el = document.getElementById("appVersion");
+      if (el) el.textContent = "v" + version;
+    }
+  } catch (e) {
+    console.log("Could not load version:", e);
+  }
+}
+
 (async function main() {
   initUI();
+  loadVersion();
   await loadData();
   renderSidebarTree();
   renderMain();

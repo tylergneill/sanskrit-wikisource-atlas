@@ -8668,36 +8668,6 @@
                 }
             },
             {
-                "id": "cat:निष्कासनाय",
-                "type": "category",
-                "title": "निष्कासनाय",
-                "children": [],
-                "pages": [
-                    {
-                        "id": "page:ए आर् क्रुष्णा शास्त्रीमहाभागः",
-                        "type": "page",
-                        "title": "ए आर् क्रुष्णा शास्त्रीमहाभागः",
-                        "url": "https://sa.wikisource.org/wiki/ए आर् क्रुष्णा शास्त्रीमहाभागः",
-                        "stats": {
-                            "bytes": 3602
-                        }
-                    },
-                    {
-                        "id": "page:कथक्",
-                        "type": "page",
-                        "title": "कथक्",
-                        "url": "https://sa.wikisource.org/wiki/कथक्",
-                        "stats": {
-                            "bytes": 4496
-                        }
-                    }
-                ],
-                "stats": {
-                    "bytes": 8098,
-                    "count": 2
-                }
-            },
-            {
                 "id": "cat:पुराणानि",
                 "type": "category",
                 "title": "पुराणानि",

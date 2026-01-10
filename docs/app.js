@@ -92,6 +92,23 @@ function el(tag, attrs = {}, ...kids) {
   return n;
 }
 
+function formatBytes(bytes) {
+  if (bytes == null) return "";
+  const kb = bytes / 1024;
+  if (kb < 1024) return `${kb.toFixed(1)} KB`;
+  return `${(kb / 1024).toFixed(1)} MB`;
+}
+
+function formatStats(stats) {
+  if (!stats) return "";
+  const size = formatBytes(stats.bytes);
+  if (!size) return "";
+  if (stats.count != null) {
+    return `(${size}, ${stats.count} pages)`;
+  }
+  return `(${size})`;
+}
+
 function renderSidebarTree() {
   const root = state.data.root;
   const host = document.getElementById("sidebarTree");
@@ -128,6 +145,9 @@ function renderSidebarNode(catNode, depth) {
     }
   }, hasKids ? (isExpanded ? "▾" : "▸") : "·");
 
+  // Only show stats for root and top-level categories in the sidebar
+  const statsText = (depth <= 1) ? formatStats(catNode.stats) : "";
+
   const row = el("div", {
     class: "row" + (state.selectedCatId === catNode.id ? " selected" : ""),
     onclick: () => {
@@ -137,7 +157,8 @@ function renderSidebarNode(catNode, depth) {
     }
   },
     toggleArrow,
-    el("span", { class: "title", title: catNode.title }, displayTitle(catNode.title))
+    el("span", { class: "title", title: catNode.title }, displayTitle(catNode.title)),
+    statsText ? el("span", { class: "small", style: "margin-left:auto; padding-left:10px; opacity:0.7;" }, statsText) : null
   );
 
   const wrap = el("div", { class: depth ? "indent" : "" }, row);
@@ -164,8 +185,10 @@ function renderMain() {
 function renderCategoryBlock(catNode, { includePages, depth, isRoot }) {
   const isExpanded = true; // main pane always renders expanded blocks by default (you can change later)
 
-  const header = el("div", {},
-    el("div", {}, displayTitle(catNode.title)),
+  const statsText = formatStats(catNode.stats);
+  const header = el("div", { class: "panelTitle" },
+    displayTitle(catNode.title),
+    statsText ? el("span", { class: "small", style: "font-weight:normal; margin-left:8px;" }, statsText) : null
   );
 
   const block = el("div", { class: "block" }, header);
@@ -184,7 +207,7 @@ function renderCategoryBlock(catNode, { includePages, depth, isRoot }) {
     const ul = el("ul", {});
     for (const p of catNode.pages) {
       const a = el("a", { href: p.url, target: "_blank", rel: "noreferrer" }, displayTitle(p.title));
-      const meta = p.stats?.bytes != null ? ` (${(p.stats.bytes / 1024).toFixed(1)} kb)` : "";
+      const meta = p.stats?.bytes != null ? ` (${formatBytes(p.stats.bytes)})` : "";
       ul.appendChild(el("li", {}, a, meta ? el("span", { class: "small" }, meta) : null));
     }
     block.appendChild(el("div", { style: "margin-top:10px" },

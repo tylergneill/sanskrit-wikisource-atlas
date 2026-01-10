@@ -55,7 +55,7 @@ a.topbar-link:hover { text-decoration: underline; }
 .layout{
   height: calc(100% - 48px);
   display:grid;
-  grid-template-columns: 300px 1fr;
+  grid-template-columns: 400px 1fr;
 }
 
 .sidenav{

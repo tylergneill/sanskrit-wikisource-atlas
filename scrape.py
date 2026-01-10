@@ -26,6 +26,8 @@ session.headers.update(
 )
 
 _size_cache: Dict[int, int] = {}      # pageid -> bytes
+_cat_size_cache: Dict[str, int] = {}  # full_title -> bytes
+_cat_count_cache: Dict[str, int] = {} # full_title -> page_count
 _api_cache: Dict[str, dict] = {}      # small memo for identical API calls
 
 
@@ -246,13 +248,24 @@ def skeleton_to_json(node: CatSkeleton) -> dict:
     children_bytes = sum(int(ch.get("stats", {}).get("bytes", 0)) for ch in children_json)
     total_bytes = pages_bytes + children_bytes
 
+    children_count = sum(int(ch.get("stats", {}).get("count", 0)) for ch in children_json)
+    total_count = len(pages_json) + children_count
+
+    # Cache the result for full nodes, and reuse it for empty nodes (broken cycles/repeats)
+    if node.subcats or node.pages:
+        _cat_size_cache[node.full_title] = total_bytes
+        _cat_count_cache[node.full_title] = total_count
+    elif node.full_title in _cat_size_cache:
+        total_bytes = _cat_size_cache[node.full_title]
+        total_count = _cat_count_cache.get(node.full_title, 0)
+
     return {
         "id": cat_id(node.title),
         "type": "category",
         "title": node.title,
         "children": children_json,
         "pages": pages_json,
-        "stats": {"bytes": total_bytes},
+        "stats": {"bytes": total_bytes, "count": total_count},
     }
 
 
@@ -304,16 +317,17 @@ def main() -> None:
     pbar.close()
 
     # Output: omit the top "ग्रन्थाः" level, and omit "वर्गः:" prefixes everywhere (already stripped)
-    children_json = [skeleton_to_json(ch) for ch in granth_skel.subcats]
-    total_bytes = sum(int(ch.get("stats", {}).get("bytes", 0)) for ch in children_json)
+    # We use skeleton_to_json on the root node to get its full recursive size, then extract what we need.
+    root_data = skeleton_to_json(granth_skel)
 
     out = {
         "root": {
             "id": "root",
             "title": "ग्रन्थाः (धर्मशास्त्राणि च)",
             "type": "collection",
-            "children": children_json,
-            "stats": {"bytes": total_bytes},
+            "children": root_data["children"],
+            "pages": root_data["pages"],
+            "stats": root_data["stats"],
         }
     }
 

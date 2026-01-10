@@ -184,7 +184,7 @@ def build_skeleton(
         
         # Exclude internal/maintenance categories
         stripped = strip_cat_prefix(sub_full)
-        if stripped in ["अवैध एचटीएमएल टैग का उपयोग कर रहे पृष्ठ", "अनिर्दिष्टानि पुटानि"]:
+        if stripped in ["अवैध एचटीएमएल टैग का उपयोग कर रहे पृष्ठ", "अनिर्दिष्टानि पुटानि", "निष्कासनाय"]:
             continue
 
         sub_skeletons.append(

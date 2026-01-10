@@ -52,6 +52,20 @@ a.topbar-link:hover { text-decoration: underline; }
   border-radius: 6px;
 }
 
+.search-input {
+  background: var(--panel2);
+  color: var(--text);
+  border: 1px solid var(--border);
+  padding: 4px 8px;
+  border-radius: 6px;
+  width: 200px;
+  font-family: inherit;
+}
+.search-input:focus {
+  outline: 1px solid var(--accent);
+  border-color: var(--accent);
+}
+
 .layout{
   height: calc(100% - 48px);
   display:grid;

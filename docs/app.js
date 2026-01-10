@@ -5,6 +5,7 @@ const state = {
   selectedCatId: null,
   scheme: "devanagari",     // devanagari | iast | hk | itrans | slp1
   expanded: new Set(),      // node ids expanded in sidebar
+  searchQuery: "",
 };
 
 // --- utils
@@ -177,15 +178,36 @@ function renderMain() {
 
   const root = state.data.root;
 
-  // focused
-  const selected = findCatById(root, state.selectedCatId) || root;
-  host.appendChild(renderCategoryBlock(selected, { includePages: true, depth: 0, isRoot: true }));
+  if (state.searchQuery) {
+    const filtered = filterTree(root, state.searchQuery);
+    if (filtered) {
+      // In search mode, we render the filtered root (or its children if root itself isn't the match?)
+      // Actually, root always matches if anything matches (because it contains them).
+      // We render it with `isSearch: true`.
+      host.appendChild(renderCategoryBlock(filtered, { includePages: true, depth: 0, isRoot: true, isSearch: true }));
+    } else {
+      host.innerHTML = "<div class='block'>No results found.</div>";
+    }
+  } else {
+    // focused
+    const selected = findCatById(root, state.selectedCatId) || root;
+    host.appendChild(renderCategoryBlock(selected, { includePages: true, depth: 0, isRoot: true }));
+  }
 }
 
-function renderCategoryBlock(catNode, { includePages, depth, isRoot }) {
+function renderCategoryBlock(catNode, { includePages, depth, isRoot, isSearch }) {
   const isExpanded = true; // main pane always renders expanded blocks by default (you can change later)
 
-  const statsText = formatStats(catNode.stats);
+  // In search mode: show stats ONLY if it's a direct match or a leaf page match?
+  // Prompt: "along with their parent categories (whose size and count labels can be suppressed in this context)"
+  // So: if `isSearch` is true, we ONLY show stats if `catNode.__isMatch` is true.
+  // If `catNode` is just a parent container (not a match itself), stats are hidden.
+  let showStats = true;
+  if (isSearch && !catNode.__isMatch) {
+    showStats = false;
+  }
+
+  const statsText = showStats ? formatStats(catNode.stats) : "";
   const header = el("div", { class: "panelTitle" },
     displayTitle(catNode.title),
     statsText ? el("span", { class: "small", style: "font-weight:normal; margin-left:8px;" }, statsText) : null
@@ -198,7 +220,7 @@ function renderCategoryBlock(catNode, { includePages, depth, isRoot }) {
   // child categories
   for (const ch of (catNode.children || [])) {
     block.appendChild(el("div", { style: "margin-top:10px" },
-      renderCategoryBlock(ch, { includePages, depth: depth + 1, isRoot: false })
+      renderCategoryBlock(ch, { includePages, depth: depth + 1, isRoot: false, isSearch })
     ));
   }
 
@@ -239,6 +261,44 @@ function initUI() {
     renderSidebarTree();
     renderMain();
   });
+
+  document.getElementById("searchInput").addEventListener("input", (ev) => {
+    state.searchQuery = ev.target.value.toLowerCase().trim();
+    renderMain();
+  });
+}
+
+function filterTree(node, query) {
+  // Check pages
+  const matchingPages = (node.pages || []).filter(p => {
+    const t = displayTitle(p.title).toLowerCase();
+    return t.includes(query);
+  });
+
+  // Check children
+  const matchingChildren = [];
+  for (const ch of (node.children || [])) {
+    const filteredCh = filterTree(ch, query);
+    if (filteredCh) {
+      matchingChildren.push(filteredCh);
+    }
+  }
+
+  // Check self
+  const selfTitle = displayTitle(node.title).toLowerCase();
+  const selfMatch = selfTitle.includes(query);
+
+  if (selfMatch || matchingPages.length > 0 || matchingChildren.length > 0) {
+    // Return a shallow copy with filtered lists
+    return {
+      ...node,
+      children: matchingChildren,
+      pages: matchingPages,
+      __isMatch: selfMatch, // Flag to indicate if the node title itself matched
+    };
+  }
+
+  return null;
 }
 
 async function loadVersion() {

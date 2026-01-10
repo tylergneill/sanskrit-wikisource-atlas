@@ -179,8 +179,12 @@ def build_skeleton(
         sub_full = m.get("title", "")
         if not sub_full:
             continue
-        if strip_cat_prefix(sub_full) == "अवैध एचटीएमएल टैग का उपयोग कर रहे पृष्ठ":
+        
+        # Exclude internal/maintenance categories
+        stripped = strip_cat_prefix(sub_full)
+        if stripped in ["अवैध एचटीएमएल टैग का उपयोग कर रहे पृष्ठ", "अनिर्दिष्टानि पुटानि"]:
             continue
+
         sub_skeletons.append(
             build_skeleton(
                 sub_full,

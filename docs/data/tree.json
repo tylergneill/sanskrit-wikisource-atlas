@@ -5,16 +5,6 @@
         "type": "collection",
         "children": [
             {
-                "id": "cat:अनिर्दिष्टानि पुटानि",
-                "type": "category",
-                "title": "अनिर्दिष्टानि पुटानि",
-                "children": [],
-                "pages": [],
-                "stats": {
-                    "bytes": 0
-                }
-            },
-            {
                 "id": "cat:अन्यग्रन्थाः",
                 "type": "category",
                 "title": "अन्यग्रन्थाः",
@@ -1961,7 +1951,7 @@
                                 "children": [],
                                 "pages": [],
                                 "stats": {
-                                    "bytes": 0
+                                    "bytes": 29411
                                 }
                             },
                             {
@@ -1971,7 +1961,7 @@
                                 "children": [],
                                 "pages": [],
                                 "stats": {
-                                    "bytes": 0
+                                    "bytes": 193555
                                 }
                             },
                             {
@@ -2207,7 +2197,7 @@
                             }
                         ],
                         "stats": {
-                            "bytes": 545231
+                            "bytes": 768197
                         }
                     },
                     {
@@ -2217,7 +2207,7 @@
                         "children": [],
                         "pages": [],
                         "stats": {
-                            "bytes": 0
+                            "bytes": 33788
                         }
                     },
                     {
@@ -2310,7 +2300,7 @@
                         "children": [],
                         "pages": [],
                         "stats": {
-                            "bytes": 0
+                            "bytes": 37914
                         }
                     }
                 ],
@@ -3424,7 +3414,7 @@
                     }
                 ],
                 "stats": {
-                    "bytes": 11493273
+                    "bytes": 11787941
                 }
             },
             {
@@ -4012,7 +4002,7 @@
                                                 "children": [],
                                                 "pages": [],
                                                 "stats": {
-                                                    "bytes": 0
+                                                    "bytes": 5248620
                                                 }
                                             }
                                         ],
@@ -4604,7 +4594,7 @@
                                             }
                                         ],
                                         "stats": {
-                                            "bytes": 2749992
+                                            "bytes": 7998612
                                         }
                                     },
                                     {
@@ -5257,7 +5247,7 @@
                                     }
                                 ],
                                 "stats": {
-                                    "bytes": 18529018
+                                    "bytes": 23777638
                                 }
                             },
                             {
@@ -5818,7 +5808,7 @@
                                         "children": [],
                                         "pages": [],
                                         "stats": {
-                                            "bytes": 0
+                                            "bytes": 395677
                                         }
                                     },
                                     {
@@ -6129,7 +6119,7 @@
                                     }
                                 ],
                                 "stats": {
-                                    "bytes": 1933413
+                                    "bytes": 2329090
                                 }
                             },
                             {
@@ -6491,7 +6481,7 @@
                             }
                         ],
                         "stats": {
-                            "bytes": 29276940
+                            "bytes": 34921237
                         }
                     },
                     {
@@ -8434,7 +8424,7 @@
                     }
                 ],
                 "stats": {
-                    "bytes": 68503264
+                    "bytes": 74147561
                 }
             },
             {
@@ -32192,7 +32182,7 @@
                                 "children": [],
                                 "pages": [],
                                 "stats": {
-                                    "bytes": 0
+                                    "bytes": 241969
                                 }
                             }
                         ],
@@ -32352,7 +32342,7 @@
                             }
                         ],
                         "stats": {
-                            "bytes": 3063824
+                            "bytes": 3305793
                         }
                     },
                     {
@@ -32367,7 +32357,7 @@
                                 "children": [],
                                 "pages": [],
                                 "stats": {
-                                    "bytes": 0
+                                    "bytes": 5488
                                 }
                             }
                         ],
@@ -32464,7 +32454,7 @@
                             }
                         ],
                         "stats": {
-                            "bytes": 2526177
+                            "bytes": 2531665
                         }
                     },
                     {
@@ -32770,7 +32760,7 @@
                     }
                 ],
                 "stats": {
-                    "bytes": 25409963
+                    "bytes": 25657420
                 }
             },
             {
@@ -43940,12 +43930,131 @@
                 "children": [],
                 "pages": [],
                 "stats": {
-                    "bytes": 0
+                    "bytes": 2354493
+                }
+            }
+        ],
+        "pages": [
+            {
+                "id": "page:जयाख्यसंहिता",
+                "type": "page",
+                "title": "जयाख्यसंहिता",
+                "url": "https://sa.wikisource.org/wiki/जयाख्यसंहिता",
+                "stats": {
+                    "bytes": 2951
+                }
+            },
+            {
+                "id": "page:तन्त्रयुक्तिः",
+                "type": "page",
+                "title": "तन्त्रयुक्तिः",
+                "url": "https://sa.wikisource.org/wiki/तन्त्रयुक्तिः",
+                "stats": {
+                    "bytes": 28361
+                }
+            },
+            {
+                "id": "page:पद्मसंहिता",
+                "type": "page",
+                "title": "पद्मसंहिता",
+                "url": "https://sa.wikisource.org/wiki/पद्मसंहिता",
+                "stats": {
+                    "bytes": 643
+                }
+            },
+            {
+                "id": "page:परमपुरुषसंहिता",
+                "type": "page",
+                "title": "परमपुरुषसंहिता",
+                "url": "https://sa.wikisource.org/wiki/परमपुरुषसंहिता",
+                "stats": {
+                    "bytes": 1311
+                }
+            },
+            {
+                "id": "page:परमेश्वरसंहिता",
+                "type": "page",
+                "title": "परमेश्वरसंहिता",
+                "url": "https://sa.wikisource.org/wiki/परमेश्वरसंहिता",
+                "stats": {
+                    "bytes": 3007
+                }
+            },
+            {
+                "id": "page:भगवद्गीता",
+                "type": "page",
+                "title": "भगवद्गीता",
+                "url": "https://sa.wikisource.org/wiki/भगवद्गीता",
+                "stats": {
+                    "bytes": 4347
+                }
+            },
+            {
+                "id": "page:भार्गवतन्त्रम्",
+                "type": "page",
+                "title": "भार्गवतन्त्रम्",
+                "url": "https://sa.wikisource.org/wiki/भार्गवतन्त्रम्",
+                "stats": {
+                    "bytes": 2912
+                }
+            },
+            {
+                "id": "page:भावप्रकाशसंहिता",
+                "type": "page",
+                "title": "भावप्रकाशसंहिता",
+                "url": "https://sa.wikisource.org/wiki/भावप्रकाशसंहिता",
+                "stats": {
+                    "bytes": 629
+                }
+            },
+            {
+                "id": "page:भावप्रकाशसंहिता/पूर्वखण्डः",
+                "type": "page",
+                "title": "भावप्रकाशसंहिता/पूर्वखण्डः",
+                "url": "https://sa.wikisource.org/wiki/भावप्रकाशसंहिता/पूर्वखण्डः",
+                "stats": {
+                    "bytes": 618
+                }
+            },
+            {
+                "id": "page:भावप्रकाशसंहिता/मध्यखण्डः",
+                "type": "page",
+                "title": "भावप्रकाशसंहिता/मध्यखण्डः",
+                "url": "https://sa.wikisource.org/wiki/भावप्रकाशसंहिता/मध्यखण्डः",
+                "stats": {
+                    "bytes": 904
+                }
+            },
+            {
+                "id": "page:भैषज्यरत्नावली",
+                "type": "page",
+                "title": "भैषज्यरत्नावली",
+                "url": "https://sa.wikisource.org/wiki/भैषज्यरत्नावली",
+                "stats": {
+                    "bytes": 11730
+                }
+            },
+            {
+                "id": "page:राजनिघण्टुः",
+                "type": "page",
+                "title": "राजनिघण्टुः",
+                "url": "https://sa.wikisource.org/wiki/राजनिघण्टुः",
+                "stats": {
+                    "bytes": 3312
+                }
+            },
+            {
+                "id": "page:लक्ष्मीतन्त्रम्",
+                "type": "page",
+                "title": "लक्ष्मीतन्त्रम्",
+                "url": "https://sa.wikisource.org/wiki/लक्ष्मीतन्त्रम्",
+                "stats": {
+                    "bytes": 6474
                 }
             }
         ],
         "stats": {
-            "bytes": 265085400
+            "bytes": 273693514
         }
     }
 }

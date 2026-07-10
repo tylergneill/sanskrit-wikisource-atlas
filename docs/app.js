@@ -62,6 +62,17 @@ function findCatById(node, id) {
   return null;
 }
 
+// Path of ancestor category nodes from (but not including) root down to (but not including) id.
+function findAncestorPath(node, id, path = []) {
+  if (!node) return null;
+  if ((node.type === "category" || node.type === "collection") && node.id === id) return path;
+  for (const ch of (node.children || [])) {
+    const hit = findAncestorPath(ch, id, [...path, node]);
+    if (hit) return hit;
+  }
+  return null;
+}
+
 function gatherDescendantCatIds(catNode) {
   const ids = [];
   walkCategories(catNode, (c) => ids.push(c.id));
@@ -203,9 +214,36 @@ function renderMain() {
       host.innerHTML = "<div class='block'>No results found.</div>";
     }
   } else {
-    // focused
+    // focused: render the selected node's own subtree in full, but wrapped in sticky
+    // "breadcrumb" headers for its ancestors, so super-category context (e.g. दर्शनानि >
+    // आस्तिकदर्शनानि > उत्तरमीमांसादर्शनम्) stays visible/stuck while scrolling, instead of
+    // being discarded just because a deeper category was picked in the sidebar.
     const selected = findCatById(root, state.selectedCatId) || root;
-    host.appendChild(renderCategoryBlock(selected, { includePages: true, depth: 0, isRoot: true }));
+    const ancestors = findAncestorPath(root, state.selectedCatId) || [];
+    // ancestors[0] is the true root (no header of its own); skip it, keep the rest.
+    const breadcrumb = ancestors.slice(1);
+
+    const selectedBlock = renderCategoryBlock(selected, { includePages: true, depth: breadcrumb.length + 1, isRoot: false });
+
+    let inner = selectedBlock;
+    for (let i = breadcrumb.length - 1; i >= 0; i--) {
+      const anc = breadcrumb[i];
+      const ancDepth = i + 1;
+      const header = el("div", {
+        class: "panelTitle sticky-header",
+        dataset: { stickyDepth: String(ancDepth) },
+        style: `z-index:${1000 - ancDepth};`
+      },
+        displayTitle(anc.title),
+        (() => {
+          const s = formatStats(anc.stats, { includeDate: true });
+          return s ? el("span", { class: "small", style: "font-weight:normal; margin-left:8px;" }, s) : null;
+        })()
+      );
+      inner = el("div", { class: "block" }, header, el("div", { style: "margin-top:10px" }, inner));
+    }
+
+    host.appendChild(inner);
   }
 
   positionStickyHeaders(host);

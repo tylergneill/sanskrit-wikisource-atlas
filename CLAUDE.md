@@ -67,7 +67,7 @@ Page:
 ## Notes
 
 - `docs/VERSION` holds a single `__version__ = "x.y.z"` line displayed in the UI header; bump it manually when making user-visible frontend changes.
-- `tools/` is scratch/exploratory work (Jupyter notebooks, cached HTML, earlier scraping approaches) and is untracked/gitignored-in-spirit — do not treat it as part of the maintained codebase.
+- `notes/` holds prototype/spec material not yet absorbed into the maintained codebase. `notes/get_uncategorized.ipynb` is a working prototype for roadmap item 5 (uncategorized-pages bucket) — `list=querypage&qppage=Uncategorizedpages` plus an `list=allpages` + `prop=categories` sweep to find pages invisible to category-tree walking; port its logic into `scrape.py` when implementing that item, then remove the notebook.
 
 ## Fixed: scraper now chases MediaWiki subpages (the "conservatism problem")
 

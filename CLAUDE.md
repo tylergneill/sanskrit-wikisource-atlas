@@ -66,6 +66,8 @@ Page:
 - `stats` on a category node are recursive totals/rollups over all descendant pages (`bytes`/`count` sum, `last_changed` is a `max()` — see datestamping note below for why this can't be read off an index page directly).
 - The scraper hardcodes an exclusion list of Wikisource maintenance/junk categories (e.g. `निष्कासनाय`, `अनिर्दिष्टानि पुटानि`) — if new junk categories appear in scraped output, add them to that list in `build_skeleton()` rather than filtering in the frontend.
 
+**In progress:** category `id`s need to become path-derived (not title-only), and the data model needs to support the same category appearing under multiple parents (Wikisource's category graph is not a tree — see `notes/multi_parent_categories_plan.md` for the design and a table of 15 confirmed real-world cases). Not yet implemented as of this writing; don't assume `tree.json` reflects this yet.
+
 ## Notes
 
 - `docs/VERSION` holds a single `__version__ = "x.y.z"` line displayed in the UI header; bump it manually when making user-visible frontend changes.

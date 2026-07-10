@@ -140,8 +140,20 @@ function renderSidebarTree() {
 
   const allStatsEl = document.getElementById("allStats");
   if (allStatsEl) {
-    const statsText = formatStats(root.stats);
-    allStatsEl.textContent = statsText ? `All: ${statsText}` : "";
+    allStatsEl.textContent = formatStats(root.stats);
+  }
+
+  const allRowEl = document.getElementById("allRow");
+  if (allRowEl) {
+    allRowEl.classList.toggle("selected", state.selectedCatId == null || state.selectedCatId === root.id);
+    allRowEl.onclick = (ev) => {
+      if (isExpandAllGesture(ev)) {
+        setExpandedDeep(root, true);
+      }
+      state.selectedCatId = null;
+      renderSidebarTree();
+      renderMain();
+    };
   }
 }
 

@@ -44,10 +44,12 @@
 
   <div class="layout">
     <aside class="sidenav">
-      <div class="panelTitle" style="display:flex; justify-content:space-between; align-items:baseline;">Categories <span id="allStats" class="small topLevel" style="opacity:0.7;"></span></div>
+      <div id="allRow" class="row allRow">
+        <span class="title topLevel">All</span>
+        <span id="allStats" class="small topLevel" style="margin-left:auto; padding-left:10px; opacity:0.7;"></span>
+      </div>
+      <hr class="allDivider" />
       <div class="hint">
-        Click ▸ to expand.
-        <br/>
         Option/Shift-click to expand all.
       </div>
       <div id="sidebarTree" class="tree"></div>

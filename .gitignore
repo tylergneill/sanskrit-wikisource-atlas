@@ -62,3 +62,6 @@ cover/
 
 # macOS
 .DS_Store
+
+# scrape.py disk-backed API response cache (regenerable; see API_CACHE_DIR)
+.api_cache/

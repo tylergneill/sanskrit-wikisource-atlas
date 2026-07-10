@@ -1,2 +1,2 @@
 scrape:
-	python scrape.py --verbose
+	python scrape.py

@@ -274,6 +274,13 @@ async function loadData() {
   state.expanded.add(state.data.root.id);
 }
 
+function updateThemeToggleLabel() {
+  const btn = document.getElementById("themeToggle");
+  if (!btn) return;
+  const theme = document.documentElement.getAttribute("data-theme") || "dark";
+  btn.textContent = theme === "dark" ? "☀ Light" : "☾ Dark";
+}
+
 function initUI() {
   document.getElementById("schemeSelect").addEventListener("change", (ev) => {
     state.scheme = ev.target.value;
@@ -284,6 +291,15 @@ function initUI() {
   document.getElementById("searchInput").addEventListener("input", (ev) => {
     state.searchQuery = ev.target.value.toLowerCase().trim();
     renderMain();
+  });
+
+  updateThemeToggleLabel();
+  document.getElementById("themeToggle").addEventListener("click", () => {
+    const current = document.documentElement.getAttribute("data-theme") || "dark";
+    const next = current === "dark" ? "light" : "dark";
+    document.documentElement.setAttribute("data-theme", next);
+    localStorage.setItem("theme", next);
+    updateThemeToggleLabel();
   });
 }
 

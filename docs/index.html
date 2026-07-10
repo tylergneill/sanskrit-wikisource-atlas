@@ -5,6 +5,13 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Wikisource Category Tree</title>
   <link rel="stylesheet" href="./styles.css" />
+  <script>
+    (function () {
+      var saved = localStorage.getItem("theme");
+      var theme = saved || (window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark");
+      document.documentElement.setAttribute("data-theme", theme);
+    })();
+  </script>
 
   <!-- Sanscript: pick one source you like; this one is commonly used -->
   <script src="https://cdn.jsdelivr.net/npm/@indic-transliteration/sanscript@1.3.3/sanscript.min.js"></script>
@@ -30,6 +37,8 @@
         <option value="iso">ISO 15919</option>
         <option value="slp1">SLP1</option>
       </select>
+      <span class="sep">|</span>
+      <button id="themeToggle" class="theme-toggle" type="button" title="Toggle light/dark theme"></button>
     </nav>
   </header>
 

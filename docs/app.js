@@ -207,6 +207,28 @@ function renderMain() {
     const selected = findCatById(root, state.selectedCatId) || root;
     host.appendChild(renderCategoryBlock(selected, { includePages: true, depth: 0, isRoot: true }));
   }
+
+  positionStickyHeaders(host);
+}
+
+// Each sticky header's `top` must equal the total height of all its ancestor
+// sticky headers, so nested headers stack below one another instead of overlapping.
+// Computed from actual measured heights (rather than a fixed constant) since
+// header height varies with title length/wrapping and stats text.
+function positionStickyHeaders(host) {
+  const headers = host.querySelectorAll(".sticky-header");
+  for (const header of headers) {
+    let offset = 0;
+    let node = header.parentElement;
+    while (node && node !== host) {
+      const ancestorHeader = node.querySelector(":scope > .sticky-header");
+      if (ancestorHeader && ancestorHeader !== header) {
+        offset += ancestorHeader.getBoundingClientRect().height;
+      }
+      node = node.parentElement;
+    }
+    header.style.top = `${offset}px`;
+  }
 }
 
 function renderCategoryBlock(catNode, { includePages, depth, isRoot, isSearch }) {
@@ -223,7 +245,14 @@ function renderCategoryBlock(catNode, { includePages, depth, isRoot, isSearch })
   }
 
   const statsText = showStats ? formatStats(catNode.stats, { includeDate: true }) : "";
-  const header = isActualRoot ? null : el("div", { class: "panelTitle" },
+  // depth (1-indexed among non-root headers) determines stacking order/offset of sticky headers.
+  // Shallower headers must paint OVER deeper ones (so descendants scroll underneath their
+  // ancestors' sticky headers, not on top of them) -- hence z-index decreases with depth.
+  const header = isActualRoot ? null : el("div", {
+    class: "panelTitle sticky-header",
+    dataset: { stickyDepth: String(depth) },
+    style: `z-index:${1000 - depth};`
+  },
     displayTitle(catNode.title),
     statsText ? el("span", { class: "small", style: "font-weight:normal; margin-left:8px;" }, statsText) : null
   );

@@ -218,6 +218,36 @@ def category_members(
     return subcats, pages
 
 
+def _page_meta_params(missing: List[int]) -> dict:
+    return {
+        "action": "query",
+        "format": "json",
+        "prop": "revisions",
+        "rvprop": "size|timestamp",
+        "pageids": "|".join(str(pid) for pid in missing),
+    }
+
+
+def count_disk_cached_pages(pageids: List[int]) -> int:
+    """
+    Replays fetch_page_meta's batching to count how many pages are already
+    resolvable from the on-disk API cache, without making any requests. Used
+    only to annotate the phase-2 header with how much of the bar's initial
+    burst will be instant cache hits vs. real network calls — the tqdm bar
+    itself still starts at 0 and counts every batch fetch_page_meta processes,
+    cached or not, so this count is informational only, not passed to tqdm.
+    """
+    BATCH = 50
+    cached = 0
+    for i in range(0, len(pageids), BATCH):
+        batch = pageids[i : i + BATCH]
+        params = {**_page_meta_params(batch), "maxlag": "5"}  # matches api_get's own merge
+        key = json.dumps(params, sort_keys=True, ensure_ascii=False)
+        if _cache_path_for_key(key).exists():
+            cached += len(batch)
+    return cached
+
+
 def fetch_page_meta(pageids: List[int], delay_s: float, pbar: Optional[tqdm]) -> None:
     """
     Populate _size_cache and _timestamp_cache for each pageid,
@@ -232,13 +262,7 @@ def fetch_page_meta(pageids: List[int], delay_s: float, pbar: Optional[tqdm]) ->
                 pbar.update(len(batch))
             continue
 
-        params = {
-            "action": "query",
-            "format": "json",
-            "prop": "revisions",
-            "rvprop": "size|timestamp",
-            "pageids": "|".join(str(pid) for pid in missing),
-        }
+        params = _page_meta_params(missing)
         data = api_get(params, delay_s=delay_s)
         pages = data.get("query", {}).get("pages", {})
 
@@ -491,6 +515,18 @@ def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--out", default=DEFAULT_OUT)
     ap.add_argument("--delay", type=float, default=REQUEST_DELAY_S)
+    ap.add_argument(
+        "--page-meta-delay",
+        type=float,
+        default=None,
+        help="Delay (seconds) between phase-2 prop=revisions batch requests, separate from "
+        "--delay. Phase 2 issues many same-shaped requests back-to-back and has been observed "
+        "tripping Wikimedia's edge rate limiter after ~10 requests at the default --delay pace, "
+        "each trip costing a ~55s Retry-After stall (in one observed run, over 90%% of phase-2 "
+        "wall-clock time was spent waiting out these stalls). No safe steady-state pace has been "
+        "empirically confirmed yet -- tune this by testing live against the real API. Defaults "
+        "to --delay if unset.",
+    )
     ap.add_argument("--debug", action="store_true", help="log every API call (cache hit/miss, timing, retries) to stderr")
     ap.add_argument(
         "--recurse-subpages",
@@ -550,10 +586,15 @@ def main() -> None:
     granth_skel.subcats.sort(key=lambda x: x.title)
 
     # Pass 2: fetch sizes and timestamps for unique pages (fast, no HTML fetching)
-    print(f"Phase 2/2: fetching page sizes and timestamps for {len(all_pageids)} unique pages ...")
     unique_pageids = sorted(all_pageids)
+    already_cached = count_disk_cached_pages(unique_pageids)
+    print(
+        f"Phase 2/2: fetching page sizes and timestamps for {len(unique_pageids)} unique pages "
+        f"({already_cached} already cached on disk) ..."
+    )
+    page_meta_delay = args.page_meta_delay if args.page_meta_delay is not None else args.delay
     pbar = tqdm(total=len(unique_pageids), unit="page")
-    fetch_page_meta(unique_pageids, delay_s=args.delay, pbar=pbar)
+    fetch_page_meta(unique_pageids, delay_s=page_meta_delay, pbar=pbar)
     pbar.close()
 
     # Output: omit the top "ग्रन्थाः" level, and omit "वर्गः:" prefixes everywhere (already stripped)

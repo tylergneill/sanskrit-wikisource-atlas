@@ -100,14 +100,22 @@ function formatBytes(bytes) {
   return `${(kb / 1024).toFixed(1)} MB`;
 }
 
-function formatStats(stats) {
+function formatDate(iso) {
+  if (!iso) return "";
+  return iso.slice(0, 7);
+}
+
+function formatStats(stats, { includeDate } = {}) {
   if (!stats) return "";
   const size = formatBytes(stats.bytes);
   if (!size) return "";
-  if (stats.count != null) {
-    return `(${size}, ${stats.count} pages)`;
+  const parts = [size];
+  if (stats.count != null) parts.push(`${stats.count} pages`);
+  if (includeDate) {
+    const date = formatDate(stats.last_changed);
+    if (date) parts.push(date);
   }
-  return `(${size})`;
+  return `(${parts.join(", ")})`;
 }
 
 function renderSidebarTree() {
@@ -207,7 +215,7 @@ function renderCategoryBlock(catNode, { includePages, depth, isRoot, isSearch })
     showStats = false;
   }
 
-  const statsText = showStats ? formatStats(catNode.stats) : "";
+  const statsText = showStats ? formatStats(catNode.stats, { includeDate: true }) : "";
   const header = el("div", { class: "panelTitle" },
     displayTitle(catNode.title),
     statsText ? el("span", { class: "small", style: "font-weight:normal; margin-left:8px;" }, statsText) : null
@@ -229,7 +237,11 @@ function renderCategoryBlock(catNode, { includePages, depth, isRoot, isSearch })
     const ul = el("ul", {});
     for (const p of catNode.pages) {
       const a = el("a", { href: p.url, target: "_blank", rel: "noreferrer" }, displayTitle(p.title));
-      const meta = p.stats?.bytes != null ? ` (${formatBytes(p.stats.bytes)})` : "";
+      const metaParts = [];
+      if (p.stats?.bytes != null) metaParts.push(formatBytes(p.stats.bytes));
+      const date = formatDate(p.stats?.last_changed);
+      if (date) metaParts.push(date);
+      const meta = metaParts.length ? ` (${metaParts.join(", ")})` : "";
       ul.appendChild(el("li", {}, a, meta ? el("span", { class: "small" }, meta) : null));
     }
     block.appendChild(el("div", { style: "margin-top:10px" },

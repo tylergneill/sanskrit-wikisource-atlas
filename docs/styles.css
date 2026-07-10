@@ -8,6 +8,7 @@
   --accent: #66a3ff;
   --row-hover: rgba(255,255,255,0.04);
   --row-selected: rgba(102,163,255,0.18);
+  --row-shared-highlight: rgba(255,196,102,0.18);
 }
 
 :root[data-theme="light"]{
@@ -20,6 +21,7 @@
   --accent: #2464c7;
   --row-hover: rgba(0,0,0,0.04);
   --row-selected: rgba(36,100,199,0.14);
+  --row-shared-highlight: rgba(199,130,36,0.16);
 }
 
 * { box-sizing: border-box; }
@@ -136,6 +138,7 @@ a.topbar-link:hover { text-decoration: underline; }
 }
 .tree .row:hover{ background: var(--row-hover); }
 .tree .row.selected{ background: var(--row-selected); }
+.tree .row.shared-highlight{ background: var(--row-shared-highlight); }
 
 .toggleArrow{
   width: 28px;

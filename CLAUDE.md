@@ -57,16 +57,27 @@ Practical implication: hitting the Envoy 429 is easy to trigger by accident duri
 { "root": Node }
 
 Node (category/collection):
-  { id: "cat:<title>", type: "category"|"collection", title, children: [Node], pages: [Page], stats: { bytes, count, last_changed } }
+  { id: "cat:<path>", type: "category"|"collection", title, children: [Node], pages: [Page], stats: { bytes, count, last_changed } }
+
+Category-pointer (a second+ filing of a category already inlined elsewhere):
+  { id: "cat:<path>", type: "category-pointer", title, points_to: "cat:<other id>", stats: { bytes, count, last_changed } }
 
 Page:
   { id: "page:<title>", type: "page", title, url, stats: { bytes, last_changed } }
 ```
 - `title` fields are raw Devanagari (the `वर्गः:` / `Category:` namespace prefix is stripped); the frontend transliterates on render, never the scraper.
-- `stats` on a category node are recursive totals/rollups over all descendant pages (`bytes`/`count` sum, `last_changed` is a `max()` — see datestamping note below for why this can't be read off an index page directly).
+- Category `id`s are **path-derived**, not title-only: `cat_id_for_path()` joins the full chain of ancestor titles from root down to that occurrence (e.g. `cat:उपनिषदः/प्रमुखोपनिषदः/कठोपनिषत्`). This is what makes two occurrences of the same category (see below) distinguishable by id.
 - The scraper hardcodes an exclusion list of Wikisource maintenance/junk categories (e.g. `निष्कासनाय`, `अनिर्दिष्टानि पुटानि`) — if new junk categories appear in scraped output, add them to that list in `build_skeleton()` rather than filtering in the frontend.
 
-**In progress:** category `id`s need to become path-derived (not title-only), and the data model needs to support the same category appearing under multiple parents (Wikisource's category graph is not a tree — see `notes/multi_parent_categories_plan.md` for the design and a table of 15 confirmed real-world cases). Not yet implemented as of this writing; don't assume `tree.json` reflects this yet.
+### Multi-parented categories (`category-pointer`)
+
+Wikisource's category graph is not a strict tree: a category can legitimately be filed under more than one parent (confirmed 15 real cases as of the 2026-07 crawl — see `notes/multi_parent_categories_plan.md` for the full table and the दर्शन/उपनिषत्/रचनाः clusters they fall into). Neither occurrence is more "real" or "canonical" than the other — which one ends up holding the actual content in the JSON is purely an artifact of depth-first crawl order, not a meaningful distinction.
+
+`build_skeleton()` tracks a `full_title -> id` map (`seen_cats`) across the whole crawl. The first time a category is reached, it gets a normal `category` node with real `children`/`pages`. Every subsequent time the *same* category is reached (via a different parent), it instead returns a `category-pointer` node: no `children`/`pages` of its own, just a `points_to` field naming the id of the occurrence that holds them. This keeps `tree.json` free of duplicated content — nothing downstream has to remember to dedupe a subtree by hand.
+
+**Stats are still real on every occurrence, including pointers.** `attach_stats()` runs as a separate pass after the tree is built: for every node (including pointers, which resolve through `points_to`), it walks the full deduped set of distinct pages reachable from that node and sums bytes/count/max(last_changed) over that set — not a naive bottom-up sum of children's precomputed totals, which would double-count a shared category at whichever ancestor happens to contain both its occurrences. Concretely: if two occurrences of a shared category share a close common ancestor (e.g. both under `उपनिषदः`), the dedup happens right there and nothing above needs special handling; if they don't converge until root (e.g. one under `धर्मशास्त्रम्`, the other under `वेदाः > ब्राह्मणम्`), each ancestor along the way legitimately counts the shared category in full, and only root dedupes. This also fixed a pre-existing, unrelated bug: pages that are genuine members of more than one category were being counted twice in every ancestor's rollup (root count dropped from an inflated 4,786 to the true distinct-page count of 4,625 once this landed).
+
+The frontend (`app.js`) builds an id→node index (`state.byId`) and a sibling-id map (`state.siblingIds`) at load time. Both occurrences of a shared category are independently selectable/expandable in the sidebar and show their own real stats (no "canonical vs. duplicate" treatment) — hovering either one highlights its sibling(s) elsewhere via a shared `data-shared-group` attribute, with a tooltip naming where the sibling(s) live even when not currently visible on screen. The main pane renders full content at every occurrence it encounters (never collapses one in favor of the other) and adds a "see also: <location>" link next to a shared category's stats, which jumps the main pane to the sibling occurrence when clicked.
 
 ## Notes
 

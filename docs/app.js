@@ -2,6 +2,9 @@ const DATA_URL = "./data/tree.json";
 
 const state = {
   data: null,
+  byId: new Map(),          // id -> node, built at load time (needed to resolve category-pointer nodes)
+  siblingIds: new Map(),    // id -> [other occurrence ids of the same shared category] (both directions)
+  parentPath: new Map(),    // id -> array of ancestor titles (root excluded), for "see also X > Y" hints
   selectedCatId: null,
   scheme: "devanagari",     // devanagari | iast | hk | itrans | slp1
   expanded: new Set(),      // node ids expanded in sidebar
@@ -46,15 +49,18 @@ function displayTitle(raw) {
   return translitText(normalizeTitleForDisplay(raw));
 }
 
+const CAT_TYPES = new Set(["category", "collection", "category-pointer"]);
+
 function walkCategories(node, fn) {
   if (node.id) fn(node);
   for (const ch of (node.children || [])) walkCategories(ch, fn);
 }
 
-// Find category node by id
+// Find category node by id (matches category-pointer occurrences too -- each is
+// independently selectable, distinct from the occurrence that holds real content).
 function findCatById(node, id) {
   if (!node) return null;
-  if ((node.type === "category" || node.type === "collection") && node.id === id) return node;
+  if (CAT_TYPES.has(node.type) && node.id === id) return node;
   for (const ch of (node.children || [])) {
     const hit = findCatById(ch, id);
     if (hit) return hit;
@@ -62,10 +68,18 @@ function findCatById(node, id) {
   return null;
 }
 
+// Resolve a category-pointer occurrence to the occurrence holding its real content
+// (children/pages/stats). Non-pointer nodes resolve to themselves.
+function resolveContent(node) {
+  if (!node) return node;
+  if (node.type === "category-pointer") return state.byId.get(node.points_to) || node;
+  return node;
+}
+
 // Path of ancestor category nodes from (but not including) root down to (but not including) id.
 function findAncestorPath(node, id, path = []) {
   if (!node) return null;
-  if ((node.type === "category" || node.type === "collection") && node.id === id) return path;
+  if (CAT_TYPES.has(node.type) && node.id === id) return path;
   for (const ch of (node.children || [])) {
     const hit = findAncestorPath(ch, id, [...path, node]);
     if (hit) return hit;
@@ -92,7 +106,7 @@ function el(tag, attrs = {}, ...kids) {
   const n = document.createElement(tag);
   for (const [k, v] of Object.entries(attrs)) {
     if (k === "class") n.className = v;
-    else if (k === "onclick") n.addEventListener("click", v);
+    else if (k.startsWith("on") && k.length > 2 && typeof v === "function") n.addEventListener(k.slice(2), v);
     else if (k === "dataset") Object.assign(n.dataset, v);
     else n.setAttribute(k, v);
   }
@@ -158,8 +172,13 @@ function renderSidebarTree() {
 }
 
 function renderSidebarNode(catNode, depth) {
+  const isPointer = catNode.type === "category-pointer";
+  // A pointer occurrence has no children/pages/stats of its own -- expanding it
+  // browses into the occurrence that actually holds the content.
+  const content = resolveContent(catNode);
+
   const isExpanded = state.expanded.has(catNode.id);
-  const hasKids = (catNode.children || []).length > 0;
+  const hasKids = (content.children || []).length > 0;
 
   const toggleArrow = el("span", {
     class: "toggleArrow",
@@ -184,25 +203,44 @@ function renderSidebarNode(catNode, depth) {
     }
   }, hasKids ? (isExpanded ? "▾" : "▸") : "·");
 
+  // Every occurrence of a shared category is equally real and shows its own real
+  // stats -- no occurrence is privileged over another for display purposes.
   const statsText = formatStats(catNode.stats);
+
+  // Shared-category bookkeeping: siblings are the other occurrence(s) of this same
+  // category elsewhere in the tree. Non-shared categories have none.
+  const siblings = state.siblingIds.get(catNode.id) || [];
+  const isShared = siblings.length > 0;
+  // Group key for hover highlighting -- same value for every occurrence in the group.
+  const groupKey = isPointer ? catNode.points_to : (isShared ? catNode.id : null);
+  const siblingLocations = siblings
+    .map((sid) => (state.parentPath.get(sid) || []).map(displayTitle).join(" > "))
+    .filter(Boolean);
+  const rowTitle = siblingLocations.length
+    ? `Also filed under: ${siblingLocations.join("; ")}`
+    : catNode.title;
 
   const row = el("div", {
     class: "row" + (state.selectedCatId === catNode.id ? " selected" : ""),
+    dataset: groupKey ? { sharedGroup: groupKey } : {},
+    title: rowTitle,
     onclick: () => {
       state.selectedCatId = catNode.id;
       renderSidebarTree();
       renderMain();
-    }
+    },
+    onmouseenter: () => setSharedGroupHighlight(groupKey, true),
+    onmouseleave: () => setSharedGroupHighlight(groupKey, false),
   },
     toggleArrow,
-    el("span", { class: depth === 0 ? "title topLevel" : "title", title: catNode.title }, displayTitle(catNode.title)),
+    el("span", { class: depth === 0 ? "title topLevel" : "title" }, displayTitle(catNode.title)),
     statsText ? el("span", { class: depth === 0 ? "small topLevel" : "small", style: "margin-left:auto; padding-left:10px; opacity:0.7;" }, statsText) : null
   );
 
   const wrap = el("div", { class: depth ? "indent" : "" }, row);
 
   if (hasKids && isExpanded) {
-    for (const ch of catNode.children) {
+    for (const ch of content.children) {
       wrap.appendChild(renderSidebarNode(ch, depth + 1));
     }
   }
@@ -282,19 +320,46 @@ function positionStickyHeaders(host) {
 }
 
 function renderCategoryBlock(catNode, { includePages, depth, isRoot, isSearch }) {
-  const isExpanded = true; // main pane always renders expanded blocks by default (you can change later)
   const isActualRoot = catNode.id === state.data.root.id;
+
+  // Resolve to the occurrence that actually holds children/pages (a category-pointer
+  // occurrence carries none of its own -- see scrape.py's skeleton_to_json). Every
+  // occurrence renders its full content here; nothing is collapsed.
+  const content = resolveContent(catNode);
 
   // In search mode: show stats ONLY if it's a direct match or a leaf page match?
   // Prompt: "along with their parent categories (whose size and count labels can be suppressed in this context)"
   // So: if `isSearch` is true, we ONLY show stats if `catNode.__isMatch` is true.
   // If `catNode` is just a parent container (not a match itself), stats are hidden.
   let showStats = true;
-  if (isSearch && !catNode.__isMatch) {
+  if (isSearch && !content.__isMatch) {
     showStats = false;
   }
 
   const statsText = showStats ? formatStats(catNode.stats, { includeDate: true }) : "";
+
+  // "See also" hint: this category is filed under more than one parent -- name the
+  // other occurrence(s) and link to jump there instead of duplicating full content.
+  const siblings = state.siblingIds.get(catNode.id) || [];
+  const seeAlso = siblings.length
+    ? el("span", { class: "small", style: "font-weight:normal; margin-left:8px; opacity:0.75;" },
+        "see also: ",
+        ...siblings.flatMap((sid, i) => {
+          const loc = (state.parentPath.get(sid) || []).map(displayTitle).join(" > ") || displayTitle(catNode.title);
+          const link = el("a", {
+            href: "#",
+            onclick: (ev) => {
+              ev.preventDefault();
+              state.selectedCatId = sid;
+              renderSidebarTree();
+              renderMain();
+            },
+          }, loc);
+          return i === 0 ? [link] : [", ", link];
+        })
+      )
+    : null;
+
   // depth (1-indexed among non-root headers) determines stacking order/offset of sticky headers.
   // Shallower headers must paint OVER deeper ones (so descendants scroll underneath their
   // ancestors' sticky headers, not on top of them) -- hence z-index decreases with depth.
@@ -304,24 +369,23 @@ function renderCategoryBlock(catNode, { includePages, depth, isRoot, isSearch })
     style: `z-index:${1000 - depth};`
   },
     displayTitle(catNode.title),
-    statsText ? el("span", { class: "small", style: "font-weight:normal; margin-left:8px;" }, statsText) : null
+    statsText ? el("span", { class: "small", style: "font-weight:normal; margin-left:8px;" }, statsText) : null,
+    seeAlso
   );
 
   const block = el("div", { class: isActualRoot ? "" : "block" }, header);
 
-  if (!isExpanded) return block;
-
   // child categories
-  for (const ch of (catNode.children || [])) {
+  for (const ch of (content.children || [])) {
     block.appendChild(el("div", { style: "margin-top:10px" },
       renderCategoryBlock(ch, { includePages, depth: depth + 1, isRoot: false, isSearch })
     ));
   }
 
   // pages
-  if (includePages && (catNode.pages || []).length) {
+  if (includePages && (content.pages || []).length) {
     const ul = el("ul", {});
-    for (const p of catNode.pages) {
+    for (const p of content.pages) {
       const a = el("a", { href: p.url, target: "_blank", rel: "noreferrer" }, displayTitle(p.title));
       const metaParts = [];
       if (p.stats?.bytes != null) metaParts.push(formatBytes(p.stats.bytes));
@@ -340,6 +404,16 @@ function renderCategoryBlock(catNode, { includePages, depth, isRoot, isSearch })
 
 // --- wiring
 
+function indexById(node, byId, parentPath, ancestorTitles = []) {
+  if (node.id) {
+    byId.set(node.id, node);
+    parentPath.set(node.id, ancestorTitles);
+  }
+  const isActualRoot = node.id === "root";
+  const childAncestors = isActualRoot ? ancestorTitles : [...ancestorTitles, node.title];
+  for (const ch of (node.children || [])) indexById(ch, byId, parentPath, childAncestors);
+}
+
 async function loadData() {
   const r = await fetch(DATA_URL, { cache: "no-store" });
   if (!r.ok) throw new Error(`Failed to load ${DATA_URL}: ${r.status}`);
@@ -349,8 +423,36 @@ async function loadData() {
   if (!state.data.root.id) state.data.root.id = "root";
   if (!state.data.root.title) state.data.root.title = "ग्रन्थाः (धर्मशास्त्राणि च)";
 
+  state.byId = new Map();
+  state.parentPath = new Map();
+  indexById(state.data.root, state.byId, state.parentPath);
+
+  // Group every occurrence of a shared category (content-holder + all its
+  // category-pointers) so each can look up its sibling(s), in either direction.
+  const groups = new Map(); // content-holder id -> [all occurrence ids in that group]
+  for (const node of state.byId.values()) {
+    if (node.type === "category-pointer") {
+      if (!groups.has(node.points_to)) groups.set(node.points_to, [node.points_to]);
+      groups.get(node.points_to).push(node.id);
+    }
+  }
+  state.siblingIds = new Map();
+  for (const ids of groups.values()) {
+    for (const id of ids) {
+      state.siblingIds.set(id, ids.filter((x) => x !== id));
+    }
+  }
+
   state.selectedCatId = state.data.root.id;
   state.expanded.add(state.data.root.id);
+}
+
+// Hover highlight for occurrences of a shared category: toggles a CSS class on
+// every sidebar row (content-holder + all pointer occurrences) sharing groupKey.
+function setSharedGroupHighlight(groupKey, on) {
+  if (!groupKey) return;
+  const rows = document.querySelectorAll(`[data-shared-group="${groupKey}"]`);
+  for (const row of rows) row.classList.toggle("shared-highlight", on);
 }
 
 function updateThemeToggleLabel() {

@@ -90,9 +90,6 @@ session.headers.update(
 
 _size_cache: Dict[int, int] = {}          # pageid -> bytes
 _timestamp_cache: Dict[int, str] = {}     # pageid -> last-revision ISO 8601 timestamp
-_cat_size_cache: Dict[str, int] = {}      # full_title -> bytes
-_cat_count_cache: Dict[str, int] = {}     # full_title -> page_count
-_cat_last_changed_cache: Dict[str, str] = {}  # full_title -> max descendant timestamp
 _api_cache: Dict[str, dict] = {}          # small memo for identical API calls
 
 
@@ -356,27 +353,46 @@ def collect_subpages_recursive(
 class CatSkeleton:
     title: str              # no "वर्गः:" prefix
     full_title: str         # full MediaWiki title (with namespace)
+    id: str                 # path-derived, unique per occurrence in the tree
     subcats: List["CatSkeleton"]
     pages: List[Tuple[str, int]]   # (page_title, pageid)
+    points_to: Optional[str] = None  # if set, this occurrence carries no content --
+                                      # see the id of the occurrence that does
+
+
+def cat_id_for_path(path: List[str]) -> str:
+    return "cat:" + "/".join(path)
 
 
 def build_skeleton(
     full_cat_title: str,
     delay_s: float,
-    seen_cats: Set[str],
+    seen_cats: Dict[str, str],   # full_title -> id of the occurrence holding real content
     collect_pageids: Set[int],
     depth: int,
+    path: List[str],
     progress: Optional["CategoryProgress"] = None,
     recurse_subpages: bool = False,
 ) -> CatSkeleton:
+    title = strip_cat_prefix(full_cat_title)
+    this_path = path + [title]
+    this_id = cat_id_for_path(this_path)
+
     if full_cat_title in seen_cats:
+        # Same category, already reached via a different parent (Wikisource's category
+        # graph is not a tree). This occurrence carries no content of its own -- it
+        # points at the occurrence that does. Both occurrences are equally "real"
+        # filings of the category; which one holds the content is purely an artifact
+        # of crawl order, not a canonical/alias distinction.
         return CatSkeleton(
-            title=strip_cat_prefix(full_cat_title),
+            title=title,
             full_title=full_cat_title,
+            id=this_id,
             subcats=[],
             pages=[],
+            points_to=seen_cats[full_cat_title],
         )
-    seen_cats.add(full_cat_title)
+    seen_cats[full_cat_title] = this_id
 
     if progress is not None:
         progress.visit(strip_cat_prefix(full_cat_title), depth)
@@ -401,6 +417,7 @@ def build_skeleton(
                 seen_cats=seen_cats,
                 collect_pageids=collect_pageids,
                 depth=depth + 1,
+                path=this_path,
                 progress=progress,
                 recurse_subpages=recurse_subpages,
             )
@@ -443,15 +460,12 @@ def build_skeleton(
     pages.sort(key=lambda x: x[0])
 
     return CatSkeleton(
-        title=strip_cat_prefix(full_cat_title),
+        title=title,
         full_title=full_cat_title,
+        id=this_id,
         subcats=sub_skeletons,
         pages=pages,
     )
-
-
-def cat_id(title: str) -> str:
-    return f"cat:{title}"
 
 
 def page_id(title: str) -> str:
@@ -459,16 +473,30 @@ def page_id(title: str) -> str:
 
 
 def skeleton_to_json(node: CatSkeleton) -> dict:
+    """Build the raw JSON tree (structure + pointers), without stats -- stats are filled
+    in afterward by attach_stats(), which needs the whole id->node map built first so it
+    can dedupe shared categories reachable through more than one child."""
+    if node.points_to is not None:
+        # Same category, filed under more than one parent (Wikisource's category graph
+        # is not a tree). This occurrence carries no children/pages of its own -- both
+        # occurrences are equally real filings of the category; `points_to` just says
+        # where the (arbitrarily, by crawl order) inlined children/pages live, so
+        # nothing is duplicated in the JSON. Despite carrying no children/pages here,
+        # this occurrence still gets its own `stats` (see attach_stats) -- from the
+        # sidebar's point of view every occurrence is equally real and shows real numbers.
+        return {
+            "id": node.id,
+            "type": "category-pointer",
+            "title": node.title,
+            "points_to": node.points_to,
+        }
+
     children_json = [skeleton_to_json(ch) for ch in node.subcats]
 
     pages_json = []
-    pages_bytes = 0
-    pages_last_changed = ""
     for t, pid in node.pages:
         b = _size_cache.get(pid, 0)
         ts = _timestamp_cache.get(pid, "")
-        pages_bytes += b
-        pages_last_changed = max(pages_last_changed, ts)
         pages_json.append(
             {
                 "id": page_id(t),
@@ -479,36 +507,67 @@ def skeleton_to_json(node: CatSkeleton) -> dict:
             }
         )
 
-    children_bytes = sum(int(ch.get("stats", {}).get("bytes", 0)) for ch in children_json)
-    total_bytes = pages_bytes + children_bytes
-
-    children_count = sum(int(ch.get("stats", {}).get("count", 0)) for ch in children_json)
-    total_count = len(pages_json) + children_count
-
-    children_last_changed = max(
-        (str(ch.get("stats", {}).get("last_changed", "")) for ch in children_json),
-        default="",
-    )
-    total_last_changed = max(pages_last_changed, children_last_changed)
-
-    # Cache the result for full nodes, and reuse it for empty nodes (broken cycles/repeats)
-    if node.subcats or node.pages:
-        _cat_size_cache[node.full_title] = total_bytes
-        _cat_count_cache[node.full_title] = total_count
-        _cat_last_changed_cache[node.full_title] = total_last_changed
-    elif node.full_title in _cat_size_cache:
-        total_bytes = _cat_size_cache[node.full_title]
-        total_count = _cat_count_cache.get(node.full_title, 0)
-        total_last_changed = _cat_last_changed_cache.get(node.full_title, "")
-
     return {
-        "id": cat_id(node.title),
+        "id": node.id,
         "type": "category",
         "title": node.title,
         "children": children_json,
         "pages": pages_json,
-        "stats": {"bytes": total_bytes, "count": total_count, "last_changed": total_last_changed},
     }
+
+
+def attach_stats(root: dict) -> None:
+    """Fill in `stats` on every category/category-pointer node via a deduped page-id-set
+    walk, so a shared category's bytes/pages are counted exactly once at whatever
+    ancestor the two occurrences' paths actually converge -- not double-counted (if the
+    convergence point summed naive per-child totals) and not under-counted (if a shared
+    category were skipped entirely). Recomputing the full descendant page set per node
+    (rather than reusing children's precomputed sets) is what makes this correct
+    regardless of how far apart two occurrences of a shared category sit in the tree;
+    nodes below the lowest common ancestor of any sharing are unaffected either way.
+
+    Every category-pointer node also gets its own `stats` (same numbers as the
+    occurrence it points to) -- both occurrences are equally real, so both show real
+    numbers in the UI, not just the one that happens to carry the inlined content.
+    """
+    by_id: Dict[str, dict] = {}
+
+    def index(n: dict) -> None:
+        by_id[n["id"]] = n
+        for ch in n.get("children", []):
+            index(ch)
+
+    index(root)
+
+    # Memoized: node id -> {page_id: (bytes, last_changed)} for every distinct page
+    # reachable from that node (pointer nodes resolve to their target's page set).
+    memo: Dict[str, Dict[str, Tuple[int, str]]] = {}
+
+    def collect(node_id: str) -> Dict[str, Tuple[int, str]]:
+        if node_id in memo:
+            return memo[node_id]
+        node = by_id[node_id]
+        if node["type"] == "category-pointer":
+            result = collect(node["points_to"])
+            memo[node_id] = result
+            return result
+
+        merged: Dict[str, Tuple[int, str]] = {
+            p["id"]: (int(p["stats"]["bytes"] or 0), str(p["stats"]["last_changed"] or ""))
+            for p in node.get("pages", [])
+        }
+        for ch in node.get("children", []):
+            merged.update(collect(ch["id"]))
+        memo[node_id] = merged
+        return merged
+
+    for node_id in by_id:
+        pages = collect(node_id)
+        by_id[node_id]["stats"] = {
+            "bytes": sum(b for b, _ in pages.values()),
+            "count": len(pages),
+            "last_changed": max((ts for _, ts in pages.values()), default=""),
+        }
 
 
 def main() -> None:
@@ -546,7 +605,7 @@ def main() -> None:
 
     # Pass 1: build full category skeleton starting at ग्रन्थाः (but we will not output the top ग्रन्थाः node)
     print("Phase 1/2: walking category tree (live, depth-first) ...")
-    seen_cats: Set[str] = set()
+    seen_cats: Dict[str, str] = {}
     all_pageids: Set[int] = set()
 
     progress = CategoryProgress()
@@ -557,6 +616,7 @@ def main() -> None:
         seen_cats=seen_cats,
         collect_pageids=all_pageids,
         depth=0,
+        path=[],
         progress=progress,
         recurse_subpages=args.recurse_subpages,
     )
@@ -565,7 +625,7 @@ def main() -> None:
     # even if it isn't actually listed as a subcategory there.
     has_dharma = any(ch.title == strip_cat_prefix(DHARMASHASTRA_CAT) for ch in granth_skel.subcats)
     if not has_dharma:
-        dh_seen: Set[str] = set(seen_cats)
+        dh_seen: Dict[str, str] = dict(seen_cats)
         dh_all: Set[int] = set(all_pageids)
         dh_skel = build_skeleton(
             DHARMASHASTRA_CAT,
@@ -573,6 +633,7 @@ def main() -> None:
             seen_cats=dh_seen,
             collect_pageids=dh_all,
             depth=1,
+            path=[],
             progress=progress,
             recurse_subpages=args.recurse_subpages,
         )
@@ -598,7 +659,7 @@ def main() -> None:
     pbar.close()
 
     # Output: omit the top "ग्रन्थाः" level, and omit "वर्गः:" prefixes everywhere (already stripped)
-    # We use skeleton_to_json on the root node to get its full recursive size, then extract what we need.
+    # We use skeleton_to_json on the root node to get its full structure, then extract what we need.
     root_data = skeleton_to_json(granth_skel)
 
     out = {
@@ -608,9 +669,9 @@ def main() -> None:
             "type": "collection",
             "children": root_data["children"],
             "pages": root_data["pages"],
-            "stats": root_data["stats"],
         }
     }
+    attach_stats(out["root"])
 
     with open(args.out, "w", encoding="utf-8") as f:
         json.dump(out, f, ensure_ascii=False, indent=4)

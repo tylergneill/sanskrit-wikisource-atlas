@@ -509,6 +509,7 @@ def main() -> None:
     )
 
     # Pass 1: build full category skeleton starting at ग्रन्थाः (but we will not output the top ग्रन्थाः node)
+    print("Phase 1/2: walking category tree (live, depth-first) ...")
     seen_cats: Set[str] = set()
     all_pageids: Set[int] = set()
 
@@ -549,6 +550,7 @@ def main() -> None:
     granth_skel.subcats.sort(key=lambda x: x.title)
 
     # Pass 2: fetch sizes and timestamps for unique pages (fast, no HTML fetching)
+    print(f"Phase 2/2: fetching page sizes and timestamps for {len(all_pageids)} unique pages ...")
     unique_pageids = sorted(all_pageids)
     pbar = tqdm(total=len(unique_pageids), unit="page")
     fetch_page_meta(unique_pageids, delay_s=args.delay, pbar=pbar)

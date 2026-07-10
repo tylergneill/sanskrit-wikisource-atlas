@@ -115,6 +115,9 @@ a.topbar-link:hover { text-decoration: underline; }
   overflow:hidden;
   text-overflow:ellipsis;
 }
+.title.topLevel, .small.topLevel{
+  font-weight: bold;
+}
 .indent{ margin-left: 18px; }
 
 .content .block{

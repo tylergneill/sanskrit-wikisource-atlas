@@ -123,8 +123,15 @@ function renderSidebarTree() {
   const host = document.getElementById("sidebarTree");
   host.innerHTML = "";
 
-  const tree = renderSidebarNode(root, 0);
-  host.appendChild(tree);
+  for (const ch of (root.children || [])) {
+    host.appendChild(renderSidebarNode(ch, 0));
+  }
+
+  const allStatsEl = document.getElementById("allStats");
+  if (allStatsEl) {
+    const statsText = formatStats(root.stats);
+    allStatsEl.textContent = statsText ? `All: ${statsText}` : "";
+  }
 }
 
 function renderSidebarNode(catNode, depth) {
@@ -154,8 +161,7 @@ function renderSidebarNode(catNode, depth) {
     }
   }, hasKids ? (isExpanded ? "▾" : "▸") : "·");
 
-  // Only show stats for root and top-level categories in the sidebar
-  const statsText = (depth <= 1) ? formatStats(catNode.stats) : "";
+  const statsText = formatStats(catNode.stats);
 
   const row = el("div", {
     class: "row" + (state.selectedCatId === catNode.id ? " selected" : ""),
@@ -166,8 +172,8 @@ function renderSidebarNode(catNode, depth) {
     }
   },
     toggleArrow,
-    el("span", { class: "title", title: catNode.title }, displayTitle(catNode.title)),
-    statsText ? el("span", { class: "small", style: "margin-left:auto; padding-left:10px; opacity:0.7;" }, statsText) : null
+    el("span", { class: depth === 0 ? "title topLevel" : "title", title: catNode.title }, displayTitle(catNode.title)),
+    statsText ? el("span", { class: depth === 0 ? "small topLevel" : "small", style: "margin-left:auto; padding-left:10px; opacity:0.7;" }, statsText) : null
   );
 
   const wrap = el("div", { class: depth ? "indent" : "" }, row);
@@ -205,6 +211,7 @@ function renderMain() {
 
 function renderCategoryBlock(catNode, { includePages, depth, isRoot, isSearch }) {
   const isExpanded = true; // main pane always renders expanded blocks by default (you can change later)
+  const isActualRoot = catNode.id === state.data.root.id;
 
   // In search mode: show stats ONLY if it's a direct match or a leaf page match?
   // Prompt: "along with their parent categories (whose size and count labels can be suppressed in this context)"
@@ -216,12 +223,12 @@ function renderCategoryBlock(catNode, { includePages, depth, isRoot, isSearch })
   }
 
   const statsText = showStats ? formatStats(catNode.stats, { includeDate: true }) : "";
-  const header = el("div", { class: "panelTitle" },
+  const header = isActualRoot ? null : el("div", { class: "panelTitle" },
     displayTitle(catNode.title),
     statsText ? el("span", { class: "small", style: "font-weight:normal; margin-left:8px;" }, statsText) : null
   );
 
-  const block = el("div", { class: "block" }, header);
+  const block = el("div", { class: isActualRoot ? "" : "block" }, header);
 
   if (!isExpanded) return block;
 

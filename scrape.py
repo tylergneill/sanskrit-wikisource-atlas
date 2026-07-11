@@ -690,6 +690,236 @@ def build_unpublished_ocr_bucket(delay_s: float, progress: Optional["CategoryPro
     }
 
 
+def fetch_all_mainspace_titles(delay_s: float, progress: Optional["SimpleStatusLine"] = None) -> List[dict]:
+    """
+    Returns every ns 0 (mainspace) page on sa.wikisource.org via a full
+    list=allpages sweep, regardless of category membership -- the only way to
+    find pages the top-down category walk (build_skeleton, rooted at
+    ग्रन्थाः/धर्मशास्त्रम्) can never reach at all: zero-category pages, and
+    pages whose only category tag is itself orphaned (filed under no parent).
+    See notes/pipeline_upgrade_plan.md's 2026-07-11 gap audit, causes (b)/(c).
+    Each element includes title, pageid, ns.
+    """
+    results: List[dict] = []
+    apcontinue = None
+    while True:
+        if progress is not None:
+            activity.set(f"sweeping mainspace: {len(results)} titles so far")
+        params = {
+            "action": "query",
+            "format": "json",
+            "list": "allpages",
+            "apnamespace": "0",
+            "aplimit": "500",
+        }
+        if apcontinue:
+            params["apcontinue"] = apcontinue
+
+        data = api_get(params, delay_s=delay_s)
+        results.extend(data.get("query", {}).get("allpages", []))
+
+        cont = data.get("continue", {})
+        apcontinue = cont.get("apcontinue")
+        if not apcontinue:
+            break
+
+    return results
+
+
+def collect_placed_titles(node: dict, out: Set[str]) -> None:
+    """Walks an already-built tree.json-shaped dict (root category node or
+    OCR bucket) and collects every mainspace page title already placed
+    somewhere in it -- top-level `pages` and their nested `subpages`, at any
+    depth. This is the "already reached" side of the diff against
+    fetch_all_mainspace_titles(); anything left over after subtracting this
+    set is a genuine gap, not a duplicate of content already in the tree."""
+    for ch in node.get("children", []):
+        collect_placed_titles(ch, out)
+    for p in node.get("pages", []):
+        collect_placed_titles(p, out)
+    for sp in node.get("subpages", []):
+        collect_placed_titles(sp, out)
+    if node.get("type") in ("page",):
+        out.add(node["title"])
+
+
+# Titles that look like real corpus content but aren't -- meta/infrastructure
+# pages (Author:, Main Page, etc.) and non-Sanskrit content that legitimately
+# has no place in this mirror. Confirmed via 2026-07-11 gap audit: only ~59
+# of ~13,635 leftover mainspace titles matched this pattern (Author: prefix,
+# or first character not in Devanagari's Unicode block) -- everything else in
+# the leftover set is ordinary in-scope Devanagari content. Deliberately
+# narrow: a blanket "looks non-Sanskrit" heuristic would wrongly exclude real
+# content (see notes/pipeline_upgrade_plan.md -- the original alphabetical
+# first-sample pass wrongly called ~6,653 titles out-of-scope this way).
+_DEVANAGARI_RE = re.compile(r"[ऀ-ॿ]")
+
+
+def is_out_of_scope_title(title: str) -> bool:
+    if title.startswith("Author:"):
+        return True
+    return not _DEVANAGARI_RE.search(title)
+
+
+def fetch_page_categories(pageids: List[int], delay_s: float) -> Dict[int, List[str]]:
+    """
+    Returns pageid -> list of full category titles ("वर्गः:...") the page
+    carries, via prop=categories (batched). Used to find which orphaned
+    category (if any) a leftover mainspace page belongs to.
+    """
+    result: Dict[int, List[str]] = {}
+    BATCH = 50
+    for i in range(0, len(pageids), BATCH):
+        batch = pageids[i : i + BATCH]
+        params = {
+            "action": "query",
+            "format": "json",
+            "prop": "categories",
+            "cllimit": "500",
+            "pageids": "|".join(str(pid) for pid in batch),
+        }
+        data = api_get(params, delay_s=delay_s)
+        pages = data.get("query", {}).get("pages", {})
+        for pid_str, p in pages.items():
+            try:
+                pid = int(pid_str)
+            except Exception:
+                continue
+            cats = [c["title"] for c in p.get("categories", []) if c.get("title")]
+            result[pid] = cats
+    return result
+
+
+def build_orphan_bucket(
+    delay_s: float,
+    subpage_delay_s: float,
+    seen_cats: Dict[str, str],
+    placed_titles: Set[str],
+    progress: Optional["SimpleStatusLine"] = None,
+) -> Optional[dict]:
+    """
+    Finds mainspace content unreachable from ग्रन्थाः/धर्मशास्त्रम् by any
+    depth of category/subpage descent -- either because the page carries no
+    category tag at all, or because its category tag points to a category
+    that is itself never filed under any parent (an orphaned category, e.g.
+    वर्गः:महाभारतम्/सभापर्व -- confirmed live to hold the whole Mahābhārata
+    parvan-category structure, invisible to a root-down walk no matter how
+    deep). See notes/pipeline_upgrade_plan.md's 2026-07-11 gap audit, causes
+    (b) and (c).
+
+    `seen_cats` is the SAME dict build_skeleton() populated during the main
+    crawl -- reused (and further mutated) here so:
+      (1) "is this category orphaned" is just "not already a key in seen_cats"
+          after the main walk, no separate reachability check needed, and
+      (2) orphan category roots discovered here run through the exact same
+          build_skeleton() recursion, so a category shared between two orphan
+          clusters (or, in principle, one that turns out to also be reachable
+          from a still-unwalked part of the main tree) gets the same
+          category-pointer/points_to multi-parent handling for free.
+
+    Returns a category-shaped node (type "category", reusing the ordinary
+    schema per the decision not to invent a new node type for this) titled
+    "अवर्गीकृतम्" holding one child per discovered orphan-category root plus a
+    flat "pages" list for genuinely zero-category leftovers. Returns None if
+    every mainspace title turns out to already be placed.
+    """
+    if progress is not None:
+        activity.set("sweeping full mainspace (list=allpages) ...")
+    all_titles = fetch_all_mainspace_titles(delay_s=delay_s, progress=progress)
+
+    leftover = [
+        m for m in all_titles
+        if m.get("title") and m.get("pageid") is not None and m["title"] not in placed_titles
+    ]
+    leftover = [m for m in leftover if not is_out_of_scope_title(m["title"])]
+    if not leftover:
+        return None
+
+    leftover_pids = [int(m["pageid"]) for m in leftover]
+    if progress is not None:
+        activity.set(f"fetching categories for {len(leftover_pids)} orphan candidate(s) ...")
+    cats_by_pid = fetch_page_categories(leftover_pids, delay_s=delay_s)
+
+    # Titles with a "|"-free bare form let orphaned-category subtrees (walked
+    # via build_skeleton below) discover the SAME pages again through
+    # categorymembers -- that's fine and expected, it's what lets a
+    # partially-orphaned cluster (some members reachable a different way,
+    # some not) come out complete rather than only the leftover fragment.
+    orphan_roots: Dict[str, None] = {}   # ordered set of full category titles to crawl
+    zero_cat_leftover: List[dict] = []
+    for m in leftover:
+        pid = int(m["pageid"])
+        cats = cats_by_pid.get(pid, [])
+        cats = [c for c in cats if strip_cat_prefix(c) not in
+                ["अवैध एचटीएमएल टैग का उपयोग कर रहे पृष्ठ", "अनिर्दिष्टानि पुटानि", "निष्कासनाय"]]
+        orphan_cats = [c for c in cats if c not in seen_cats]
+        if orphan_cats:
+            for c in orphan_cats:
+                orphan_roots.setdefault(c, None)
+        else:
+            zero_cat_leftover.append(m)
+
+    orphan_skeletons: List[CatSkeleton] = []
+    for full_cat_title in orphan_roots:
+        # A category discovered from an earlier root in this same loop may
+        # already have been swept into seen_cats by then -- build_skeleton
+        # handles that itself (category-pointer), but skip re-walking it as
+        # a *root* here since it's no longer orphaned-from-root at this point
+        # in the loop.
+        if full_cat_title in seen_cats:
+            continue
+        if progress is not None:
+            activity.set(f"crawling orphaned category: {to_iast(strip_cat_prefix(full_cat_title))}")
+        orphan_skeletons.append(
+            build_skeleton(
+                full_cat_title,
+                delay_s=delay_s,
+                seen_cats=seen_cats,
+                depth=0,
+                path=[],
+                progress=None,
+                subpage_delay_s=subpage_delay_s,
+            )
+        )
+
+    # Zero-category leftover pages: same subpage-descent treatment as any
+    # other top-level categorymember page (build_skeleton's page_members
+    # loop), just not reached via categorymembers at all -- reached directly
+    # from the allpages sweep instead.
+    zero_cat_pids = [int(m["pageid"]) for m in zero_cat_leftover]
+    fetch_page_meta(zero_cat_pids, delay_s=subpage_delay_s)
+    zero_cat_seen_titles: Set[str] = set()
+    zero_cat_pages: List[PageSkeleton] = []
+    for m in zero_cat_leftover:
+        t = m["title"]
+        if t in zero_cat_seen_titles:
+            continue
+        zero_cat_seen_titles.add(t)
+        pid = int(m["pageid"])
+        if progress is not None:
+            activity.set(f"checking subpages: {to_iast(t)}")
+        subpages = collect_subpages_recursive(t, delay_s=subpage_delay_s, seen_titles=zero_cat_seen_titles)
+        zero_cat_pages.append(PageSkeleton(title=t, pageid=pid, subpages=subpages))
+
+    if not orphan_skeletons and not zero_cat_pages:
+        return None
+
+    orphan_skeletons.sort(key=lambda x: x.title)
+    zero_cat_pages.sort(key=lambda x: x.title)
+
+    bucket_id = "cat:अवर्गीकृतम्"
+    children_json = [skeleton_to_json(ch) for ch in orphan_skeletons]
+    pages_json = [page_skeleton_to_json(p, bucket_id) for p in zero_cat_pages]
+
+    return {
+        "id": bucket_id,
+        "type": "category",
+        "title": "अवर्गीकृतम्",
+        "children": children_json,
+        "pages": pages_json,
+    }
+
+
 @dataclass
 class CatSkeleton:
     title: str              # no "वर्गः:" prefix
@@ -1216,6 +1446,37 @@ def main() -> None:
         attach_ocr_stats(ocr_bucket)
         sort_tree(ocr_bucket)
         out["root"]["children"].append(ocr_bucket)
+
+    # Orphaned-content bucket: mainspace pages unreachable from ग्रन्थाः/
+    # धर्मशास्त्रम् by any depth of category/subpage descent -- either no
+    # category tag at all, or a category tag pointing to a category that is
+    # itself never filed under any parent (item 5(b)/(c) of
+    # notes/pipeline_upgrade_plan.md's 2026-07-11 gap audit). Swept last,
+    # after seen_cats reflects the full main crawl (including OCR bucket's
+    # sibling categories, if any -- though OCR pages live in ns 104/106 and
+    # can never collide with a mainspace title anyway), so "orphaned" means
+    # "genuinely unreached by everything above", not a stale mid-crawl snapshot.
+    print("Sweeping orphaned mainspace content (uncategorized + orphaned-category pages) ...")
+    placed_titles: Set[str] = set()
+    collect_placed_titles(out["root"], placed_titles)
+    if ocr_bucket:
+        collect_placed_titles(ocr_bucket, placed_titles)
+
+    orphan_status = SimpleStatusLine()
+    activity.bind(orphan_status)
+    orphan_bucket = build_orphan_bucket(
+        delay_s=args.delay,
+        subpage_delay_s=args.subpage_delay if args.subpage_delay is not None else args.delay,
+        seen_cats=seen_cats,
+        placed_titles=placed_titles,
+        progress=orphan_status,
+    )
+    orphan_status.close()
+    activity.bind(None)
+    if orphan_bucket:
+        attach_stats(orphan_bucket)
+        sort_tree(orphan_bucket)
+        out["root"]["children"].append(orphan_bucket)
 
     with open(args.out, "w", encoding="utf-8") as f:
         json.dump(out, f, ensure_ascii=False, indent=4)

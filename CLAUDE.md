@@ -64,17 +64,18 @@ At the 200 req/min tier, a steady-state pace faster than ~0.3s/request risks tri
 { "root": Node }
 
 Node (category/collection):
-  { id: "cat:<path>", type: "category"|"collection", title, children: [Node], pages: [Page], stats: { bytes, count, last_changed } }
+  { id: "cat:<path>", type: "category"|"collection", title, children: [Node], pages: [Page], stats: { bytes, content_bytes_est, count, last_changed } }
 
 Category-pointer (a second+ filing of a category already inlined elsewhere):
-  { id: "cat:<path>", type: "category-pointer", title, points_to: "cat:<other id>", stats: { bytes, count, last_changed } }
+  { id: "cat:<path>", type: "category-pointer", title, points_to: "cat:<other id>", stats: { bytes, content_bytes_est, count, last_changed } }
 
 Page:
-  { id: "page:<title>", type: "page", title, url, stats: { bytes, last_changed } }
+  { id: "page:<title>", type: "page", title, url, stats: { bytes, content_bytes_est, last_changed } }
 ```
 - `title` fields are raw Devanagari (the `वर्गः:` / `Category:` namespace prefix is stripped); the frontend transliterates on render, never the scraper.
 - Category `id`s are **path-derived**, not title-only: `cat_id_for_path()` joins the full chain of ancestor titles from root down to that occurrence (e.g. `cat:उपनिषदः/प्रमुखोपनिषदः/कठोपनिषत्`). This is what makes two occurrences of the same category (see below) distinguishable by id.
 - The scraper hardcodes an exclusion list of Wikisource maintenance/junk categories (e.g. `निष्कासनाय`, `अनिर्दिष्टानि पुटानि`) — if new junk categories appear in scraped output, add them to that list in `build_skeleton()` rather than filtering in the frontend.
+- `stats.bytes` is raw MediaWiki wikitext size (`rvprop=size` on the latest revision) — **not a meaningful "how much content" number on its own**, since it's dominated by markup/templates/category-tag overhead on short pages and includes redirects/deletion-stubs/bare-transclusion pointers that carry zero real text. `stats.content_bytes_est` is the frontend-facing, meaningful number: `estimate_content_bytes()` in `scrape.py` subtracts an estimated overhead (`413.49 + 0.04558 × raw_bytes`, fit by linear regression against a live sample of 70 real content pages, R²=0.956; ~17% of an 84-page sample were non-content pages, which this formula does not specifically detect — it just naturally floors near-zero for tiny stub/redirect pages, which mostly is the right direction). This is a whole-corpus statistical estimate, not a real per-page measurement (that would require fetching and parsing every page's actual wikitext via `rvprop=content`, which the scraper deliberately does not do — see the disk-cache section above). The frontend (`app.js`/`about.js`) displays `content_bytes_est`, falling back to `bytes` only if it's absent (e.g. pre-existing data from before this field was added).
 
 ### Multi-parented categories (`category-pointer`)
 

@@ -7,18 +7,26 @@
     "old": {
       "bytes": 273693514,
       "count": 4743,
-      "last_changed": null
+      "last_changed": null,
+      "content_bytes_est": 251142170,
+      "iast_bytes_est": 127160592
     },
     "new": {
       "bytes": 259163815,
       "count": 4522,
-      "last_changed": null
+      "last_changed": null,
+      "content_bytes_est": 245489843,
+      "iast_bytes_est": 124298655
     },
     "delta": {
       "bytes": -14529699,
       "bytes_pct": -5.308748018047662,
       "count": -221,
-      "count_pct": -4.659498207885305
+      "count_pct": -4.659498207885305,
+      "content_bytes_est": -5652327,
+      "content_bytes_est_pct": -2.2506483080878055,
+      "iast_bytes_est": -2861937,
+      "iast_bytes_est_pct": -2.250647747849428
     },
     "pages_added": [],
     "pages_removed": [],
@@ -32,18 +40,26 @@
     "old": {
       "bytes": 259163815,
       "count": 4522,
-      "last_changed": null
+      "last_changed": null,
+      "content_bytes_est": 245489843,
+      "iast_bytes_est": 124298655
     },
     "new": {
       "bytes": 293465139,
       "count": 4625,
-      "last_changed": "2026-07-10T14:02:54Z"
+      "last_changed": "2026-07-10T14:02:54Z",
+      "content_bytes_est": 278185140,
+      "iast_bytes_est": 140853235
     },
     "delta": {
       "bytes": 34301324,
       "bytes_pct": 13.235383188042666,
       "count": 103,
-      "count_pct": 2.277753206545776
+      "count_pct": 2.277753206545776,
+      "content_bytes_est": 32695297,
+      "content_bytes_est_pct": 13.318390936442938,
+      "iast_bytes_est": 16554580,
+      "iast_bytes_est_pct": 13.318390291512005
     },
     "pages_added": [
       "page:अनर्घराघवम्",
@@ -170,18 +186,26 @@
     "old": {
       "bytes": 293465139,
       "count": 4625,
-      "last_changed": "2026-07-10T14:02:54Z"
+      "last_changed": "2026-07-10T14:02:54Z",
+      "content_bytes_est": 278185140,
+      "iast_bytes_est": 140853235
     },
     "new": {
       "bytes": 654123688,
       "count": 18784,
-      "last_changed": "2026-07-10T14:02:54Z"
+      "last_changed": "2026-07-10T14:02:54Z",
+      "content_bytes_est": 617079668,
+      "iast_bytes_est": 312445402
     },
     "delta": {
       "bytes": 360658549,
       "bytes_pct": 122.89655603693357,
       "count": 14159,
-      "count_pct": 306.14054054054054
+      "count_pct": 306.14054054054054,
+      "content_bytes_est": 338894528,
+      "content_bytes_est_pct": 121.82337561237095,
+      "iast_bytes_est": 171592167,
+      "iast_bytes_est_pct": 121.82337665159058
     },
     "pages_added": [
       "page:A Dictionary of Sanskrit Grammar/अ",

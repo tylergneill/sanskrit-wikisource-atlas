@@ -535,6 +535,53 @@ def page_id(title: str) -> str:
     return f"page:{title}"
 
 
+# Estimated wikitext markup/boilerplate overhead as a function of raw page
+# size, fit by linear regression (overhead_bytes = a + b * raw_bytes) against
+# a live sample of 70 real Wikisource content pages (84 sampled, 14 excluded
+# as non-content: redirects, deletion-request stubs, bare <pages/> transclusion
+# pointers -- ~17% of the sample, itself a separate finding worth noting: a
+# meaningful share of nominal "pages" carry no real text at all). R^2 = 0.956.
+# This is a whole-corpus estimate, NOT a per-page measurement -- getting exact
+# per-page content bytes would require fetching and parsing every page's real
+# wikitext (rvprop=content), which this scraper deliberately does not do (see
+# CLAUDE.md: metadata-only, no page bodies fetched). Individual pages, especially
+# outliers like the excluded non-content pages above, will be off; this is meant
+# to turn "raw MediaWiki wikitext bytes" (dominated by markup, not comparable
+# across pages of different structure) into a roughly-meaningful "how much actual
+# Devanagari text is here" number, not to be exact.
+CONTENT_OVERHEAD_INTERCEPT = 413.49
+CONTENT_OVERHEAD_SLOPE = 0.04558
+
+
+def estimate_content_bytes(raw_bytes: int) -> int:
+    """Estimate real Devanagari-content bytes from raw MediaWiki wikitext
+    bytes, subtracting the regression-estimated markup/boilerplate overhead.
+    See CONTENT_OVERHEAD_INTERCEPT/SLOPE above for what this is and isn't."""
+    overhead = CONTENT_OVERHEAD_INTERCEPT + CONTENT_OVERHEAD_SLOPE * raw_bytes
+    return max(0, round(raw_bytes - overhead))
+
+
+# Devanagari is consistently ~1.975x the UTF-8 byte size of IAST for running
+# Sanskrit verse text (Devanagari is 3 bytes/codepoint in UTF-8; IAST is
+# mostly 1-2 bytes/codepoint). Measured empirically by transliterating the
+# full Mahabharata critical-edition corpus (~224,740 lines, skrutable's
+# scheme_detection_mbh_corpus.txt) from IAST to Devanagari and comparing
+# UTF-8 byte counts: mean/median ratio 1.975/1.973, stdev 0.0245 across
+# 500-line chunks (p10-p90: 1.945-2.009) -- tight and stable, since it's
+# driven by encoding mechanics, not content variation. Source data here is
+# always Devanagari (see "What this is" above); this ratio converts the
+# content-byte estimate into an IAST-equivalent figure without actually
+# transliterating anything server-side.
+DEVANAGARI_TO_IAST_BYTE_RATIO = 1.975
+
+
+def estimate_iast_bytes(content_bytes_est: int) -> int:
+    """Convert an estimated Devanagari-content byte count into an
+    IAST-equivalent byte count via DEVANAGARI_TO_IAST_BYTE_RATIO. This is
+    the number the frontend actually displays -- see CLAUDE.md."""
+    return round(content_bytes_est / DEVANAGARI_TO_IAST_BYTE_RATIO)
+
+
 def skeleton_to_json(node: CatSkeleton) -> dict:
     """Build the raw JSON tree (structure + pointers), without stats -- stats are filled
     in afterward by attach_stats(), which needs the whole id->node map built first so it
@@ -560,13 +607,19 @@ def skeleton_to_json(node: CatSkeleton) -> dict:
     for t, pid in node.pages:
         b = _size_cache.get(pid, 0)
         ts = _timestamp_cache.get(pid, "")
+        content_bytes = estimate_content_bytes(b)
         pages_json.append(
             {
                 "id": page_id(t),
                 "type": "page",
                 "title": t,
                 "url": page_url(t),
-                "stats": {"bytes": b, "last_changed": ts},
+                "stats": {
+                    "bytes": b,
+                    "content_bytes_est": content_bytes,
+                    "iast_bytes_est": estimate_iast_bytes(content_bytes),
+                    "last_changed": ts,
+                },
             }
         )
 
@@ -602,11 +655,12 @@ def attach_stats(root: dict) -> None:
 
     index(root)
 
-    # Memoized: node id -> {page_id: (bytes, last_changed)} for every distinct page
-    # reachable from that node (pointer nodes resolve to their target's page set).
-    memo: Dict[str, Dict[str, Tuple[int, str]]] = {}
+    # Memoized: node id -> {page_id: (bytes, content_bytes_est, iast_bytes_est,
+    # last_changed)} for every distinct page reachable from that node (pointer
+    # nodes resolve to their target's page set).
+    memo: Dict[str, Dict[str, Tuple[int, int, int, str]]] = {}
 
-    def collect(node_id: str) -> Dict[str, Tuple[int, str]]:
+    def collect(node_id: str) -> Dict[str, Tuple[int, int, int, str]]:
         if node_id in memo:
             return memo[node_id]
         node = by_id[node_id]
@@ -615,8 +669,13 @@ def attach_stats(root: dict) -> None:
             memo[node_id] = result
             return result
 
-        merged: Dict[str, Tuple[int, str]] = {
-            p["id"]: (int(p["stats"]["bytes"] or 0), str(p["stats"]["last_changed"] or ""))
+        merged: Dict[str, Tuple[int, int, int, str]] = {
+            p["id"]: (
+                int(p["stats"]["bytes"] or 0),
+                int(p["stats"]["content_bytes_est"] or 0),
+                int(p["stats"]["iast_bytes_est"] or 0),
+                str(p["stats"]["last_changed"] or ""),
+            )
             for p in node.get("pages", [])
         }
         for ch in node.get("children", []):
@@ -627,9 +686,11 @@ def attach_stats(root: dict) -> None:
     for node_id in by_id:
         pages = collect(node_id)
         by_id[node_id]["stats"] = {
-            "bytes": sum(b for b, _ in pages.values()),
+            "bytes": sum(b for b, _, _, _ in pages.values()),
+            "content_bytes_est": sum(c for _, c, _, _ in pages.values()),
+            "iast_bytes_est": sum(i for _, _, i, _ in pages.values()),
             "count": len(pages),
-            "last_changed": max((ts for _, ts in pages.values()), default=""),
+            "last_changed": max((ts for _, _, _, ts in pages.values()), default=""),
         }
 
 

@@ -34,11 +34,19 @@ function renderEntry(entry) {
   }
 
   const d = entry.delta || {};
+  // iast_bytes_est is the only size figure displayed (see app.js's
+  // contentSizeBytes for the full raw -> content -> IAST rationale); falls
+  // back through content_bytes_est to raw bytes for entries predating one or
+  // both fields.
+  const oldSize = entry.old?.iast_bytes_est ?? entry.old?.content_bytes_est ?? entry.old?.bytes;
+  const newSize = entry.new?.iast_bytes_est ?? entry.new?.content_bytes_est ?? entry.new?.bytes;
+  const sizeDelta = d.iast_bytes_est ?? d.content_bytes_est ?? d.bytes;
+  const sizeDeltaPct = d.iast_bytes_est_pct ?? d.content_bytes_est_pct ?? d.bytes_pct;
   const stats = document.createElement("p");
   stats.innerHTML = `
-    <strong>${fmtBytes(entry.old?.bytes)}</strong> / ${entry.old?.count ?? "n/a"} pages
-    &rarr; <strong>${fmtBytes(entry.new?.bytes)}</strong> / ${entry.new?.count ?? "n/a"} pages
-    (${fmtDelta(d.bytes)} bytes, ${fmtPct(d.bytes_pct)}; ${fmtDelta(d.count)} pages, ${fmtPct(d.count_pct)})
+    <strong>${fmtBytes(oldSize)}</strong> / ${entry.old?.count ?? "n/a"} pages
+    &rarr; <strong>${fmtBytes(newSize)}</strong> / ${entry.new?.count ?? "n/a"} pages
+    (${fmtDelta(sizeDelta)} bytes, ${fmtPct(sizeDeltaPct)}; ${fmtDelta(d.count)} pages, ${fmtPct(d.count_pct)})
   `;
   div.appendChild(stats);
 

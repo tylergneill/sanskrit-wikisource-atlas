@@ -76,25 +76,39 @@ def build_report(old_path: Path, new_path: Path) -> dict:
 
     old_bytes = old_stats.get("bytes", 0) or 0
     new_bytes = new_stats.get("bytes", 0) or 0
+    old_content_bytes = old_stats.get("content_bytes_est", 0) or 0
+    new_content_bytes = new_stats.get("content_bytes_est", 0) or 0
+    old_iast_bytes = old_stats.get("iast_bytes_est", 0) or 0
+    new_iast_bytes = new_stats.get("iast_bytes_est", 0) or 0
     old_count = old_stats.get("count", 0) or 0
     new_count = new_stats.get("count", 0) or 0
     delta_bytes = new_bytes - old_bytes
+    delta_content_bytes = new_content_bytes - old_content_bytes
+    delta_iast_bytes = new_iast_bytes - old_iast_bytes
     delta_count = new_count - old_count
 
     return {
         "old": {
             "bytes": old_stats.get("bytes"),
+            "content_bytes_est": old_stats.get("content_bytes_est"),
+            "iast_bytes_est": old_stats.get("iast_bytes_est"),
             "count": old_stats.get("count"),
             "last_changed": old_stats.get("last_changed"),
         },
         "new": {
             "bytes": new_stats.get("bytes"),
+            "content_bytes_est": new_stats.get("content_bytes_est"),
+            "iast_bytes_est": new_stats.get("iast_bytes_est"),
             "count": new_stats.get("count"),
             "last_changed": new_stats.get("last_changed"),
         },
         "delta": {
             "bytes": delta_bytes,
             "bytes_pct": pct(delta_bytes, old_bytes),
+            "content_bytes_est": delta_content_bytes,
+            "content_bytes_est_pct": pct(delta_content_bytes, old_content_bytes),
+            "iast_bytes_est": delta_iast_bytes,
+            "iast_bytes_est_pct": pct(delta_iast_bytes, old_iast_bytes),
             "count": delta_count,
             "count_pct": pct(delta_count, old_count),
         },
@@ -110,10 +124,10 @@ def print_summary(report: dict) -> None:
     def fmt_pct(v):
         return "n/a" if v is None else f"{v:+.1f}%"
 
-    print(f"old: bytes={o['bytes']!r} count={o['count']!r} last_changed={o['last_changed']!r}")
-    print(f"new: bytes={n['bytes']!r} count={n['count']!r} last_changed={n['last_changed']!r}")
+    print(f"old: bytes={o['bytes']!r} content_bytes_est={o['content_bytes_est']!r} iast_bytes_est={o['iast_bytes_est']!r} count={o['count']!r} last_changed={o['last_changed']!r}")
+    print(f"new: bytes={n['bytes']!r} content_bytes_est={n['content_bytes_est']!r} iast_bytes_est={n['iast_bytes_est']!r} count={n['count']!r} last_changed={n['last_changed']!r}")
     print()
-    print(f"delta: bytes={d['bytes']:+,} ({fmt_pct(d['bytes_pct'])})  count={d['count']:+,} ({fmt_pct(d['count_pct'])})")
+    print(f"delta: bytes={d['bytes']:+,} ({fmt_pct(d['bytes_pct'])})  content_bytes_est={d['content_bytes_est']:+,} ({fmt_pct(d['content_bytes_est_pct'])})  iast_bytes_est={d['iast_bytes_est']:+,} ({fmt_pct(d['iast_bytes_est_pct'])})  count={d['count']:+,} ({fmt_pct(d['count_pct'])})")
     print()
     print(f"pages added: {len(report['pages_added'])}  pages removed: {len(report['pages_removed'])}")
     print(f"pages with changed last_changed timestamp: {len(report['pages_with_changed_timestamp'])}")

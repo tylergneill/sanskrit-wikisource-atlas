@@ -125,6 +125,21 @@ function formatBytes(bytes) {
   return `${(kb / 1024).toFixed(1)} MB`;
 }
 
+// iast_bytes_est is the only size figure the frontend displays: raw `bytes`
+// is MediaWiki wikitext size in Devanagari, dominated by markup/template/
+// category-tag overhead and not meaningful on its own; content_bytes_est
+// subtracts that overhead but is still a Devanagari-script byte count, which
+// isn't directly comparable/intuitive (Devanagari runs ~1.975x IAST bytes
+// for the same text in UTF-8). iast_bytes_est converts through both steps.
+// Falls back through content_bytes_est to raw bytes only for older data
+// that predates one or both fields.
+function contentSizeBytes(stats) {
+  if (!stats) return null;
+  if (stats.iast_bytes_est != null) return stats.iast_bytes_est;
+  if (stats.content_bytes_est != null) return stats.content_bytes_est;
+  return stats.bytes;
+}
+
 function formatDate(iso) {
   if (!iso) return "";
   return iso.slice(0, 7);
@@ -132,7 +147,7 @@ function formatDate(iso) {
 
 function formatStats(stats, { includeDate } = {}) {
   if (!stats) return "";
-  const size = formatBytes(stats.bytes);
+  const size = formatBytes(contentSizeBytes(stats));
   if (!size) return "";
   const parts = [size];
   if (stats.count != null) parts.push(`${stats.count} pages`);
@@ -388,7 +403,8 @@ function renderCategoryBlock(catNode, { includePages, depth, isRoot, isSearch })
     for (const p of content.pages) {
       const a = el("a", { href: p.url, target: "_blank", rel: "noreferrer" }, displayTitle(p.title));
       const metaParts = [];
-      if (p.stats?.bytes != null) metaParts.push(formatBytes(p.stats.bytes));
+      const pageSize = contentSizeBytes(p.stats);
+      if (pageSize != null) metaParts.push(formatBytes(pageSize));
       const date = formatDate(p.stats?.last_changed);
       if (date) metaParts.push(date);
       const meta = metaParts.length ? ` (${metaParts.join(", ")})` : "";

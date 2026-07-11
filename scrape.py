@@ -469,21 +469,33 @@ def fetch_subpages(title: str, delay_s: float) -> List[dict]:
     return results
 
 
+@dataclass
+class PageSkeleton:
+    title: str
+    pageid: int
+    subpages: List["PageSkeleton"]
+
+
 def collect_subpages_recursive(
     title: str,
     delay_s: float,
     seen_titles: Set[str],
-) -> List[Tuple[str, int]]:
+) -> List[PageSkeleton]:
     """
     Recursively discovers all descendant subpages of `title` (any nesting
     depth, e.g. "Title/Part1/Section2"), guarding against repeats via
-    seen_titles. Returns a flat list of (page_title, pageid).
+    seen_titles. Returns the *direct* subpages of `title` as a list of
+    PageSkeleton, each carrying its own further descendants in its
+    `subpages` field -- i.e. this returns a tree, not a flattened list, so
+    the graph's real parent/child structure (which page is a subpage of
+    which) survives into tree.json instead of being collapsed into flat
+    siblings. See notes/pipeline_upgrade_plan.md, item 3's low-hanging-fruit
+    scope: nest only what the graph already states, no curatorial judgment.
 
     `delay_s` is the subpage-specific delay (see --subpage-delay) and is
     passed straight through to both fetch_subpages and fetch_page_meta calls
     made here, since both are part of the same request-volume-heavy loop.
     """
-    found: List[Tuple[str, int]] = []
     direct = fetch_subpages(title, delay_s=delay_s)
 
     new_pids = [
@@ -493,6 +505,7 @@ def collect_subpages_recursive(
     ]
     fetch_page_meta(new_pids, delay_s=delay_s)
 
+    result: List[PageSkeleton] = []
     for m in direct:
         sub_title = m.get("title", "")
         pid = m.get("pageid")
@@ -500,14 +513,16 @@ def collect_subpages_recursive(
             continue
         seen_titles.add(sub_title)
         pid_int = int(pid)
-        found.append((sub_title, pid_int))
 
         # Only recurse further if this subpage is itself small enough to
         # plausibly be another index/ToC level, same reasoning as build_skeleton.
+        grandchildren: List[PageSkeleton] = []
         if _size_cache.get(pid_int, 0) <= SUBPAGE_PROBE_MAX_BYTES:
-            found.extend(collect_subpages_recursive(sub_title, delay_s=delay_s, seen_titles=seen_titles))
+            grandchildren = collect_subpages_recursive(sub_title, delay_s=delay_s, seen_titles=seen_titles)
 
-    return found
+        result.append(PageSkeleton(title=sub_title, pageid=pid_int, subpages=grandchildren))
+
+    return result
 
 
 def fetch_index_pages(delay_s: float) -> List[dict]:
@@ -624,7 +639,13 @@ def build_unpublished_ocr_bucket(delay_s: float, progress: Optional["CategoryPro
         pageids = [int(p["pageid"]) for p in ocr_pages if p.get("pageid") is not None]
         fetch_page_meta(pageids, delay_s=delay_s)
 
-        pages_json = []
+        # "subpages", not "pages" -- matches the mainspace convention (see
+        # page_skeleton_to_json) where a container's nested leaves live under
+        # `subpages`, so the frontend's collapsible sub-list rendering handles
+        # both OCR and non-OCR nesting with the same code path. Individual
+        # scans (ocr-page) are themselves leaves with no further nesting, but
+        # still carry an empty `subpages: []` for shape parity.
+        subpages_json = []
         for p in ocr_pages:
             t = p.get("title", "")
             pid = p.get("pageid")
@@ -633,16 +654,17 @@ def build_unpublished_ocr_bucket(delay_s: float, progress: Optional["CategoryPro
             pid_int = int(pid)
             b = _size_cache.get(pid_int, 0)
             ts = _timestamp_cache.get(pid_int, "")
-            pages_json.append(
+            subpages_json.append(
                 {
                     "id": page_id(t),
                     "type": "ocr-page",
                     "title": t,
                     "url": page_url(t),
                     "stats": {"bytes": b, "last_changed": ts},
+                    "subpages": [],
                 }
             )
-        if not pages_json:
+        if not subpages_json:
             continue
 
         bare_title = title[len(INDEX_PREFIX):] if title.startswith(INDEX_PREFIX) else title
@@ -652,7 +674,7 @@ def build_unpublished_ocr_bucket(delay_s: float, progress: Optional["CategoryPro
                 "type": "ocr-work",
                 "title": bare_title,
                 "index_url": page_url(title),
-                "pages": pages_json,
+                "subpages": subpages_json,
             }
         )
 
@@ -674,7 +696,7 @@ class CatSkeleton:
     full_title: str         # full MediaWiki title (with namespace)
     id: str                 # path-derived, unique per occurrence in the tree
     subcats: List["CatSkeleton"]
-    pages: List[Tuple[str, int]]   # (page_title, pageid)
+    pages: List[PageSkeleton]      # top-level pages only; each carries its own nested subpages
     points_to: Optional[str] = None  # if set, this occurrence carries no content --
                                       # see the id of the occurrence that does
 
@@ -740,8 +762,8 @@ def build_skeleton(
             )
         )
 
-    pages: List[Tuple[str, int]] = []
-    seen_titles: Set[str] = {t for t, _ in pages}
+    pages: List[PageSkeleton] = []
+    seen_titles: Set[str] = set()
     effective_subpage_delay = subpage_delay_s if subpage_delay_s is not None else delay_s
 
     # Fetch sizes up front for this batch of pages, so we can skip the (costly)
@@ -759,7 +781,6 @@ def build_skeleton(
             continue
         pid_int = int(pid)
         seen_titles.add(t)
-        pages.append((t, pid_int))
 
         # Recurse into MediaWiki subpages (e.g. an index page's "Title/सर्गः" children),
         # since categorymembers only sees the index page itself, not its subpages.
@@ -778,12 +799,17 @@ def build_skeleton(
         # SUBPAGE_PROBE_MAX_BYTES and were silently never probed, hiding ~3,258 real
         # subpages underneath them. See notes/pipeline_upgrade_plan.md's 2026-07-11
         # gap audit.
-        subpages = collect_subpages_recursive(t, delay_s=effective_subpage_delay, seen_titles=seen_titles)
-        for sub_t, sub_pid in subpages:
-            pages.append((sub_t, sub_pid))
+        #
+        # Subpages nest under this page (PageSkeleton.subpages), rather than being
+        # flattened as extra category-level siblings -- the graph already states this
+        # parent/child relationship, so rendering it as flat siblings was discarding
+        # real structure. See notes/pipeline_upgrade_plan.md item 3 (low-hanging
+        # consolidation): nesting only what the graph already says, no curation.
+        direct_subpages = collect_subpages_recursive(t, delay_s=effective_subpage_delay, seen_titles=seen_titles)
+        pages.append(PageSkeleton(title=t, pageid=pid_int, subpages=direct_subpages))
 
     sub_skeletons.sort(key=lambda x: x.title)
-    pages.sort(key=lambda x: x[0])
+    pages.sort(key=lambda x: x.title)
 
     return CatSkeleton(
         title=title,
@@ -794,7 +820,29 @@ def build_skeleton(
     )
 
 
-def page_id(title: str) -> str:
+def page_id(title: str, owning_cat_id: Optional[str] = None) -> str:
+    """Page node id. `owning_cat_id` (the CatSkeleton.id -- already unique and
+    path-derived, see cat_id_for_path) scopes the id to where the page was
+    reached from.
+
+    Necessary because MediaWiki page titles are NOT reliably unique as tree
+    positions: a page that's a member of more than one category (see
+    CLAUDE.md's category-pointer / multi-parented-categories section, and
+    attach_stats' page-dedup rollup) legitimately appears as a top-level
+    page under two different categories, with the exact same bare title --
+    confirmed live (e.g. जयाख्यसंहिता under both root and आगमः/पाञ्चरात्रागमः,
+    155 such top-level collisions as of the 2026-07 crawl). A bare
+    f"page:{title}" id collides across those occurrences; since expand/
+    collapse UI state (app.js's expandedSubpages/expandedPageLists) is keyed
+    by node id, a bare-title collision made toggling one occurrence's nested
+    subpages open also silently open the other, unrelated occurrence's --
+    found via the nested-subpage-rendering feature, which was the first
+    thing to actually key persistent UI state off a page id. owning_cat_id=None
+    (the OCR bucket's ocr-page leaves, which have no owning category at all)
+    falls back to the old bare-title id -- collisions there are structurally
+    impossible since each Index: work's scans are unique to it."""
+    if owning_cat_id:
+        return f"page:{owning_cat_id}::{title}"
     return f"page:{title}"
 
 
@@ -845,6 +893,54 @@ def estimate_iast_bytes(content_bytes_est: int) -> int:
     return round(content_bytes_est / DEVANAGARI_TO_IAST_BYTE_RATIO)
 
 
+def page_skeleton_to_json(page: PageSkeleton, owning_cat_id: str) -> dict:
+    """Build the raw JSON for a single page, recursively including its own
+    MediaWiki subpages (if any) as a nested `subpages` array -- see
+    PageSkeleton/collect_subpages_recursive for why this is a tree, not a
+    flat list. Same node shape at every depth, so the frontend can render
+    subpages-of-subpages with the same recursive logic.
+
+    `owning_cat_id` is the enclosing category's id, threaded down unchanged
+    through recursive subpage calls -- see page_id() for why this scoping is
+    necessary (bare page titles collide across a page's multiple category
+    occurrences).
+
+    `stats.last_changed` is a max() rollup over this page's own revision
+    timestamp AND every descendant subpage's, NOT just this page's own
+    rvprop=timestamp -- deliberately, per CLAUDE.md's "index-page timestamps
+    are unreliable" finding (confirmed live: नैषधीयचरितम्'s index page sat at
+    2015 while a real child सर्गः was last edited 2024, a 9-year-stale gap).
+    That finding drove category-level last_changed to already be a rollup;
+    now that subpages collapse under their parent page by default in the UI
+    (see app.js renderPageLi), the parent's own displayed date must be the
+    same kind of rollup, or a collapsed view would visually understate
+    freshness by showing only the parent's often-stale own edit date. The
+    page's own un-rolled-up timestamp is preserved separately as
+    `own_last_changed`, in case it's ever needed."""
+    b = _size_cache.get(page.pageid, 0)
+    own_ts = _timestamp_cache.get(page.pageid, "")
+    content_bytes = estimate_content_bytes(b)
+    subpages_json = [page_skeleton_to_json(sp, owning_cat_id) for sp in page.subpages]
+    rolled_up_ts = max(
+        [own_ts] + [sp["stats"]["last_changed"] for sp in subpages_json],
+        default="",
+    )
+    return {
+        "id": page_id(page.title, owning_cat_id),
+        "type": "page",
+        "title": page.title,
+        "url": page_url(page.title),
+        "stats": {
+            "bytes": b,
+            "content_bytes_est": content_bytes,
+            "iast_bytes_est": estimate_iast_bytes(content_bytes),
+            "last_changed": rolled_up_ts,
+            "own_last_changed": own_ts,
+        },
+        "subpages": subpages_json,
+    }
+
+
 def skeleton_to_json(node: CatSkeleton) -> dict:
     """Build the raw JSON tree (structure + pointers), without stats -- stats are filled
     in afterward by attach_stats(), which needs the whole id->node map built first so it
@@ -865,26 +961,7 @@ def skeleton_to_json(node: CatSkeleton) -> dict:
         }
 
     children_json = [skeleton_to_json(ch) for ch in node.subcats]
-
-    pages_json = []
-    for t, pid in node.pages:
-        b = _size_cache.get(pid, 0)
-        ts = _timestamp_cache.get(pid, "")
-        content_bytes = estimate_content_bytes(b)
-        pages_json.append(
-            {
-                "id": page_id(t),
-                "type": "page",
-                "title": t,
-                "url": page_url(t),
-                "stats": {
-                    "bytes": b,
-                    "content_bytes_est": content_bytes,
-                    "iast_bytes_est": estimate_iast_bytes(content_bytes),
-                    "last_changed": ts,
-                },
-            }
-        )
+    pages_json = [page_skeleton_to_json(p, node.id) for p in node.pages]
 
     return {
         "id": node.id,
@@ -918,6 +995,19 @@ def attach_stats(root: dict) -> None:
 
     index(root)
 
+    def flatten_page(p: dict, out: Dict[str, Tuple[int, int, int, str]]) -> None:
+        # A page's own nested subpages (see PageSkeleton/page_skeleton_to_json)
+        # count toward its category's stats exactly like a flat sibling would --
+        # nesting is a display-order change only, not a change in what's counted.
+        out[p["id"]] = (
+            int(p["stats"]["bytes"] or 0),
+            int(p["stats"]["content_bytes_est"] or 0),
+            int(p["stats"]["iast_bytes_est"] or 0),
+            str(p["stats"]["last_changed"] or ""),
+        )
+        for sp in p.get("subpages", []):
+            flatten_page(sp, out)
+
     # Memoized: node id -> {page_id: (bytes, content_bytes_est, iast_bytes_est,
     # last_changed)} for every distinct page reachable from that node (pointer
     # nodes resolve to their target's page set).
@@ -932,15 +1022,9 @@ def attach_stats(root: dict) -> None:
             memo[node_id] = result
             return result
 
-        merged: Dict[str, Tuple[int, int, int, str]] = {
-            p["id"]: (
-                int(p["stats"]["bytes"] or 0),
-                int(p["stats"]["content_bytes_est"] or 0),
-                int(p["stats"]["iast_bytes_est"] or 0),
-                str(p["stats"]["last_changed"] or ""),
-            )
-            for p in node.get("pages", [])
-        }
+        merged: Dict[str, Tuple[int, int, int, str]] = {}
+        for p in node.get("pages", []):
+            flatten_page(p, merged)
         for ch in node.get("children", []):
             merged.update(collect(ch["id"]))
         memo[node_id] = merged
@@ -966,7 +1050,7 @@ def attach_ocr_stats(ocr_root: dict) -> None:
     Page: scans are unique to it, there's no equivalent of a category filed
     under two parents in this bucket."""
     for work in ocr_root.get("children", []):
-        pages = work.get("pages", [])
+        pages = work.get("subpages", [])
         work["stats"] = {
             "bytes": sum(int(p["stats"]["bytes"] or 0) for p in pages),
             "count": len(pages),
@@ -1001,16 +1085,33 @@ def _natural_sort_key(title: str) -> tuple:
     return tuple(key)
 
 
+def sort_page_subpages(page: dict) -> None:
+    """Sort a page's nested `subpages` in place by natural-sorted title, recursively --
+    same treatment sort_tree gives category children/pages, applied one level down."""
+    subpages = page.get("subpages")
+    if subpages:
+        subpages.sort(key=lambda n: _natural_sort_key(n["title"]))
+        for sp in subpages:
+            sort_page_subpages(sp)
+
+
 def sort_tree(node: dict) -> None:
-    """Sort children/pages in place by natural-sorted title, recursively. Runs once
-    on the final assembled JSON dict, so it's cache-transparent -- reruns from a warm
-    .api_cache/ re-sort identically regardless of crawl order."""
+    """Sort children/pages/subpages in place by natural-sorted title, recursively.
+    Runs once on the final assembled JSON dict, so it's cache-transparent -- reruns
+    from a warm .api_cache/ re-sort identically regardless of crawl order. Handles
+    both the category tree (children/pages) and the OCR bucket (children of
+    ocr-collection are ocr-work nodes, whose leaves are `subpages` rather than
+    `pages` -- see build_unpublished_ocr_bucket) with the same walk."""
     if "children" in node:
         node["children"].sort(key=lambda n: _natural_sort_key(n["title"]))
         for ch in node["children"]:
             sort_tree(ch)
     if "pages" in node:
         node["pages"].sort(key=lambda n: _natural_sort_key(n["title"]))
+        for p in node["pages"]:
+            sort_page_subpages(p)
+    if "subpages" in node:
+        sort_page_subpages(node)
 
 
 def main() -> None:
@@ -1113,6 +1214,7 @@ def main() -> None:
     activity.bind(None)
     if ocr_bucket:
         attach_ocr_stats(ocr_bucket)
+        sort_tree(ocr_bucket)
         out["root"]["children"].append(ocr_bucket)
 
     with open(args.out, "w", encoding="utf-8") as f:

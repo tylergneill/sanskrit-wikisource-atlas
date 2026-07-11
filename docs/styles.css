@@ -190,6 +190,12 @@ a.topbar-link:hover { text-decoration: underline; }
   margin-bottom: 4px;
 }
 
+.subpageList {
+  margin: 4px 0 4px 18px;
+  padding-left: 10px;
+  border-left: 1px solid var(--border);
+}
+
 .small{ font-size: 14px; color: var(--muted); }
 
 .ocrBadge{

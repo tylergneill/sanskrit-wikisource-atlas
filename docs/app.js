@@ -10,6 +10,7 @@ const state = {
   expanded: new Set(),      // node ids expanded in sidebar
   searchQuery: "",
   expandedPageLists: new Set(), // category ids whose page list has been expanded past the cap
+  expandedSubpages: new Set(),  // page ids whose nested subpages sub-list is expanded (collapsed by default)
 };
 
 // Rendering every descendant page as a DOM node is what's actually slow (there are
@@ -383,6 +384,62 @@ function renderRootOverview(root) {
   return block;
 }
 
+// Renders a single page's <li> (link + size/date meta), plus, if it has its own
+// MediaWiki subpages (see scrape.py's PageSkeleton/page_skeleton_to_json -- and
+// the same shape for OCR scans, see build_unpublished_ocr_bucket's `subpages`
+// field), a collapsible toggle that reveals a nested indented sub-list. This is
+// deliberately NOT the same visual treatment as category nesting (renderCategoryBlock):
+// no sticky header, no per-node stats block, just a plain indented <ul> -- reads as
+// "parts of this page" (structural, from the page-title graph itself) rather than
+// "a subcategory" (an editorial grouping). Same function handles both mainspace
+// pages and OCR scans, since both now share the same `subpages` node shape.
+function renderPageLi(p) {
+  const hasSubpages = (p.subpages || []).length > 0;
+  // In search mode, a matched nested subpage must stay visible even if the user
+  // never manually expanded its parent -- force-expand rather than hide the hit.
+  const isExpanded = state.expandedSubpages.has(p.id) || (state.searchQuery && hasSubpages);
+
+  const a = el("a", { href: p.url, target: "_blank", rel: "noreferrer" }, displayTitle(p.title));
+  const metaParts = [];
+  const pageSize = contentSizeBytes(p.stats);
+  if (pageSize != null) metaParts.push(formatBytes(pageSize));
+  const date = formatDate(p.stats?.last_changed);
+  if (date) metaParts.push(date);
+  const meta = metaParts.length ? ` (${metaParts.join(", ")})` : "";
+
+  const toggle = hasSubpages
+    ? el("span", {
+        class: "toggleArrow",
+        style: "margin-right:4px;",
+        onclick: (ev) => {
+          ev.preventDefault();
+          if (isExpanded) state.expandedSubpages.delete(p.id);
+          else state.expandedSubpages.add(p.id);
+          renderMain();
+        },
+      }, isExpanded ? "▾" : "▸")
+    : null;
+
+  const li = el("li", {},
+    toggle,
+    a,
+    meta ? el("span", { class: "small" }, meta) : null,
+    hasSubpages
+      ? el("span", { class: "small", style: "margin-left:6px; opacity:0.6;" }, `(${p.subpages.length} subpages)`)
+      : null,
+  );
+
+  if (hasSubpages && isExpanded) {
+    const subUl = el("ul", { class: "subpageList" });
+    for (const sp of p.subpages) {
+      subUl.appendChild(renderPageLi(sp));
+    }
+    li.appendChild(subUl);
+  }
+
+  return li;
+}
+
 function renderCategoryBlock(catNode, { includePages, depth, isRoot, isSearch }) {
   const isActualRoot = catNode.id === state.data.root.id;
 
@@ -447,23 +504,19 @@ function renderCategoryBlock(catNode, { includePages, depth, isRoot, isSearch })
     ));
   }
 
-  // pages
-  if (includePages && (content.pages || []).length) {
-    const allPages = content.pages;
+  // pages -- category nodes hold their top-level pages in `pages`; an ocr-work
+  // node (see scrape.py's build_unpublished_ocr_bucket) has no `pages` of its
+  // own, only `subpages` (its OCR scans), so fall back to that.
+  const leafPages = content.pages || content.subpages || [];
+  if (includePages && leafPages.length) {
+    const allPages = leafPages;
     const isExpanded = state.expandedPageLists.has(catNode.id);
     const capped = !isExpanded && allPages.length > PAGE_LIST_CAP;
     const shownPages = capped ? allPages.slice(0, PAGE_LIST_CAP) : allPages;
 
     const ul = el("ul", {});
     for (const p of shownPages) {
-      const a = el("a", { href: p.url, target: "_blank", rel: "noreferrer" }, displayTitle(p.title));
-      const metaParts = [];
-      const pageSize = contentSizeBytes(p.stats);
-      if (pageSize != null) metaParts.push(formatBytes(pageSize));
-      const date = formatDate(p.stats?.last_changed);
-      if (date) metaParts.push(date);
-      const meta = metaParts.length ? ` (${metaParts.join(", ")})` : "";
-      ul.appendChild(el("li", {}, a, meta ? el("span", { class: "small" }, meta) : null));
+      ul.appendChild(renderPageLi(p));
     }
 
     const showAllBtn = capped
@@ -569,12 +622,29 @@ function initUI() {
   });
 }
 
+// Checks a page (or OCR scan) against the query, recursively including its
+// nested subpages -- a subpage whose own title matches (even if its parent
+// index page's title doesn't) still needs to surface in search, same as
+// before nesting was introduced (when subpages were flat category siblings
+// and therefore already searchable at the top level).
+function filterPage(p, query) {
+  const matchingSubpages = (p.subpages || [])
+    .map(sp => filterPage(sp, query))
+    .filter(Boolean);
+  const selfMatch = displayTitle(p.title).toLowerCase().includes(query);
+  if (selfMatch || matchingSubpages.length > 0) {
+    return { ...p, subpages: matchingSubpages };
+  }
+  return null;
+}
+
 function filterTree(node, query) {
-  // Check pages
-  const matchingPages = (node.pages || []).filter(p => {
-    const t = displayTitle(p.title).toLowerCase();
-    return t.includes(query);
-  });
+  // Check pages (categories) / subpages (ocr-work) -- see renderCategoryBlock's
+  // leafPages fallback for why ocr-work uses `subpages` instead of `pages`.
+  const leafField = node.pages ? "pages" : (node.subpages ? "subpages" : null);
+  const matchingPages = leafField
+    ? (node[leafField] || []).map(p => filterPage(p, query)).filter(Boolean)
+    : [];
 
   // Check children
   const matchingChildren = [];
@@ -594,7 +664,7 @@ function filterTree(node, query) {
     return {
       ...node,
       children: matchingChildren,
-      pages: matchingPages,
+      ...(leafField ? { [leafField]: matchingPages } : {}),
       __isMatch: selfMatch, // Flag to indicate if the node title itself matched
     };
   }

@@ -2,6 +2,7 @@ import argparse
 import hashlib
 import json
 import logging
+import shutil
 import sys
 import time
 from dataclasses import dataclass
@@ -45,7 +46,9 @@ class CategoryProgress:
     Prints the category tree live, depth-first, as build_skeleton() discovers
     it (one indented line per category — this *is* the traversal order, so no
     separate tree structure is needed). A single status line stays pinned at
-    the bottom via carriage return, showing count vs. EXPECTED_CATEGORY_COUNT.
+    the bottom via carriage return, showing count vs. EXPECTED_CATEGORY_COUNT,
+    plus whatever ActivityStatus.current currently holds (see below) so the
+    same line also answers "is it stuck, or is it working right now?".
     """
 
     def __init__(self, expected_total: int = EXPECTED_CATEGORY_COUNT):
@@ -59,7 +62,15 @@ class CategoryProgress:
 
     def _write_status(self) -> None:
         pct = (100 * self.count / self.expected_total) if self.expected_total else 0
-        line = f"{self.count}/{self.expected_total} categories ({pct:.0f}%)"
+        line = f"{self.count}/{self.expected_total} categories ({pct:.0f}%) -- {activity.current}"
+        # Truncate to the terminal width (minus 1, to avoid the cursor itself
+        # forcing a wrap) so a long activity string (e.g. a deeply-nested
+        # subpage path) never wraps onto a second row -- a single \r only
+        # returns to the start of the *current* visual row, so a wrapped
+        # status line can't be cleared correctly and leaves garbage behind.
+        width = shutil.get_terminal_size(fallback=(80, 24)).columns
+        if width > 1:
+            line = line[: width - 1]
         self._status_len = len(line)
         sys.stdout.write(line)
         sys.stdout.flush()
@@ -70,11 +81,47 @@ class CategoryProgress:
         print(f"{'    ' * depth}{title}")
         self._write_status()
 
+    def refresh(self) -> None:
+        """Repaint the pinned status line with whatever activity.current says now,
+        without advancing the category count or printing a new tree line. Called
+        by ActivityStatus itself so every activity change is immediately visible,
+        not just on the next category visit."""
+        self._clear_status()
+        self._write_status()
+
     def close(self) -> None:
         self._clear_status()
         self._write_status()
         sys.stdout.write("\n")
         sys.stdout.flush()
+
+
+class ActivityStatus:
+    """
+    Global single-slot "what is the scraper doing right now" signal, updated by
+    api_get() on every request and every rate-limit backoff sleep. Exists because
+    a silent scraper is ambiguous between "hung" and "sleeping out a ~30-90s
+    Wikimedia Retry-After stall" -- both look identical (no output) without this.
+
+    Bind any sink with a zero-arg `refresh()` that repaints using `.current`
+    (CategoryProgress in phase 1, a tqdm-postfix adapter in phase 2 -- each
+    owns its own line/terminal region, so only one is ever bound at a time).
+    """
+
+    def __init__(self) -> None:
+        self.current = "starting..."
+        self._sink = None
+
+    def bind(self, sink) -> None:
+        self._sink = sink
+
+    def set(self, text: str) -> None:
+        self.current = text
+        if self._sink is not None:
+            self._sink.refresh()
+
+
+activity = ActivityStatus()
 
 # Disk-backed cache of raw API responses, keyed by a hash of the request params.
 # Survives across runs so re-running the scraper (e.g. during dev iteration, or
@@ -85,7 +132,10 @@ API_CACHE_DIR = Path(__file__).parent / ".api_cache"
 
 session = requests.Session()
 session.headers.update(
-    {"User-Agent": "WikisourceCategoryCrawler/3.0 (polite; single-threaded; research use)"}
+    {
+        "User-Agent": "WikisourceCategoryCrawler/3.0 "
+        "(https://github.com/tylergneill/sanskrit-wikisource-mirror; polite; single-threaded; research use)"
+    }
 )
 
 _size_cache: Dict[int, int] = {}          # pageid -> bytes
@@ -117,6 +167,21 @@ def _short_params(params: dict) -> str:
     return ", ".join(f"{k}={v}" for k, v in interesting.items())
 
 
+def _activity_label(params: dict) -> str:
+    """Compact, human-readable one-liner for the live status line -- unlike
+    _short_params (used in --debug logs), this truncates pageids batches to a
+    count instead of dumping every id, since a phase-2 batch request can carry
+    up to 50 of them and a raw dump would blow out the terminal line."""
+    if "cmtitle" in params:
+        return f"categorymembers: {strip_cat_prefix(params['cmtitle'])}"
+    if "apprefix" in params:
+        return f"subpages: {params['apprefix'].rstrip('/')}"
+    if "pageids" in params:
+        n = params["pageids"].count("|") + 1
+        return f"page metadata: {n} page(s)"
+    return _short_params(params)
+
+
 def api_get(params: dict, delay_s: float) -> dict:
     # maxlag: standard MediaWiki bot-etiquette signal for non-interactive tasks.
     # See https://www.mediawiki.org/wiki/API:Etiquette
@@ -125,17 +190,20 @@ def api_get(params: dict, delay_s: float) -> dict:
     key = json.dumps(params, sort_keys=True, ensure_ascii=False)
     if key in _api_cache:
         log.debug("MEM-CACHE HIT  %s", _short_params(params))
+        activity.set(f"cached: {_activity_label(params)}")
         return _api_cache[key]
 
     cache_path = _cache_path_for_key(key)
     if cache_path.exists():
         log.debug("DISK-CACHE HIT %s", _short_params(params))
+        activity.set(f"cached: {_activity_label(params)}")
         with cache_path.open("r", encoding="utf-8") as f:
             data = json.load(f)
         _api_cache[key] = data
         return data
 
     log.debug("NETWORK CALL   %s", _short_params(params))
+    activity.set(f"fetching: {_activity_label(params)}")
     last_err: Optional[Exception] = None
     for attempt in range(1, MAX_RETRIES + 1):
         try:
@@ -166,12 +234,25 @@ def api_get(params: dict, delay_s: float) -> dict:
                 except ValueError:
                     wait_s = delay_s * (2 ** attempt)
                 log.debug("  -> 429 on attempt %d, sleeping %.1fs (Retry-After=%s)", attempt, wait_s, retry_after)
-                time.sleep(wait_s)
+                _sleep_with_countdown(wait_s, f"RATE-LIMITED: waiting {{remaining}}s (Retry-After={wait_s:.0f}s)")
             else:
-                log.debug("  -> error on attempt %d: %r, sleeping %.1fs", attempt, e, delay_s * attempt)
-                time.sleep(delay_s * attempt)
+                wait_s = delay_s * attempt
+                log.debug("  -> error on attempt %d: %r, sleeping %.1fs", attempt, e, wait_s)
+                _sleep_with_countdown(wait_s, f"retrying after error: waiting {{remaining}}s")
 
     raise RuntimeError(f"API request failed after {MAX_RETRIES} retries.\nParams: {params}\n{last_err}")
+
+
+def _sleep_with_countdown(total_s: float, label_template: str) -> None:
+    """Sleep in 1s ticks, updating activity.current each tick so a long
+    rate-limit backoff is visibly counting down rather than silently frozen
+    (indistinguishable, before this, from the process actually hanging)."""
+    remaining = total_s
+    while remaining > 0:
+        step = min(1.0, remaining)
+        activity.set(label_template.format(remaining=f"{remaining:.0f}"))
+        time.sleep(step)
+        remaining -= step
 
 
 def category_members(
@@ -213,6 +294,20 @@ def category_members(
             break
 
     return subcats, pages
+
+
+class TqdmActivitySink:
+    """Adapts a tqdm progress bar to ActivityStatus's sink protocol (a zero-arg
+    `refresh()`), for phase 2 -- where tqdm already owns the terminal's status
+    line, so activity.current is shown via set_postfix_str instead of a second
+    competing carriage-return line (which is what CategoryProgress uses in
+    phase 1, where no tqdm bar is active)."""
+
+    def __init__(self, pbar: tqdm) -> None:
+        self.pbar = pbar
+
+    def refresh(self) -> None:
+        self.pbar.set_postfix_str(activity.current, refresh=True)
 
 
 def _page_meta_params(missing: List[int]) -> dict:
@@ -286,6 +381,13 @@ def fetch_subpages(title: str, delay_s: float) -> List[dict]:
     """
     Returns direct MediaWiki subpages of `title` (namespace 0), i.e. pages
     whose title starts with "<title>/". One level only; does not recurse.
+
+    `delay_s` here is deliberately the caller's subpage-specific delay (see
+    --subpage-delay), not the general --delay: this is an unbatched,
+    one-request-per-page-probed loop (list=allpages has no cross-title
+    batching), so it is the dominant source of request *volume* when
+    recursing into deeply-nested works, and was the original cause of
+    repeatedly tripping Wikimedia's edge rate limiter -- see CLAUDE.md.
     """
     results: List[dict] = []
     apcontinue = None
@@ -321,6 +423,10 @@ def collect_subpages_recursive(
     Recursively discovers all descendant subpages of `title` (any nesting
     depth, e.g. "Title/Part1/Section2"), guarding against repeats via
     seen_titles. Returns a flat list of (page_title, pageid).
+
+    `delay_s` is the subpage-specific delay (see --subpage-delay) and is
+    passed straight through to both fetch_subpages and fetch_page_meta calls
+    made here, since both are part of the same request-volume-heavy loop.
     """
     found: List[Tuple[str, int]] = []
     direct = fetch_subpages(title, delay_s=delay_s)
@@ -372,7 +478,8 @@ def build_skeleton(
     depth: int,
     path: List[str],
     progress: Optional["CategoryProgress"] = None,
-    recurse_subpages: bool = False,
+    recurse_subpages: bool = True,
+    subpage_delay_s: Optional[float] = None,
 ) -> CatSkeleton:
     title = strip_cat_prefix(full_cat_title)
     this_path = path + [title]
@@ -420,17 +527,19 @@ def build_skeleton(
                 path=this_path,
                 progress=progress,
                 recurse_subpages=recurse_subpages,
+                subpage_delay_s=subpage_delay_s,
             )
         )
 
     pages: List[Tuple[str, int]] = []
     seen_titles: Set[str] = {t for t, _ in pages}
+    effective_subpage_delay = subpage_delay_s if subpage_delay_s is not None else delay_s
 
     if recurse_subpages:
         # Fetch sizes up front for this batch of pages, so we can skip the (costly)
         # subpage probe for pages that are clearly real content, not index/ToC pages.
         direct_pageids = [int(m["pageid"]) for m in page_members if m.get("pageid") is not None]
-        fetch_page_meta(direct_pageids, delay_s=delay_s, pbar=None)
+        fetch_page_meta(direct_pageids, delay_s=effective_subpage_delay, pbar=None)
 
     for m in page_members:
         t = m.get("title", "")
@@ -444,14 +553,13 @@ def build_skeleton(
 
         # Recurse into MediaWiki subpages (e.g. an index page's "Title/सर्गः" children),
         # since categorymembers only sees the index page itself, not its subpages.
-        # DISABLED BY DEFAULT (recurse_subpages=False): confirmed to trip Wikimedia's
-        # rate limiter repeatedly on deeply-nested works (e.g. बैबल्, which nests
-        # book/chapter subpages several levels deep) even with the size gate below
-        # and proper request pacing. Not ripped out — re-enable via --recurse-subpages
-        # once request-volume handling is more robust (see roadmap item #2 in
-        # CLAUDE.md / pipeline upgrade plan).
+        # Enabled by default. This loop is unbatched (one list=allpages request per
+        # page probed) and was the original source of repeatedly tripping Wikimedia's
+        # edge rate limiter on deeply-nested works (e.g. बैबल्) -- see CLAUDE.md. Mitigated
+        # via the size gate below plus a dedicated --subpage-delay pace, not by skipping
+        # the work; occasional 429s are expected and handled by api_get's Retry-After backoff.
         if recurse_subpages and _size_cache.get(pid_int, 0) <= SUBPAGE_PROBE_MAX_BYTES:
-            subpages = collect_subpages_recursive(t, delay_s=delay_s, seen_titles=seen_titles)
+            subpages = collect_subpages_recursive(t, delay_s=effective_subpage_delay, seen_titles=seen_titles)
             for sub_t, sub_pid in subpages:
                 pages.append((sub_t, sub_pid))
                 collect_pageids.add(sub_pid)
@@ -586,13 +694,24 @@ def main() -> None:
         "empirically confirmed yet -- tune this by testing live against the real API. Defaults "
         "to --delay if unset.",
     )
+    ap.add_argument(
+        "--subpage-delay",
+        type=float,
+        default=None,
+        help="Delay (seconds) between MediaWiki subpage-discovery (list=allpages) requests "
+        "and their associated page-meta fetches, separate from --delay. This loop is "
+        "unbatched (one request per page probed), making it the dominant source of request "
+        "volume -- and thus the main trigger of Wikimedia's edge rate limiter -- when "
+        "descending into deeply-nested works (e.g. बैबल्); see CLAUDE.md. Defaults to --delay "
+        "if unset.",
+    )
     ap.add_argument("--debug", action="store_true", help="log every API call (cache hit/miss, timing, retries) to stderr")
     ap.add_argument(
-        "--recurse-subpages",
-        action="store_true",
-        help="EXPERIMENTAL, off by default: also discover MediaWiki subpages "
-        "(Title/Subtitle) via list=allpages. Confirmed to trip Wikimedia's rate "
-        "limiter repeatedly on deeply-nested works (e.g. बैबल्); see CLAUDE.md.",
+        "--no-recurse-subpages",
+        dest="recurse_subpages",
+        action="store_false",
+        help="Disable descending into MediaWiki subpages (Title/Subtitle, via list=allpages). "
+        "Enabled by default; see CLAUDE.md for the नैषधीयचरितम्/बैबल् background.",
     )
     args = ap.parse_args()
 
@@ -609,6 +728,7 @@ def main() -> None:
     all_pageids: Set[int] = set()
 
     progress = CategoryProgress()
+    activity.bind(progress)
 
     granth_skel = build_skeleton(
         GRANTHAH_CAT,
@@ -619,6 +739,7 @@ def main() -> None:
         path=[],
         progress=progress,
         recurse_subpages=args.recurse_subpages,
+        subpage_delay_s=args.subpage_delay,
     )
 
     # Inject धर्मशास्त्रम् as an extra top-level child under ग्रन्थाः (as requested),
@@ -636,6 +757,7 @@ def main() -> None:
             path=[],
             progress=progress,
             recurse_subpages=args.recurse_subpages,
+            subpage_delay_s=args.subpage_delay,
         )
         # Merge seen/pageid sets (safe; categories might overlap)
         seen_cats = dh_seen
@@ -655,7 +777,9 @@ def main() -> None:
     )
     page_meta_delay = args.page_meta_delay if args.page_meta_delay is not None else args.delay
     pbar = tqdm(total=len(unique_pageids), unit="page")
+    activity.bind(TqdmActivitySink(pbar))
     fetch_page_meta(unique_pageids, delay_s=page_meta_delay, pbar=pbar)
+    activity.bind(None)
     pbar.close()
 
     # Output: omit the top "ग्रन्थाः" level, and omit "वर्गः:" prefixes everywhere (already stripped)

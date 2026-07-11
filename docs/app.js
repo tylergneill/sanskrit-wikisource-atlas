@@ -9,7 +9,13 @@ const state = {
   scheme: "devanagari",     // devanagari | iast | hk | itrans | slp1
   expanded: new Set(),      // node ids expanded in sidebar
   searchQuery: "",
+  expandedPageLists: new Set(), // category ids whose page list has been expanded past the cap
 };
+
+// Rendering every descendant page as a DOM node is what's actually slow (there are
+// ~22k pages total, and some single categories like पुराणानि have 10k+). Any page
+// list past this length renders capped with a "show all" button instead.
+const PAGE_LIST_CAP = 300;
 
 // --- utils
 
@@ -288,7 +294,14 @@ function renderMain() {
     // ancestors[0] is the true root (no header of its own); skip it, keep the rest.
     const breadcrumb = ancestors.slice(1);
 
-    const selectedBlock = renderCategoryBlock(selected, { includePages: true, depth: breadcrumb.length + 1, isRoot: false });
+    // The actual root has ~22k descendant pages across the whole tree -- fully
+    // recursing here (as any other category selection does) would build DOM for
+    // all of them on every initial load. Show one level of category summaries
+    // instead; drilling into a specific category still renders its subtree in full.
+    const isActualRoot = selected.id === root.id;
+    const selectedBlock = isActualRoot
+      ? renderRootOverview(selected)
+      : renderCategoryBlock(selected, { includePages: true, depth: breadcrumb.length + 1, isRoot: false });
 
     let inner = selectedBlock;
     for (let i = breadcrumb.length - 1; i >= 0; i--) {
@@ -332,6 +345,34 @@ function positionStickyHeaders(host) {
     }
     header.style.top = `${offset}px`;
   }
+}
+
+// Lightweight initial/root view: one row per top-level category with its stats,
+// clickable to drill in via the same selection path as clicking the sidebar.
+// See the comment at its call site in renderMain() for why this exists.
+function renderRootOverview(root) {
+  const block = el("div", {});
+  for (const ch of (root.children || [])) {
+    const content = resolveContent(ch);
+    const statsText = formatStats(ch.stats, { includeDate: true });
+    const row = el("div", {
+      class: "block panelTitle",
+      style: "cursor:pointer;",
+      onclick: () => {
+        state.selectedCatId = ch.id;
+        renderSidebarTree();
+        renderMain();
+      },
+    },
+      displayTitle(ch.title),
+      statsText ? el("span", { class: "small", style: "font-weight:normal; margin-left:8px;" }, statsText) : null,
+      (content.children || []).length
+        ? el("span", { class: "small", style: "font-weight:normal; margin-left:8px; opacity:0.6;" }, `${content.children.length} subcategories`)
+        : null,
+    );
+    block.appendChild(row);
+  }
+  return block;
 }
 
 function renderCategoryBlock(catNode, { includePages, depth, isRoot, isSearch }) {
@@ -399,8 +440,13 @@ function renderCategoryBlock(catNode, { includePages, depth, isRoot, isSearch })
 
   // pages
   if (includePages && (content.pages || []).length) {
+    const allPages = content.pages;
+    const isExpanded = state.expandedPageLists.has(catNode.id);
+    const capped = !isExpanded && allPages.length > PAGE_LIST_CAP;
+    const shownPages = capped ? allPages.slice(0, PAGE_LIST_CAP) : allPages;
+
     const ul = el("ul", {});
-    for (const p of content.pages) {
+    for (const p of shownPages) {
       const a = el("a", { href: p.url, target: "_blank", rel: "noreferrer" }, displayTitle(p.title));
       const metaParts = [];
       const pageSize = contentSizeBytes(p.stats);
@@ -410,8 +456,22 @@ function renderCategoryBlock(catNode, { includePages, depth, isRoot, isSearch })
       const meta = metaParts.length ? ` (${metaParts.join(", ")})` : "";
       ul.appendChild(el("li", {}, a, meta ? el("span", { class: "small" }, meta) : null));
     }
+
+    const showAllBtn = capped
+      ? el("button", {
+          class: "theme-toggle",
+          type: "button",
+          style: "margin-top:8px;",
+          onclick: () => {
+            state.expandedPageLists.add(catNode.id);
+            renderMain();
+          },
+        }, `Show all ${allPages.length} pages`)
+      : null;
+
     block.appendChild(el("div", { style: "margin-top:10px" },
-      ul
+      ul,
+      showAllBtn
     ));
   }
 

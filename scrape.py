@@ -44,11 +44,46 @@ MAX_RETRIES = 3
 # audit.
 SUBPAGE_PROBE_MAX_BYTES = 5_000
 
-# Category count from the last successful run's tree.json, used only as a
-# rough denominator for the live "N/expected" progress line below the
-# scrolling tree output. The real category count for a given run may differ
-# (site content changes over time) — this is an estimate, not a hard target.
-EXPECTED_CATEGORY_COUNT = 189
+# Fallback category count, used only as a rough denominator for the live
+# "N/expected" progress line below the scrolling tree output when no prior
+# tree.json exists to read a real count from (see expected_category_count()
+# below, which is what's actually used in the common case). The real category
+# count for a given run may differ (site content changes over time) -- this
+# is always just an estimate, never a hard target.
+EXPECTED_CATEGORY_COUNT_FALLBACK = 189
+
+
+def expected_category_count(out_path: str) -> int:
+    """
+    Category count from the previous run's output file at `out_path`, so the
+    live progress line's denominator stays roughly accurate run over run
+    without manual updates. Falls back to EXPECTED_CATEGORY_COUNT_FALLBACK if
+    there's no prior file yet (e.g. first-ever run) or it can't be read.
+
+    Counts only "category" nodes, not "category-pointer" ones -- matches
+    CategoryProgress.visit(), which build_skeleton() only calls on a
+    category's first-seen occurrence (see the seen_cats early-return there);
+    repeat filings of an already-seen category never advance the live
+    counter, so including category-pointer nodes here would inflate the
+    denominator past what the numerator can ever reach.
+    """
+    try:
+        with open(out_path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+    except (OSError, json.JSONDecodeError):
+        return EXPECTED_CATEGORY_COUNT_FALLBACK
+
+    count = 0
+
+    def walk(node: dict) -> None:
+        nonlocal count
+        if node.get("type") == "category":
+            count += 1
+        for c in node.get("children", []):
+            walk(c)
+
+    walk(data.get("root", {}))
+    return count or EXPECTED_CATEGORY_COUNT_FALLBACK
 
 
 class CategoryProgress:
@@ -61,7 +96,7 @@ class CategoryProgress:
     same line also answers "is it stuck, or is it working right now?".
     """
 
-    def __init__(self, expected_total: int = EXPECTED_CATEGORY_COUNT):
+    def __init__(self, expected_total: int = EXPECTED_CATEGORY_COUNT_FALLBACK):
         self.count = 0
         self.expected_total = expected_total
         self._status_len = 0
@@ -791,7 +826,7 @@ def main() -> None:
     print("Walking category tree (live, depth-first) ...")
     seen_cats: Dict[str, str] = {}
 
-    progress = CategoryProgress()
+    progress = CategoryProgress(expected_total=expected_category_count(args.out))
     activity.bind(progress)
 
     granth_skel = build_skeleton(

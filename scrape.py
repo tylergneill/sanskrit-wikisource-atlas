@@ -10,7 +10,6 @@ from pathlib import Path
 from typing import Dict, List, Optional, Set, Tuple
 
 import requests
-from tqdm.auto import tqdm
 
 BASE_URL = "https://sa.wikisource.org"
 API_URL = f"{BASE_URL}/w/api.php"
@@ -104,8 +103,7 @@ class ActivityStatus:
     Wikimedia Retry-After stall" -- both look identical (no output) without this.
 
     Bind any sink with a zero-arg `refresh()` that repaints using `.current`
-    (CategoryProgress in phase 1, a tqdm-postfix adapter in phase 2 -- each
-    owns its own line/terminal region, so only one is ever bound at a time).
+    (CategoryProgress is the only sink now that the crawl is a single pass).
     """
 
     def __init__(self) -> None:
@@ -296,20 +294,6 @@ def category_members(
     return subcats, pages
 
 
-class TqdmActivitySink:
-    """Adapts a tqdm progress bar to ActivityStatus's sink protocol (a zero-arg
-    `refresh()`), for phase 2 -- where tqdm already owns the terminal's status
-    line, so activity.current is shown via set_postfix_str instead of a second
-    competing carriage-return line (which is what CategoryProgress uses in
-    phase 1, where no tqdm bar is active)."""
-
-    def __init__(self, pbar: tqdm) -> None:
-        self.pbar = pbar
-
-    def refresh(self) -> None:
-        self.pbar.set_postfix_str(activity.current, refresh=True)
-
-
 def _page_meta_params(missing: List[int]) -> dict:
     return {
         "action": "query",
@@ -320,27 +304,7 @@ def _page_meta_params(missing: List[int]) -> dict:
     }
 
 
-def count_disk_cached_pages(pageids: List[int]) -> int:
-    """
-    Replays fetch_page_meta's batching to count how many pages are already
-    resolvable from the on-disk API cache, without making any requests. Used
-    only to annotate the phase-2 header with how much of the bar's initial
-    burst will be instant cache hits vs. real network calls — the tqdm bar
-    itself still starts at 0 and counts every batch fetch_page_meta processes,
-    cached or not, so this count is informational only, not passed to tqdm.
-    """
-    BATCH = 50
-    cached = 0
-    for i in range(0, len(pageids), BATCH):
-        batch = pageids[i : i + BATCH]
-        params = {**_page_meta_params(batch), "maxlag": "5"}  # matches api_get's own merge
-        key = json.dumps(params, sort_keys=True, ensure_ascii=False)
-        if _cache_path_for_key(key).exists():
-            cached += len(batch)
-    return cached
-
-
-def fetch_page_meta(pageids: List[int], delay_s: float, pbar: Optional[tqdm]) -> None:
+def fetch_page_meta(pageids: List[int], delay_s: float) -> None:
     """
     Populate _size_cache and _timestamp_cache for each pageid,
     using prop=revisions&rvprop=size|timestamp (batch).
@@ -350,8 +314,6 @@ def fetch_page_meta(pageids: List[int], delay_s: float, pbar: Optional[tqdm]) ->
         batch = pageids[i : i + BATCH]
         missing = [pid for pid in batch if pid not in _size_cache]
         if not missing:
-            if pbar is not None:
-                pbar.update(len(batch))
             continue
 
         params = _page_meta_params(missing)
@@ -372,9 +334,6 @@ def fetch_page_meta(pageids: List[int], delay_s: float, pbar: Optional[tqdm]) ->
                 _timestamp_cache[pid] = revs[0]["timestamp"]
             else:
                 _timestamp_cache[pid] = ""
-
-        if pbar is not None:
-            pbar.update(len(batch))
 
 
 def fetch_subpages(title: str, delay_s: float) -> List[dict]:
@@ -436,7 +395,7 @@ def collect_subpages_recursive(
         for m in direct
         if m.get("title") and m.get("pageid") is not None and m["title"] not in seen_titles
     ]
-    fetch_page_meta(new_pids, delay_s=delay_s, pbar=None)
+    fetch_page_meta(new_pids, delay_s=delay_s)
 
     for m in direct:
         sub_title = m.get("title", "")
@@ -474,11 +433,9 @@ def build_skeleton(
     full_cat_title: str,
     delay_s: float,
     seen_cats: Dict[str, str],   # full_title -> id of the occurrence holding real content
-    collect_pageids: Set[int],
     depth: int,
     path: List[str],
     progress: Optional["CategoryProgress"] = None,
-    recurse_subpages: bool = True,
     subpage_delay_s: Optional[float] = None,
 ) -> CatSkeleton:
     title = strip_cat_prefix(full_cat_title)
@@ -522,11 +479,9 @@ def build_skeleton(
                 sub_full,
                 delay_s=delay_s,
                 seen_cats=seen_cats,
-                collect_pageids=collect_pageids,
                 depth=depth + 1,
                 path=this_path,
                 progress=progress,
-                recurse_subpages=recurse_subpages,
                 subpage_delay_s=subpage_delay_s,
             )
         )
@@ -535,11 +490,13 @@ def build_skeleton(
     seen_titles: Set[str] = {t for t, _ in pages}
     effective_subpage_delay = subpage_delay_s if subpage_delay_s is not None else delay_s
 
-    if recurse_subpages:
-        # Fetch sizes up front for this batch of pages, so we can skip the (costly)
-        # subpage probe for pages that are clearly real content, not index/ToC pages.
-        direct_pageids = [int(m["pageid"]) for m in page_members if m.get("pageid") is not None]
-        fetch_page_meta(direct_pageids, delay_s=effective_subpage_delay, pbar=None)
+    # Fetch sizes up front for this batch of pages, so we can skip the (costly)
+    # subpage probe for pages that are clearly real content, not index/ToC pages.
+    # This is also what makes phase 2 (the old standalone page-meta pass) redundant:
+    # by the time the whole tree walk finishes, every page's metadata was already
+    # fetched here, inline, as it was discovered.
+    direct_pageids = [int(m["pageid"]) for m in page_members if m.get("pageid") is not None]
+    fetch_page_meta(direct_pageids, delay_s=effective_subpage_delay)
 
     for m in page_members:
         t = m.get("title", "")
@@ -549,20 +506,18 @@ def build_skeleton(
         pid_int = int(pid)
         seen_titles.add(t)
         pages.append((t, pid_int))
-        collect_pageids.add(pid_int)
 
         # Recurse into MediaWiki subpages (e.g. an index page's "Title/सर्गः" children),
         # since categorymembers only sees the index page itself, not its subpages.
-        # Enabled by default. This loop is unbatched (one list=allpages request per
-        # page probed) and was the original source of repeatedly tripping Wikimedia's
-        # edge rate limiter on deeply-nested works (e.g. बैबल्) -- see CLAUDE.md. Mitigated
-        # via the size gate below plus a dedicated --subpage-delay pace, not by skipping
-        # the work; occasional 429s are expected and handled by api_get's Retry-After backoff.
-        if recurse_subpages and _size_cache.get(pid_int, 0) <= SUBPAGE_PROBE_MAX_BYTES:
+        # This loop is unbatched (one list=allpages request per page probed) and was
+        # the original source of repeatedly tripping Wikimedia's edge rate limiter on
+        # deeply-nested works (e.g. बैबल्) -- see CLAUDE.md. Mitigated via the size gate
+        # below plus a dedicated --subpage-delay pace, not by skipping the work;
+        # occasional 429s are expected and handled by api_get's Retry-After backoff.
+        if _size_cache.get(pid_int, 0) <= SUBPAGE_PROBE_MAX_BYTES:
             subpages = collect_subpages_recursive(t, delay_s=effective_subpage_delay, seen_titles=seen_titles)
             for sub_t, sub_pid in subpages:
                 pages.append((sub_t, sub_pid))
-                collect_pageids.add(sub_pid)
 
     sub_skeletons.sort(key=lambda x: x.title)
     pages.sort(key=lambda x: x[0])
@@ -683,18 +638,6 @@ def main() -> None:
     ap.add_argument("--out", default=DEFAULT_OUT)
     ap.add_argument("--delay", type=float, default=REQUEST_DELAY_S)
     ap.add_argument(
-        "--page-meta-delay",
-        type=float,
-        default=None,
-        help="Delay (seconds) between phase-2 prop=revisions batch requests, separate from "
-        "--delay. Phase 2 issues many same-shaped requests back-to-back and has been observed "
-        "tripping Wikimedia's edge rate limiter after ~10 requests at the default --delay pace, "
-        "each trip costing a ~55s Retry-After stall (in one observed run, over 90%% of phase-2 "
-        "wall-clock time was spent waiting out these stalls). No safe steady-state pace has been "
-        "empirically confirmed yet -- tune this by testing live against the real API. Defaults "
-        "to --delay if unset.",
-    )
-    ap.add_argument(
         "--subpage-delay",
         type=float,
         default=None,
@@ -706,13 +649,6 @@ def main() -> None:
         "if unset.",
     )
     ap.add_argument("--debug", action="store_true", help="log every API call (cache hit/miss, timing, retries) to stderr")
-    ap.add_argument(
-        "--no-recurse-subpages",
-        dest="recurse_subpages",
-        action="store_false",
-        help="Disable descending into MediaWiki subpages (Title/Subtitle, via list=allpages). "
-        "Enabled by default; see CLAUDE.md for the नैषधीयचरितम्/बैबल् background.",
-    )
     args = ap.parse_args()
 
     logging.basicConfig(
@@ -722,10 +658,12 @@ def main() -> None:
         datefmt="%H:%M:%S",
     )
 
-    # Pass 1: build full category skeleton starting at ग्रन्थाः (but we will not output the top ग्रन्थाः node)
-    print("Phase 1/2: walking category tree (live, depth-first) ...")
+    # Build full category skeleton starting at ग्रन्थाः (but we will not output the top ग्रन्थाः node).
+    # Page metadata (size/timestamp) is fetched inline as each page is discovered
+    # (see build_skeleton's up-front fetch_page_meta call), so there is no separate
+    # page-metadata pass afterward -- this single walk is the whole crawl.
+    print("Walking category tree (live, depth-first) ...")
     seen_cats: Dict[str, str] = {}
-    all_pageids: Set[int] = set()
 
     progress = CategoryProgress()
     activity.bind(progress)
@@ -734,11 +672,9 @@ def main() -> None:
         GRANTHAH_CAT,
         delay_s=args.delay,
         seen_cats=seen_cats,
-        collect_pageids=all_pageids,
         depth=0,
         path=[],
         progress=progress,
-        recurse_subpages=args.recurse_subpages,
         subpage_delay_s=args.subpage_delay,
     )
 
@@ -747,40 +683,23 @@ def main() -> None:
     has_dharma = any(ch.title == strip_cat_prefix(DHARMASHASTRA_CAT) for ch in granth_skel.subcats)
     if not has_dharma:
         dh_seen: Dict[str, str] = dict(seen_cats)
-        dh_all: Set[int] = set(all_pageids)
         dh_skel = build_skeleton(
             DHARMASHASTRA_CAT,
             delay_s=args.delay,
             seen_cats=dh_seen,
-            collect_pageids=dh_all,
             depth=1,
             path=[],
             progress=progress,
-            recurse_subpages=args.recurse_subpages,
             subpage_delay_s=args.subpage_delay,
         )
-        # Merge seen/pageid sets (safe; categories might overlap)
+        # Merge seen sets (safe; categories might overlap)
         seen_cats = dh_seen
-        all_pageids = dh_all
         granth_skel.subcats.append(dh_skel)
 
     progress.close()
+    activity.bind(None)
 
     granth_skel.subcats.sort(key=lambda x: x.title)
-
-    # Pass 2: fetch sizes and timestamps for unique pages (fast, no HTML fetching)
-    unique_pageids = sorted(all_pageids)
-    already_cached = count_disk_cached_pages(unique_pageids)
-    print(
-        f"Phase 2/2: fetching page sizes and timestamps for {len(unique_pageids)} unique pages "
-        f"({already_cached} already cached on disk) ..."
-    )
-    page_meta_delay = args.page_meta_delay if args.page_meta_delay is not None else args.delay
-    pbar = tqdm(total=len(unique_pageids), unit="page")
-    activity.bind(TqdmActivitySink(pbar))
-    fetch_page_meta(unique_pageids, delay_s=page_meta_delay, pbar=pbar)
-    activity.bind(None)
-    pbar.close()
 
     # Output: omit the top "ग्रन्थाः" level, and omit "वर्गः:" prefixes everywhere (already stripped)
     # We use skeleton_to_json on the root node to get its full structure, then extract what we need.

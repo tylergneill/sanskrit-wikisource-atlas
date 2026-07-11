@@ -12,6 +12,7 @@ from pathlib import Path
 from typing import Dict, List, Optional, Set, Tuple
 
 import requests
+from skrutable.transliteration import Transliterator
 
 BASE_URL = "https://sa.wikisource.org"
 API_URL = f"{BASE_URL}/w/api.php"
@@ -87,7 +88,7 @@ class CategoryProgress:
     def visit(self, title: str, depth: int) -> None:
         self.count += 1
         self._clear_status()
-        print(f"{'    ' * depth}{title}")
+        print(f"{'    ' * depth}{to_iast(title)}")
         self._write_status()
 
     def refresh(self) -> None:
@@ -151,6 +152,18 @@ _timestamp_cache: Dict[int, str] = {}     # pageid -> last-revision ISO 8601 tim
 _api_cache: Dict[str, dict] = {}          # small memo for identical API calls
 
 
+# Terminal-output-only: transliterates the scraper's own live progress
+# display (category tree lines, status-line activity text) from Devanagari to
+# IAST via skrutable, purely for readability while watching a run. Does not
+# touch tree.json -- title fields there stay raw Devanagari per CLAUDE.md;
+# the frontend does its own client-side transliteration on render.
+_transliterator = Transliterator(from_scheme="DEV", to_scheme="IAST")
+
+
+def to_iast(text: str) -> str:
+    return _transliterator.transliterate(text)
+
+
 def strip_cat_prefix(title: str) -> str:
     s = (title or "").strip()
     if s.startswith("वर्गः:"):
@@ -181,9 +194,9 @@ def _activity_label(params: dict) -> str:
     count instead of dumping every id, since a phase-2 batch request can carry
     up to 50 of them and a raw dump would blow out the terminal line."""
     if "cmtitle" in params:
-        return f"categorymembers: {strip_cat_prefix(params['cmtitle'])}"
+        return f"categorymembers: {to_iast(strip_cat_prefix(params['cmtitle']))}"
     if "apprefix" in params:
-        return f"subpages: {params['apprefix'].rstrip('/')}"
+        return f"subpages: {to_iast(params['apprefix'].rstrip('/'))}"
     if "pageids" in params:
         n = params["pageids"].count("|") + 1
         return f"page metadata: {n} page(s)"

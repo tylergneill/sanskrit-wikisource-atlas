@@ -27,12 +27,20 @@ REQUEST_DELAY_S = 0.5
 TIMEOUT_S = 30
 MAX_RETRIES = 3
 
-# Only probe a page for MediaWiki subpages if its own size is below this
-# threshold. Real content pages (verse text etc.) run tens to hundreds of KB;
-# only small index/ToC pages point to further subpages in practice (both
-# known cases for नैषधीयचरितम् are well under 5KB: 433B and 2.1KB). Without
-# this filter, probing every single page for subpages roughly doubles total
-# request volume and reliably trips Wikimedia's edge rate limiter.
+# Only recurse into a discovered subpage's own subpages (grandchildren etc.)
+# if that subpage's size is below this threshold. Real content pages (verse
+# text etc.) run tens to hundreds of KB; only small index/ToC pages point to
+# further subpages in practice (both known cases for नैषधीयचरितम् are well
+# under 5KB: 433B and 2.1KB). Without this filter, recursively probing every
+# real content page for further subpages roughly doubles total request volume
+# and reliably trips Wikimedia's edge rate limiter.
+#
+# NOT applied to the top-level probe of a direct categorymember (see
+# build_skeleton) -- that page is already fetched/known, so probing it costs
+# one bounded extra request regardless of its size, and gating on size there
+# caused a confirmed gap of ~3,258 pages hidden behind ~56 index pages a few
+# KB over this threshold. See notes/pipeline_upgrade_plan.md's 2026-07-11 gap
+# audit.
 SUBPAGE_PROBE_MAX_BYTES = 5_000
 
 # Category count from the last successful run's tree.json, used only as a
@@ -513,13 +521,22 @@ def build_skeleton(
         # since categorymembers only sees the index page itself, not its subpages.
         # This loop is unbatched (one list=allpages request per page probed) and was
         # the original source of repeatedly tripping Wikimedia's edge rate limiter on
-        # deeply-nested works (e.g. बैबल्) -- see CLAUDE.md. Mitigated via the size gate
-        # below plus a dedicated --subpage-delay pace, not by skipping the work;
-        # occasional 429s are expected and handled by api_get's Retry-After backoff.
-        if _size_cache.get(pid_int, 0) <= SUBPAGE_PROBE_MAX_BYTES:
-            subpages = collect_subpages_recursive(t, delay_s=effective_subpage_delay, seen_titles=seen_titles)
-            for sub_t, sub_pid in subpages:
-                pages.append((sub_t, sub_pid))
+        # deeply-nested works (e.g. बैबल्) -- see CLAUDE.md. Mitigated via a dedicated
+        # --subpage-delay pace, not by skipping the work; occasional 429s are expected
+        # and handled by api_get's Retry-After backoff.
+        #
+        # No size gate here, deliberately: unlike the recursive descent below (which
+        # is unbounded and would roughly double request volume if applied to every
+        # real content page it finds), every page here is already a known
+        # categorymember -- the probe is one extra already-"paid for" request per
+        # page, not exponential. Gating on size here caused a confirmed gap: ~56
+        # legitimate index/ToC pages (e.g. अग्निपुराणम् at 20,836B) sit a few KB over
+        # SUBPAGE_PROBE_MAX_BYTES and were silently never probed, hiding ~3,258 real
+        # subpages underneath them. See notes/pipeline_upgrade_plan.md's 2026-07-11
+        # gap audit.
+        subpages = collect_subpages_recursive(t, delay_s=effective_subpage_delay, seen_titles=seen_titles)
+        for sub_t, sub_pid in subpages:
+            pages.append((sub_t, sub_pid))
 
     sub_skeletons.sort(key=lambda x: x.title)
     pages.sort(key=lambda x: x[0])

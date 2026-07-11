@@ -676,6 +676,19 @@ def main() -> None:
     with open(args.out, "w", encoding="utf-8") as f:
         json.dump(out, f, ensure_ascii=False, indent=4)
 
+    _stamp_data_version()
+
+
+def _stamp_data_version() -> None:
+    """Record today's date as __data_version__ in docs/VERSION (second line),
+    alongside the existing __version__ (code version, bumped manually/separately)."""
+    version_path = Path(__file__).resolve().parent / "docs" / "VERSION"
+    today = time.strftime("%Y-%m-%d", time.gmtime())
+    lines = version_path.read_text(encoding="utf-8").splitlines() if version_path.exists() else []
+    lines = [ln for ln in lines if not ln.startswith("__data_version__")]
+    lines.append(f'__data_version__ = "{today}"')
+    version_path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+
 
 if __name__ == "__main__":
     main()

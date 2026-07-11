@@ -522,11 +522,21 @@ async function loadVersion() {
     const r = await fetch("./VERSION");
     if (!r.ok) return;
     const text = await r.text();
-    const firstLine = text.split("\n")[0];
-    if (firstLine.includes("=")) {
-      const version = firstLine.split("=")[1].trim().replace(/['"]/g, "");
-      const el = document.getElementById("appVersion");
-      if (el) el.textContent = "v" + version;
+    const lines = text.split("\n");
+    for (const line of lines) {
+      if (!line.includes("=")) continue;
+      const [key, rawValue] = line.split("=");
+      const value = rawValue.trim().replace(/['"]/g, "");
+      if (key.trim() === "__version__") {
+        const el = document.getElementById("appVersion");
+        if (el) el.textContent = "v" + value;
+      } else if (key.trim() === "__data_version__") {
+        const el = document.getElementById("dataUpdated");
+        if (el) {
+          el.textContent = `data updated ${value}`;
+          el.title = "Date the scraping pipeline was last run (see About for full changelog)";
+        }
+      }
     }
   } catch (e) {
     console.log("Could not load version:", e);

@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>About — Sanskrit Wikisource Mirror</title>
+  <link rel="stylesheet" href="./styles.css" />
+  <script>
+    (function () {
+      var saved = localStorage.getItem("theme");
+      var theme = saved || (window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark");
+      document.documentElement.setAttribute("data-theme", theme);
+    })();
+  </script>
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      Sanskrit Wikisource Mirror
+      <a href="./index.html" class="topbar-link">← Back to tree</a>
+    </div>
+  </header>
+
+  <main class="mainpane" style="height: calc(100% - 48px); display:flex; justify-content:center;">
+    <section class="content" style="width:100%; max-width:900px;">
+      <div class="block">
+        <h2 style="margin-top:0;">About</h2>
+        <p>
+          A more accessible browsing interface for the Sanskrit text collection at
+          <a href="https://sa.wikisource.org/" target="_blank">sa.wikisource.org</a>.
+          This site scrapes Wikisource's category tree via the MediaWiki API and
+          renders it as a static, searchable, transliteration-aware mirror.
+        </p>
+        <p>
+          <a href="https://sa.wikisource.org/wiki/वर्गः:वर्गसर्वस्वम्" target="_blank" class="topbar-link" style="margin-left:0;" title="Original Wikisource Root Category">Source Root Page</a>
+          <a href="https://github.com/tylergneill/sanskrit-wikisource-mirror" target="_blank" class="topbar-link">GitHub</a>
+        </p>
+      </div>
+
+      <div class="block">
+        <h2 style="margin-top:0;">Data changelog</h2>
+        <p style="color:var(--muted);">
+          Each entry compares two snapshots of <code>tree.json</code> and reports both what
+          each snapshot originally claimed about itself (<em>reported</em>) and an independently
+          recomputed distinct-page total (<em>recomputed</em>, deduped by page id) — see
+          <code>compare.py</code> in the repository. Notes on each entry explain what changed
+          and why, including one-off methodology caveats where relevant.
+        </p>
+        <div id="changelog"></div>
+      </div>
+    </section>
+  </main>
+
+  <script type="module" src="./about.js"></script>
+</body>
+</html>

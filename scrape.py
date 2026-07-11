@@ -22,6 +22,15 @@ log = logging.getLogger("scrape")
 GRANTHAH_CAT = "वर्गः:ग्रन्थाः"
 DHARMASHASTRA_CAT = "वर्गः:धर्मशास्त्रम्"
 
+# ProofreadPage extension namespaces: Index: (scanned-book metadata/ToC, one
+# per scanned work) and Page: (one per scanned page's OCR/proofread text).
+# sa.wikisource.org's localized namespace names, not the English aliases --
+# apnamespace is numeric so this only matters for building prefixes below.
+INDEX_NS = 106
+PAGE_NS = 104
+INDEX_PREFIX = "अनुक्रमणिका:"
+PAGE_PREFIX = "पृष्ठम्:"
+
 DEFAULT_OUT = "docs/data/tree.json"
 
 REQUEST_DELAY_S = 0.5
@@ -141,6 +150,34 @@ class CategoryProgress:
         sys.stdout.flush()
 
 
+class SimpleStatusLine:
+    """
+    Minimal pinned single-line ActivityStatus sink, for phases of the run that
+    aren't the category tree walk (e.g. the unpublished-OCR sweep) and so
+    don't have a meaningful "N/expected categories" count to show -- just
+    repaints activity.current on a carriage-returned line.
+    """
+
+    def __init__(self) -> None:
+        self._status_len = 0
+
+    def refresh(self) -> None:
+        if self._status_len:
+            sys.stdout.write("\r" + " " * self._status_len + "\r")
+        line = activity.current
+        width = shutil.get_terminal_size(fallback=(80, 24)).columns
+        if width > 1:
+            line = line[: width - 1]
+        self._status_len = len(line)
+        sys.stdout.write(line)
+        sys.stdout.flush()
+
+    def close(self) -> None:
+        self.refresh()
+        sys.stdout.write("\n")
+        sys.stdout.flush()
+
+
 class ActivityStatus:
     """
     Global single-slot "what is the scraper doing right now" signal, updated by
@@ -149,7 +186,8 @@ class ActivityStatus:
     Wikimedia Retry-After stall" -- both look identical (no output) without this.
 
     Bind any sink with a zero-arg `refresh()` that repaints using `.current`
-    (CategoryProgress is the only sink now that the crawl is a single pass).
+    (CategoryProgress for the category-tree walk, SimpleStatusLine for other
+    phases like the unpublished-OCR sweep).
     """
 
     def __init__(self) -> None:
@@ -472,6 +510,164 @@ def collect_subpages_recursive(
     return found
 
 
+def fetch_index_pages(delay_s: float) -> List[dict]:
+    """
+    Returns every Index: (ns 106, अनुक्रमणिका) page -- one per scanned book on
+    sa.wikisource.org, regardless of whether it's ever been transcluded into
+    mainspace. Each element includes title, pageid, ns.
+    """
+    results: List[dict] = []
+    apcontinue = None
+    while True:
+        params = {
+            "action": "query",
+            "format": "json",
+            "list": "allpages",
+            "apnamespace": str(INDEX_NS),
+            "aplimit": "500",
+        }
+        if apcontinue:
+            params["apcontinue"] = apcontinue
+
+        data = api_get(params, delay_s=delay_s)
+        results.extend(data.get("query", {}).get("allpages", []))
+
+        cont = data.get("continue", {})
+        apcontinue = cont.get("apcontinue")
+        if not apcontinue:
+            break
+
+    return results
+
+
+def is_transcluded_in_mainspace(index_title: str, delay_s: float) -> bool:
+    """
+    True if this Index: page's scan has been transcluded into at least one
+    mainspace (ns 0) page -- i.e. the finished/proofread version already
+    exists and is reachable via the normal category walk, so the raw scan
+    would be a duplicate if also surfaced here.
+    """
+    params = {
+        "action": "query",
+        "format": "json",
+        "list": "embeddedin",
+        "eititle": index_title,
+        "einamespace": "0",
+        "eilimit": "1",
+    }
+    data = api_get(params, delay_s=delay_s)
+    return bool(data.get("query", {}).get("embeddedin"))
+
+
+def fetch_ocr_pages(index_title: str, delay_s: float) -> List[dict]:
+    """
+    Returns every Page: (ns 104, पृष्ठम्) subpage of a given Index: work, i.e.
+    its individual scanned/OCR'd pages. Same allpages-prefix pattern as
+    fetch_subpages, just against ns 104 instead of ns 0.
+    """
+    # Index: titles carry their own "अनुक्रमणिका:" prefix already; Page: titles
+    # for the same work are "पृष्ठम्:<title without index prefix>/<n>".
+    bare_title = index_title[len(INDEX_PREFIX):] if index_title.startswith(INDEX_PREFIX) else index_title
+    results: List[dict] = []
+    apcontinue = None
+    while True:
+        params = {
+            "action": "query",
+            "format": "json",
+            "list": "allpages",
+            "apnamespace": str(PAGE_NS),
+            "apprefix": f"{bare_title}/",
+            "aplimit": "500",
+        }
+        if apcontinue:
+            params["apcontinue"] = apcontinue
+
+        data = api_get(params, delay_s=delay_s)
+        results.extend(data.get("query", {}).get("allpages", []))
+
+        cont = data.get("continue", {})
+        apcontinue = cont.get("apcontinue")
+        if not apcontinue:
+            break
+
+    return results
+
+
+def build_unpublished_ocr_bucket(delay_s: float, progress: Optional["CategoryProgress"] = None) -> Optional[dict]:
+    """
+    Sweeps ns 106 (Index:) for every scanned work, skips any already
+    transcluded into mainspace (already visible elsewhere in tree.json via
+    its finished page), and for the rest fetches its ns 104 (Page:) scans as
+    a distinct "second tier" bucket -- Tyler's 2026-07-11 design (see
+    notes/pipeline_upgrade_plan.md): don't duplicate published works, but
+    don't silently drop fully-unpublished scans either.
+
+    Returns a raw dict (not a CatSkeleton) shaped like a category node but
+    with type "ocr-collection"/"ocr-work"/"ocr-page" so the frontend can
+    render it like a category tree while still visually distinguishing it as
+    unpublished OCR, not curated mainspace content. Returns None if every
+    Index: work turns out to already be transcluded (nothing to surface).
+    """
+    index_pages = fetch_index_pages(delay_s=delay_s)
+
+    works: List[dict] = []
+    for ip in index_pages:
+        title = ip.get("title", "")
+        if not title:
+            continue
+        if progress is not None:
+            activity.set(f"checking OCR transclusion: {to_iast(title)}")
+        if is_transcluded_in_mainspace(title, delay_s=delay_s):
+            continue
+
+        ocr_pages = fetch_ocr_pages(title, delay_s=delay_s)
+        pageids = [int(p["pageid"]) for p in ocr_pages if p.get("pageid") is not None]
+        fetch_page_meta(pageids, delay_s=delay_s)
+
+        pages_json = []
+        for p in ocr_pages:
+            t = p.get("title", "")
+            pid = p.get("pageid")
+            if not t or pid is None:
+                continue
+            pid_int = int(pid)
+            b = _size_cache.get(pid_int, 0)
+            ts = _timestamp_cache.get(pid_int, "")
+            pages_json.append(
+                {
+                    "id": page_id(t),
+                    "type": "ocr-page",
+                    "title": t,
+                    "url": page_url(t),
+                    "stats": {"bytes": b, "last_changed": ts},
+                }
+            )
+        if not pages_json:
+            continue
+
+        bare_title = title[len(INDEX_PREFIX):] if title.startswith(INDEX_PREFIX) else title
+        works.append(
+            {
+                "id": f"ocr-work:{bare_title}",
+                "type": "ocr-work",
+                "title": bare_title,
+                "index_url": page_url(title),
+                "pages": pages_json,
+            }
+        )
+
+    if not works:
+        return None
+
+    works.sort(key=lambda w: w["title"])
+    return {
+        "id": "ocr-collection",
+        "type": "ocr-collection",
+        "title": "अप्रकाशित-OCR-कृतयः",
+        "children": works,
+    }
+
+
 @dataclass
 class CatSkeleton:
     title: str              # no "वर्गः:" prefix
@@ -761,6 +957,29 @@ def attach_stats(root: dict) -> None:
         }
 
 
+def attach_ocr_stats(ocr_root: dict) -> None:
+    """Fill in `stats` (bytes/count/last_changed only -- no content_bytes_est/
+    iast_bytes_est, since those are a regression fit against ordinary
+    Devanagari running-text pages and don't apply to raw OCR scan text) on
+    every ocr-work node and the ocr-collection root, bottom-up. No dedup pass
+    needed here (unlike attach_stats for categories): each Index: work's
+    Page: scans are unique to it, there's no equivalent of a category filed
+    under two parents in this bucket."""
+    for work in ocr_root.get("children", []):
+        pages = work.get("pages", [])
+        work["stats"] = {
+            "bytes": sum(int(p["stats"]["bytes"] or 0) for p in pages),
+            "count": len(pages),
+            "last_changed": max((str(p["stats"]["last_changed"] or "") for p in pages), default=""),
+        }
+
+    ocr_root["stats"] = {
+        "bytes": sum(w["stats"]["bytes"] for w in ocr_root.get("children", [])),
+        "count": sum(w["stats"]["count"] for w in ocr_root.get("children", [])),
+        "last_changed": max((w["stats"]["last_changed"] for w in ocr_root.get("children", [])), default=""),
+    }
+
+
 _DIGIT_RUN_RE = re.compile(r"\d+", re.UNICODE)
 
 
@@ -875,6 +1094,26 @@ def main() -> None:
     }
     attach_stats(out["root"])
     sort_tree(out["root"])
+
+    # Unpublished-OCR bucket: swept separately from the category walk above,
+    # since Index:/Page: (ns 106/104) scans aren't reachable via categorymembers
+    # at all -- this is item 5(d) of notes/pipeline_upgrade_plan.md. Attached as
+    # a sibling of the category children *after* attach_stats/sort_tree run on
+    # them, since its node shapes (ocr-collection/ocr-work/ocr-page) don't match
+    # what attach_stats expects (content_bytes_est/iast_bytes_est don't apply to
+    # raw OCR text) -- see attach_ocr_stats for why it's computed separately.
+    print("Sweeping unpublished OCR works (Index:/Page: namespaces) ...")
+    ocr_status = SimpleStatusLine()
+    activity.bind(ocr_status)
+    ocr_bucket = build_unpublished_ocr_bucket(
+        delay_s=args.subpage_delay if args.subpage_delay is not None else args.delay,
+        progress=ocr_status,
+    )
+    ocr_status.close()
+    activity.bind(None)
+    if ocr_bucket:
+        attach_ocr_stats(ocr_bucket)
+        out["root"]["children"].append(ocr_bucket)
 
     with open(args.out, "w", encoding="utf-8") as f:
         json.dump(out, f, ensure_ascii=False, indent=4)

@@ -55,7 +55,13 @@ function displayTitle(raw) {
   return translitText(normalizeTitleForDisplay(raw));
 }
 
-const CAT_TYPES = new Set(["category", "collection", "category-pointer"]);
+const CAT_TYPES = new Set(["category", "collection", "category-pointer", "ocr-collection", "ocr-work"]);
+
+// ocr-work nodes (unpublished OCR scans, see scrape.py's build_unpublished_ocr_bucket)
+// are container-shaped like a category but hold ocr-page leaves, not page leaves --
+// treated as a distinct, visually-flagged second tier per Tyler's 2026-07 design,
+// never folded in as if it were curated mainspace content.
+const OCR_TYPES = new Set(["ocr-collection", "ocr-work"]);
 
 function walkCategories(node, fn) {
   if (node.id) fn(node);
@@ -255,6 +261,7 @@ function renderSidebarNode(catNode, depth) {
   },
     toggleArrow,
     el("span", { class: depth === 0 ? "title topLevel" : "title" }, displayTitle(catNode.title)),
+    OCR_TYPES.has(catNode.type) ? el("span", { class: "ocrBadge" }, "OCR") : null,
     statsText ? el("span", { class: depth === 0 ? "small topLevel" : "small", style: "margin-left:auto; padding-left:10px; opacity:0.7;" }, statsText) : null
   );
 
@@ -365,6 +372,7 @@ function renderRootOverview(root) {
       },
     },
       displayTitle(ch.title),
+      OCR_TYPES.has(ch.type) ? el("span", { class: "ocrBadge" }, "OCR") : null,
       statsText ? el("span", { class: "small", style: "font-weight:normal; margin-left:8px;" }, statsText) : null,
       (content.children || []).length
         ? el("span", { class: "small", style: "font-weight:normal; margin-left:8px; opacity:0.6;" }, `${content.children.length} subcategories`)
@@ -425,6 +433,7 @@ function renderCategoryBlock(catNode, { includePages, depth, isRoot, isSearch })
     style: `z-index:${1000 - depth};`
   },
     displayTitle(catNode.title),
+    OCR_TYPES.has(catNode.type) ? el("span", { class: "ocrBadge" }, "OCR") : null,
     statsText ? el("span", { class: "small", style: "font-weight:normal; margin-left:8px;" }, statsText) : null,
     seeAlso
   );

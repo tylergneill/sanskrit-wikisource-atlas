@@ -2,9 +2,11 @@ import argparse
 import hashlib
 import json
 import logging
+import re
 import shutil
 import sys
 import time
+import unicodedata
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Dict, List, Optional, Set, Tuple
@@ -694,6 +696,39 @@ def attach_stats(root: dict) -> None:
         }
 
 
+_DIGIT_RUN_RE = re.compile(r"\d+", re.UNICODE)
+
+
+def _natural_sort_key(title: str) -> tuple:
+    """Split on runs of digits (any Unicode script, e.g. Devanagari ०-९) so titles
+    sort numerically within each run instead of lexicographically -- "अध्यायः ३३"
+    before "अध्यायः ३२६", not after. Each digit run becomes (its integer value,
+    ""); non-digit spans become (-1, the span itself) so digit vs. non-digit
+    chunks never get compared against each other's wrong-typed value."""
+    parts = _DIGIT_RUN_RE.split(title)
+    digit_runs = _DIGIT_RUN_RE.findall(title)
+    key: List[Tuple[int, str]] = []
+    for i, part in enumerate(parts):
+        if part:
+            key.append((-1, part))
+        if i < len(digit_runs):
+            value = int("".join(str(unicodedata.digit(ch)) for ch in digit_runs[i]))
+            key.append((value, ""))
+    return tuple(key)
+
+
+def sort_tree(node: dict) -> None:
+    """Sort children/pages in place by natural-sorted title, recursively. Runs once
+    on the final assembled JSON dict, so it's cache-transparent -- reruns from a warm
+    .api_cache/ re-sort identically regardless of crawl order."""
+    if "children" in node:
+        node["children"].sort(key=lambda n: _natural_sort_key(n["title"]))
+        for ch in node["children"]:
+            sort_tree(ch)
+    if "pages" in node:
+        node["pages"].sort(key=lambda n: _natural_sort_key(n["title"]))
+
+
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--out", default=DEFAULT_OUT)
@@ -760,8 +795,6 @@ def main() -> None:
     progress.close()
     activity.bind(None)
 
-    granth_skel.subcats.sort(key=lambda x: x.title)
-
     # Output: omit the top "ग्रन्थाः" level, and omit "वर्गः:" prefixes everywhere (already stripped)
     # We use skeleton_to_json on the root node to get its full structure, then extract what we need.
     root_data = skeleton_to_json(granth_skel)
@@ -776,6 +809,7 @@ def main() -> None:
         }
     }
     attach_stats(out["root"])
+    sort_tree(out["root"])
 
     with open(args.out, "w", encoding="utf-8") as f:
         json.dump(out, f, ensure_ascii=False, indent=4)

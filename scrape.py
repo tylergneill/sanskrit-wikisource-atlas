@@ -1279,14 +1279,27 @@ def merge_index_pages(root: dict) -> None:
     the same CATEGORY is filed under two parents), this is a category
     colliding with a page by title, which seen_cats never catches.
 
-    For every category node with a sibling page of the identical title: if
-    that page's own subpages are a subset of the category's `pages` (i.e. the
-    page contributes nothing beyond duplicating what the category already
-    holds), the page is removed from `pages` and attached as the category's
-    `index_page` instead -- a link to the page that organizes those members,
-    not a second copy of them. If the page has subpages beyond the category's
-    members (not confirmed to occur in practice, but not ruled out), it's left
-    alone to avoid silently dropping real content.
+    For every category node with a sibling page of the identical title, the
+    page is removed from `pages` and attached as the category's `index_page`
+    instead -- a link to the page that organizes those members, not a second
+    copy of them.
+
+    Earlier this only fired if the page's own subpages were already a subset
+    of the category's *other* direct page members -- but confirmed live on
+    कुमारसम्भवम्: the category's only direct members were the index page
+    itself (`kumārasambhavam्` with anusvāra spelling, ंभ) plus one unrelated
+    loose सर्ग (`kumārasambhavam्/प्रथमः सर्गः`, filed under the OTHER spelling,
+    म्भ) -- the subset check compared the index page's 6 ंभ-spelled subpages
+    against a set that never contained them (just the index page's own title
+    and the unrelated सर्ग), so it never merged. There is no content reason to
+    gate the merge on that check: the index page's own subpages are real
+    content that attach_stats (below) walks and counts directly via
+    `flatten_page`, independent of whatever else the category's `pages` list
+    holds -- so merging can never silently drop content, whether or not the
+    category happens to *also* redundantly list those same subpage titles.
+    Any other loose pages under the category (like the stray प्रथमः सर्गः
+    here) are simply left in `pages` untouched, alongside the new
+    `index_page`.
     """
 
     def visit(node: dict) -> None:
@@ -1298,11 +1311,8 @@ def merge_index_pages(root: dict) -> None:
             for p in pages:
                 cat = by_title.get(p["title"])
                 if cat is not None:
-                    cat_member_titles = {cp["title"] for cp in cat.get("pages", [])}
-                    page_subpage_titles = {sp["title"] for sp in p.get("subpages", [])}
-                    if page_subpage_titles <= cat_member_titles:
-                        cat["index_page"] = p
-                        continue
+                    cat["index_page"] = p
+                    continue
                 kept_pages.append(p)
             node["pages"] = kept_pages
         for ch in children:
@@ -1375,21 +1385,23 @@ def attach_stats(root: dict) -> None:
             flatten_page(p, merged)
         for ch in node.get("children", []):
             merged.update(collect(ch["id"]))
-        # index_page (see build_skeleton's page/subcategory title-collision
-        # handling): its own subpages ARE this category's members, already
-        # counted above via `pages`/`children` -- only its own_* contribution
-        # (the index page's own byte size/edit date, distinct from any
-        # member's) is new here. NOT flatten_page(index_page, merged): that
-        # would re-walk and double-count its `subpages` array, which is the
-        # same 18-सर्गः-style set already merged in above.
+        # index_page (see merge_index_pages): its own subpages are real
+        # content and are NOT guaranteed to already appear among `pages`/
+        # `children` above -- confirmed live on कुमारसम्भवम्, where the
+        # category's only direct members were the index page itself and one
+        # unrelated loose सर्ग, never the index page's own 6 subpages. So this
+        # must flatten the index page like any other page (own_* size/date
+        # plus every descendant subpage), not just add its own_* contribution
+        # standalone. `setdefault` guards the case where a subpage title DOES
+        # also happen to be separately filed as a direct category member
+        # (same underlying page, reached two ways) -- first write wins,
+        # nothing is double-counted either way.
         idx = node.get("index_page")
         if idx is not None:
-            merged[idx["id"]] = (
-                int(idx["stats"].get("own_bytes", idx["stats"]["bytes"]) or 0),
-                int(idx["stats"].get("own_content_bytes_est", idx["stats"]["content_bytes_est"]) or 0),
-                int(idx["stats"].get("own_iast_bytes_est", idx["stats"]["iast_bytes_est"]) or 0),
-                str(idx["stats"].get("own_last_changed") or idx["stats"]["last_changed"] or ""),
-            )
+            flattened: Dict[str, Tuple[int, int, int, str]] = {}
+            flatten_page(idx, flattened)
+            for pid, val in flattened.items():
+                merged.setdefault(pid, val)
         memo[node_id] = merged
         return merged
 

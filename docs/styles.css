@@ -196,6 +196,21 @@ a.topbar-link:hover { text-decoration: underline; }
   border-left: 1px solid var(--border);
 }
 
+.pageRow{
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.pageRowMain{
+  min-width: 0;
+}
+.subpageToggle{
+  flex: 0 0 auto;
+  width: 20px;
+  height: 20px;
+  font-size: 1.2rem;
+}
+
 .small{ font-size: 14px; color: var(--muted); }
 
 .ocrBadge{

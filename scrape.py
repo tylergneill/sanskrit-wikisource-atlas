@@ -116,7 +116,7 @@ class CategoryProgress:
 
     def _write_status(self) -> None:
         pct = (100 * self.count / self.expected_total) if self.expected_total else 0
-        line = f"{self.count}/{self.expected_total} categories ({pct:.0f}%) -- {activity.current}"
+        line = f"{self.count}/{self.expected_total} categories ({pct:.0f}%) -- {activity.display}"
         # Truncate to the terminal width (minus 1, to avoid the cursor itself
         # forcing a wrap) so a long activity string (e.g. a deeply-nested
         # subpage path) never wraps onto a second row -- a single \r only
@@ -164,7 +164,7 @@ class SimpleStatusLine:
     def refresh(self) -> None:
         if self._status_len:
             sys.stdout.write("\r" + " " * self._status_len + "\r")
-        line = activity.current
+        line = activity.display
         width = shutil.get_terminal_size(fallback=(80, 24)).columns
         if width > 1:
             line = line[: width - 1]
@@ -188,10 +188,24 @@ class ActivityStatus:
     Bind any sink with a zero-arg `refresh()` that repaints using `.current`
     (CategoryProgress for the category-tree walk, SimpleStatusLine for other
     phases like the unpublished-OCR sweep).
+
+    `prefix` is a SEPARATE, longer-lived slot from `.current` -- a caller
+    doing a multi-step sweep over a known-size batch (e.g.
+    build_orphan_bucket's "checking subpages N/M" loop) sets it once per
+    outer-loop item via set_prefix(), and it survives every inner api_get()
+    call's own set(), which overwrites `.current` on literally every single
+    request (see api_get below) and would otherwise clobber an "N/M" counter
+    before it ever got a chance to paint -- confirmed live: without this, the
+    orphan-sweep counters added alongside this class were invisible in
+    practice, always immediately overwritten by the next "fetching:"/
+    "cached:" label from the very api_get call they were meant to describe
+    progress *around*. `.current` (set via set()) is still shown in full,
+    just with `prefix` prepended, so per-request detail isn't lost either.
     """
 
     def __init__(self) -> None:
         self.current = "starting..."
+        self.prefix = ""
         self._sink = None
 
     def bind(self, sink) -> None:
@@ -201,6 +215,15 @@ class ActivityStatus:
         self.current = text
         if self._sink is not None:
             self._sink.refresh()
+
+    def set_prefix(self, text: str) -> None:
+        self.prefix = text
+        if self._sink is not None:
+            self._sink.refresh()
+
+    @property
+    def display(self) -> str:
+        return f"{self.prefix} -- {self.current}" if self.prefix else self.current
 
 
 activity = ActivityStatus()
@@ -739,6 +762,9 @@ def collect_placed_titles(node: dict, out: Set[str]) -> None:
         collect_placed_titles(p, out)
     for sp in node.get("subpages", []):
         collect_placed_titles(sp, out)
+    idx = node.get("index_page")
+    if idx is not None:
+        collect_placed_titles(idx, out)
     if node.get("type") in ("page",):
         out.add(node["title"])
 
@@ -761,7 +787,11 @@ def is_out_of_scope_title(title: str) -> bool:
     return not _DEVANAGARI_RE.search(title)
 
 
-def fetch_page_categories(pageids: List[int], delay_s: float) -> Dict[int, List[str]]:
+def fetch_page_categories(
+    pageids: List[int],
+    delay_s: float,
+    progress: Optional["SimpleStatusLine"] = None,
+) -> Dict[int, List[str]]:
     """
     Returns pageid -> list of full category titles ("वर्गः:...") the page
     carries, via prop=categories (batched). Used to find which orphaned
@@ -769,8 +799,11 @@ def fetch_page_categories(pageids: List[int], delay_s: float) -> Dict[int, List[
     """
     result: Dict[int, List[str]] = {}
     BATCH = 50
+    total_batches = (len(pageids) + BATCH - 1) // BATCH
     for i in range(0, len(pageids), BATCH):
         batch = pageids[i : i + BATCH]
+        if progress is not None:
+            activity.set_prefix(f"orphan candidate categories: batch {i // BATCH + 1}/{total_batches}")
         params = {
             "action": "query",
             "format": "json",
@@ -824,6 +857,7 @@ def build_orphan_bucket(
     every mainspace title turns out to already be placed.
     """
     if progress is not None:
+        activity.set_prefix("")
         activity.set("sweeping full mainspace (list=allpages) ...")
     all_titles = fetch_all_mainspace_titles(delay_s=delay_s, progress=progress)
 
@@ -838,7 +872,7 @@ def build_orphan_bucket(
     leftover_pids = [int(m["pageid"]) for m in leftover]
     if progress is not None:
         activity.set(f"fetching categories for {len(leftover_pids)} orphan candidate(s) ...")
-    cats_by_pid = fetch_page_categories(leftover_pids, delay_s=delay_s)
+    cats_by_pid = fetch_page_categories(leftover_pids, delay_s=delay_s, progress=progress)
 
     # Titles with a "|"-free bare form let orphaned-category subtrees (walked
     # via build_skeleton below) discover the SAME pages again through
@@ -860,7 +894,8 @@ def build_orphan_bucket(
             zero_cat_leftover.append(m)
 
     orphan_skeletons: List[CatSkeleton] = []
-    for full_cat_title in orphan_roots:
+    total_orphan_roots = len(orphan_roots)
+    for root_i, full_cat_title in enumerate(orphan_roots, start=1):
         # A category discovered from an earlier root in this same loop may
         # already have been swept into seen_cats by then -- build_skeleton
         # handles that itself (category-pointer), but skip re-walking it as
@@ -869,7 +904,7 @@ def build_orphan_bucket(
         if full_cat_title in seen_cats:
             continue
         if progress is not None:
-            activity.set(f"crawling orphaned category: {to_iast(strip_cat_prefix(full_cat_title))}")
+            activity.set_prefix(f"orphaned category {root_i}/{total_orphan_roots}")
         orphan_skeletons.append(
             build_skeleton(
                 full_cat_title,
@@ -890,16 +925,20 @@ def build_orphan_bucket(
     fetch_page_meta(zero_cat_pids, delay_s=subpage_delay_s)
     zero_cat_seen_titles: Set[str] = set()
     zero_cat_pages: List[PageSkeleton] = []
-    for m in zero_cat_leftover:
+    total_zero_cat = len(zero_cat_leftover)
+    for zc_i, m in enumerate(zero_cat_leftover, start=1):
         t = m["title"]
         if t in zero_cat_seen_titles:
             continue
         zero_cat_seen_titles.add(t)
         pid = int(m["pageid"])
         if progress is not None:
-            activity.set(f"checking subpages: {to_iast(t)}")
+            activity.set_prefix(f"zero-category page subpages {zc_i}/{total_zero_cat}")
         subpages = collect_subpages_recursive(t, delay_s=subpage_delay_s, seen_titles=zero_cat_seen_titles)
         zero_cat_pages.append(PageSkeleton(title=t, pageid=pid, subpages=subpages))
+
+    if progress is not None:
+        activity.set_prefix("")
 
     if not orphan_skeletons and not zero_cat_pages:
         return None
@@ -1146,26 +1185,42 @@ def page_skeleton_to_json(page: PageSkeleton, owning_cat_id: str) -> dict:
     same kind of rollup, or a collapsed view would visually understate
     freshness by showing only the parent's often-stale own edit date. The
     page's own un-rolled-up timestamp is preserved separately as
-    `own_last_changed`, in case it's ever needed."""
+    `own_last_changed`, in case it's ever needed.
+
+    `stats.bytes`/`content_bytes_est`/`iast_bytes_est` are likewise sum()
+    rollups over this page's own size plus every descendant subpage's --
+    same reasoning as the date rollup, just sum instead of max. Without this,
+    an index/ToC page like नैषधीयचरितम्‌ (2.1KB of its own text, but pointing
+    at 23 सर्गः subpages totaling >1MB of real content) would show a
+    misleadingly tiny size when collapsed, understating the work's real size
+    by three orders of magnitude. The page's own un-rolled-up size is
+    preserved separately as `own_bytes`, for the same reason own_last_changed
+    is kept (e.g. so the UI can label the index page's own contribution when
+    expanded, distinct from the collection total shown collapsed)."""
     b = _size_cache.get(page.pageid, 0)
     own_ts = _timestamp_cache.get(page.pageid, "")
-    content_bytes = estimate_content_bytes(b)
+    own_content_bytes = estimate_content_bytes(b)
     subpages_json = [page_skeleton_to_json(sp, owning_cat_id) for sp in page.subpages]
     rolled_up_ts = max(
         [own_ts] + [sp["stats"]["last_changed"] for sp in subpages_json],
         default="",
     )
+    rolled_up_bytes = b + sum(sp["stats"]["bytes"] for sp in subpages_json)
+    rolled_up_content_bytes = own_content_bytes + sum(sp["stats"]["content_bytes_est"] for sp in subpages_json)
     return {
         "id": page_id(page.title, owning_cat_id),
         "type": "page",
         "title": page.title,
         "url": page_url(page.title),
         "stats": {
-            "bytes": b,
-            "content_bytes_est": content_bytes,
-            "iast_bytes_est": estimate_iast_bytes(content_bytes),
+            "bytes": rolled_up_bytes,
+            "content_bytes_est": rolled_up_content_bytes,
+            "iast_bytes_est": estimate_iast_bytes(rolled_up_content_bytes),
             "last_changed": rolled_up_ts,
             "own_last_changed": own_ts,
+            "own_bytes": b,
+            "own_content_bytes_est": own_content_bytes,
+            "own_iast_bytes_est": estimate_iast_bytes(own_content_bytes),
         },
         "subpages": subpages_json,
     }
@@ -1199,7 +1254,61 @@ def skeleton_to_json(node: CatSkeleton) -> dict:
         "title": node.title,
         "children": children_json,
         "pages": pages_json,
+        # Filled in afterward by merge_index_pages(), in the same post-walk
+        # pass as attach_stats' category-pointer dedup -- see that function
+        # for why a same-titled page/subcategory collision (e.g.
+        # महाकाव्यम्/किरातार्जुनीयम्) is resolved there instead of during the
+        # walk itself.
+        "index_page": None,
     }
+
+
+def merge_index_pages(root: dict) -> None:
+    """
+    Resolves a second kind of graph redundancy, alongside category-pointer
+    dedup (both run in this same post-walk pass, over the already-built JSON
+    tree, deliberately -- see build_skeleton, which does pure discovery and no
+    merge logic of its own): a category can hold a set of pages that are ALSO
+    exactly the MediaWiki subpages of a same-titled sibling page under the
+    same parent. Confirmed live: महाकाव्यम् holds both a subcategory
+    वर्गः:किरातार्जुनीयम् (18 सर्गः as direct categorymembers) AND a same-named
+    page किरातार्जुनीयम् whose own subpages are those SAME 18 सर्गः (identical
+    urls/bytes per title) -- two independent discovery paths
+    (categorymembers vs. subpage-title-prefix matching) landing on the same
+    underlying wiki pages. Unlike category-pointer (which only dedupes when
+    the same CATEGORY is filed under two parents), this is a category
+    colliding with a page by title, which seen_cats never catches.
+
+    For every category node with a sibling page of the identical title: if
+    that page's own subpages are a subset of the category's `pages` (i.e. the
+    page contributes nothing beyond duplicating what the category already
+    holds), the page is removed from `pages` and attached as the category's
+    `index_page` instead -- a link to the page that organizes those members,
+    not a second copy of them. If the page has subpages beyond the category's
+    members (not confirmed to occur in practice, but not ruled out), it's left
+    alone to avoid silently dropping real content.
+    """
+
+    def visit(node: dict) -> None:
+        children = node.get("children", [])
+        pages = node.get("pages", [])
+        if children and pages:
+            by_title = {ch["title"]: ch for ch in children if ch.get("type") == "category"}
+            kept_pages = []
+            for p in pages:
+                cat = by_title.get(p["title"])
+                if cat is not None:
+                    cat_member_titles = {cp["title"] for cp in cat.get("pages", [])}
+                    page_subpage_titles = {sp["title"] for sp in p.get("subpages", [])}
+                    if page_subpage_titles <= cat_member_titles:
+                        cat["index_page"] = p
+                        continue
+                kept_pages.append(p)
+            node["pages"] = kept_pages
+        for ch in children:
+            visit(ch)
+
+    visit(root)
 
 
 def attach_stats(root: dict) -> None:
@@ -1229,10 +1338,19 @@ def attach_stats(root: dict) -> None:
         # A page's own nested subpages (see PageSkeleton/page_skeleton_to_json)
         # count toward its category's stats exactly like a flat sibling would --
         # nesting is a display-order change only, not a change in what's counted.
+        # Uses own_bytes/own_*_est here (this page's size alone), NOT the
+        # already-rolled-up bytes/content_bytes_est/iast_bytes_est fields --
+        # those already sum in every descendant subpage (see
+        # page_skeleton_to_json), and this function walks + sums the same
+        # subpage tree itself one line below, so using the rolled-up fields
+        # here would double-count every subpage's bytes at the category level.
+        # last_changed has no such split: it's a max(), not a sum(), so
+        # reusing the rolled-up value (instead of own_last_changed) here is
+        # correct and just redundant with, not wrong alongside, the recursion.
         out[p["id"]] = (
-            int(p["stats"]["bytes"] or 0),
-            int(p["stats"]["content_bytes_est"] or 0),
-            int(p["stats"]["iast_bytes_est"] or 0),
+            int(p["stats"].get("own_bytes", p["stats"]["bytes"]) or 0),
+            int(p["stats"].get("own_content_bytes_est", p["stats"]["content_bytes_est"]) or 0),
+            int(p["stats"].get("own_iast_bytes_est", p["stats"]["iast_bytes_est"]) or 0),
             str(p["stats"]["last_changed"] or ""),
         )
         for sp in p.get("subpages", []):
@@ -1257,6 +1375,21 @@ def attach_stats(root: dict) -> None:
             flatten_page(p, merged)
         for ch in node.get("children", []):
             merged.update(collect(ch["id"]))
+        # index_page (see build_skeleton's page/subcategory title-collision
+        # handling): its own subpages ARE this category's members, already
+        # counted above via `pages`/`children` -- only its own_* contribution
+        # (the index page's own byte size/edit date, distinct from any
+        # member's) is new here. NOT flatten_page(index_page, merged): that
+        # would re-walk and double-count its `subpages` array, which is the
+        # same 18-सर्गः-style set already merged in above.
+        idx = node.get("index_page")
+        if idx is not None:
+            merged[idx["id"]] = (
+                int(idx["stats"].get("own_bytes", idx["stats"]["bytes"]) or 0),
+                int(idx["stats"].get("own_content_bytes_est", idx["stats"]["content_bytes_est"]) or 0),
+                int(idx["stats"].get("own_iast_bytes_est", idx["stats"]["iast_bytes_est"]) or 0),
+                str(idx["stats"].get("own_last_changed") or idx["stats"]["last_changed"] or ""),
+            )
         memo[node_id] = merged
         return merged
 
@@ -1342,6 +1475,8 @@ def sort_tree(node: dict) -> None:
             sort_page_subpages(p)
     if "subpages" in node:
         sort_page_subpages(node)
+    if node.get("index_page") is not None:
+        sort_page_subpages(node["index_page"])
 
 
 def main() -> None:
@@ -1423,6 +1558,10 @@ def main() -> None:
             "pages": root_data["pages"],
         }
     }
+    # Must run before attach_stats: merge_index_pages moves a page into its
+    # colliding sibling category's index_page field, and attach_stats reads
+    # index_page while computing that category's rolled-up stats.
+    merge_index_pages(out["root"])
     attach_stats(out["root"])
     sort_tree(out["root"])
 
@@ -1474,6 +1613,7 @@ def main() -> None:
     orphan_status.close()
     activity.bind(None)
     if orphan_bucket:
+        merge_index_pages(orphan_bucket)
         attach_stats(orphan_bucket)
         sort_tree(orphan_bucket)
         out["root"]["children"].append(orphan_bucket)

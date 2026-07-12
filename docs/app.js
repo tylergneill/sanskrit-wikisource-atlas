@@ -400,17 +400,29 @@ function renderPageLi(p) {
   const isExpanded = state.expandedSubpages.has(p.id) || (state.searchQuery && hasSubpages);
 
   const a = el("a", { href: p.url, target: "_blank", rel: "noreferrer" }, displayTitle(p.title));
+
+  // Collapsed: stats.bytes/last_changed are already a full rollup (this page's
+  // own size/date plus every descendant subpage's, see scrape.py's
+  // page_skeleton_to_json) -- shown as-is, reads like a mini category total.
+  // Expanded: label it "index:" and show the page's own UN-rolled-up
+  // own_bytes/own_last_changed instead, since the rollup total is now visibly
+  // decomposed into this row plus its children below it -- showing the total
+  // again here would be double-counting information already on screen, and
+  // would misrepresent this specific page's own contribution (e.g. नैषधीयचरितम्'s
+  // index page is 2.1KB of its own text, not the 1MB+ of all 23 subpages combined).
   const metaParts = [];
-  const pageSize = contentSizeBytes(p.stats);
+  const pageSize = hasSubpages && isExpanded
+    ? contentSizeBytes({ iast_bytes_est: p.stats?.own_iast_bytes_est, content_bytes_est: p.stats?.own_content_bytes_est, bytes: p.stats?.own_bytes })
+    : contentSizeBytes(p.stats);
   if (pageSize != null) metaParts.push(formatBytes(pageSize));
-  const date = formatDate(p.stats?.last_changed);
+  const date = formatDate(hasSubpages && isExpanded ? (p.stats?.own_last_changed || p.stats?.last_changed) : p.stats?.last_changed);
   if (date) metaParts.push(date);
-  const meta = metaParts.length ? ` (${metaParts.join(", ")})` : "";
+  const metaLabel = hasSubpages && isExpanded ? "index: " : "";
+  const meta = metaParts.length ? ` (${metaLabel}${metaParts.join(", ")})` : "";
 
   const toggle = hasSubpages
     ? el("span", {
-        class: "toggleArrow",
-        style: "margin-right:4px;",
+        class: "toggleArrow subpageToggle",
         onclick: (ev) => {
           ev.preventDefault();
           if (isExpanded) state.expandedSubpages.delete(p.id);
@@ -420,14 +432,18 @@ function renderPageLi(p) {
       }, isExpanded ? "▾" : "▸")
     : null;
 
-  const li = el("li", {},
+  const row = el("div", { class: "pageRow" },
+    el("span", { class: "pageRowMain" },
+      a,
+      meta ? el("span", { class: "small" }, meta) : null,
+      hasSubpages
+        ? el("span", { class: "small", style: "margin-left:6px; opacity:0.6;" }, `(${p.subpages.length} subpages)`)
+        : null,
+    ),
     toggle,
-    a,
-    meta ? el("span", { class: "small" }, meta) : null,
-    hasSubpages
-      ? el("span", { class: "small", style: "margin-left:6px; opacity:0.6;" }, `(${p.subpages.length} subpages)`)
-      : null,
   );
+
+  const li = el("li", {}, row);
 
   if (hasSubpages && isExpanded) {
     const subUl = el("ul", { class: "subpageList" });
@@ -481,6 +497,27 @@ function renderCategoryBlock(catNode, { includePages, depth, isRoot, isSearch })
       )
     : null;
 
+  // index_page (see scrape.py's build_skeleton page/subcategory title-collision
+  // handling, e.g. महाकाव्यम्/किरातार्जुनीयम्): a same-titled MediaWiki page whose
+  // own subpages turned out to be exactly this category's members -- not
+  // duplicated as a second copy of the same 18 सर्गः, just linked out to as the
+  // page that organizes them, with its own (distinct) size/date shown alongside.
+  const idx = content.index_page;
+  const indexLink = idx
+    ? el("span", { class: "small", style: "font-weight:normal; margin-left:8px;" },
+        "index page: ",
+        el("a", { href: idx.url, target: "_blank", rel: "noreferrer" }, displayTitle(idx.title)),
+        (() => {
+          const parts = [];
+          const sz = contentSizeBytes({ iast_bytes_est: idx.stats?.own_iast_bytes_est, content_bytes_est: idx.stats?.own_content_bytes_est, bytes: idx.stats?.own_bytes });
+          if (sz != null) parts.push(formatBytes(sz));
+          const d = formatDate(idx.stats?.own_last_changed || idx.stats?.last_changed);
+          if (d) parts.push(d);
+          return parts.length ? ` (${parts.join(", ")})` : "";
+        })()
+      )
+    : null;
+
   // depth (1-indexed among non-root headers) determines stacking order/offset of sticky headers.
   // Shallower headers must paint OVER deeper ones (so descendants scroll underneath their
   // ancestors' sticky headers, not on top of them) -- hence z-index decreases with depth.
@@ -492,7 +529,8 @@ function renderCategoryBlock(catNode, { includePages, depth, isRoot, isSearch })
     displayTitle(catNode.title),
     OCR_TYPES.has(catNode.type) ? el("span", { class: "ocrBadge" }, "OCR") : null,
     statsText ? el("span", { class: "small", style: "font-weight:normal; margin-left:8px;" }, statsText) : null,
-    seeAlso
+    seeAlso,
+    indexLink
   );
 
   const block = el("div", { class: isActualRoot ? "" : "block" }, header);

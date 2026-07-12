@@ -4,12 +4,12 @@
 | NS | Purpose | Categorized in practice? |
 |---|---|---|
 | **0 (Main)** | Finished, reader-facing works | Yes |
-| **106 (Page)**\* | Raw OCR/proofread text, one per scanned leaf, side-by-side with scan image | Rare — would mean categorizing hundreds of near-duplicate scan-pages per book; if seen, usually a bot/status template, not real subject categorization |
-| **104 (Index)**\* | Per-work metadata + `<pagelist>`; one per scanned document | Common — subject/language categories, plus maintenance categories often auto-derived from proofreading status |
+| **104 (Page)**\* | Raw OCR/proofread text, one per scanned leaf, side-by-side with scan image | Rare — would mean categorizing hundreds of near-duplicate scan-pages per book; if seen, usually a bot/status template, not real subject categorization |
+| **106 (Index)**\* | Per-work metadata + `<pagelist>`; one per scanned document | Common — subject/language categories, plus maintenance categories often auto-derived from proofreading status |
 | **14 (Category)** | Standard MediaWiki namespace, not ProofreadPage-specific | — |
 | **Author:** | Wikisource-specific; one page per author, linked from Main works | — |
 
-\*Namespace IDs 104/106 are common but wiki-configurable, not universal (see `$wgProofreadPageNamespaceIds`; there's an ongoing effort to standardize to 250/252).
+\*Namespace IDs 104/106 are common but wiki-configurable, not universal (see `$wgProofreadPageNamespaceIds`; there's an ongoing effort to standardize to 250/252). Confirmed matching this convention on sawikisource directly from the dump's own `siteinfo` (2026-07 export): 106 = अनुक्रमणिका = Index, 104 = पृष्ठम् = Page.
 
 ## Subpages, breadcrumbs, and "hierarchy" (Main namespace only)
 - The **`/` in a title** (e.g. `Work/Chapter 1`) is a pure **render-time string-parsing convention** — MediaWiki finds the last `/` and auto-displays a breadcrumb link up (`< Work`). Nothing is stored in the DB as a parent–child edge.

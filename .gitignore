@@ -65,3 +65,6 @@ cover/
 
 # scrape.py disk-backed API response cache (regenerable; see API_CACHE_DIR)
 .api_cache/
+
+# pipeline/fetch.py downloaded MediaWiki dump exports (regenerable, large)
+dump/

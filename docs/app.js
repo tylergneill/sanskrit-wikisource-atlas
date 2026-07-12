@@ -2,11 +2,21 @@ const DATA_URL = "./data/tree.json";
 
 const state = {
   data: null,
+  byId: new Map(),          // id -> node, built at load time (needed to resolve category-pointer nodes)
+  siblingIds: new Map(),    // id -> [other occurrence ids of the same shared category] (both directions)
+  parentPath: new Map(),    // id -> array of ancestor titles (root excluded), for "see also X > Y" hints
   selectedCatId: null,
   scheme: "devanagari",     // devanagari | iast | hk | itrans | slp1
   expanded: new Set(),      // node ids expanded in sidebar
   searchQuery: "",
+  expandedPageLists: new Set(), // category ids whose page list has been expanded past the cap
+  expandedSubpages: new Set(),  // page ids whose nested subpages sub-list is expanded (collapsed by default)
 };
+
+// Rendering every descendant page as a DOM node is what's actually slow (there are
+// ~22k pages total, and some single categories like पुराणानि have 10k+). Any page
+// list past this length renders capped with a "show all" button instead.
+const PAGE_LIST_CAP = 300;
 
 // --- utils
 
@@ -46,17 +56,45 @@ function displayTitle(raw) {
   return translitText(normalizeTitleForDisplay(raw));
 }
 
+const CAT_TYPES = new Set(["category", "collection", "category-pointer", "ocr-collection", "ocr-work"]);
+
+// ocr-work nodes (unpublished OCR scans, see scrape.py's build_unpublished_ocr_bucket)
+// are container-shaped like a category but hold ocr-page leaves, not page leaves --
+// treated as a distinct, visually-flagged second tier per Tyler's 2026-07 design,
+// never folded in as if it were curated mainspace content.
+const OCR_TYPES = new Set(["ocr-collection", "ocr-work"]);
+
 function walkCategories(node, fn) {
   if (node.id) fn(node);
   for (const ch of (node.children || [])) walkCategories(ch, fn);
 }
 
-// Find category node by id
+// Find category node by id (matches category-pointer occurrences too -- each is
+// independently selectable, distinct from the occurrence that holds real content).
 function findCatById(node, id) {
   if (!node) return null;
-  if ((node.type === "category" || node.type === "collection") && node.id === id) return node;
+  if (CAT_TYPES.has(node.type) && node.id === id) return node;
   for (const ch of (node.children || [])) {
     const hit = findCatById(ch, id);
+    if (hit) return hit;
+  }
+  return null;
+}
+
+// Resolve a category-pointer occurrence to the occurrence holding its real content
+// (children/pages/stats). Non-pointer nodes resolve to themselves.
+function resolveContent(node) {
+  if (!node) return node;
+  if (node.type === "category-pointer") return state.byId.get(node.points_to) || node;
+  return node;
+}
+
+// Path of ancestor category nodes from (but not including) root down to (but not including) id.
+function findAncestorPath(node, id, path = []) {
+  if (!node) return null;
+  if (CAT_TYPES.has(node.type) && node.id === id) return path;
+  for (const ch of (node.children || [])) {
+    const hit = findAncestorPath(ch, id, [...path, node]);
     if (hit) return hit;
   }
   return null;
@@ -81,7 +119,7 @@ function el(tag, attrs = {}, ...kids) {
   const n = document.createElement(tag);
   for (const [k, v] of Object.entries(attrs)) {
     if (k === "class") n.className = v;
-    else if (k === "onclick") n.addEventListener("click", v);
+    else if (k.startsWith("on") && k.length > 2 && typeof v === "function") n.addEventListener(k.slice(2), v);
     else if (k === "dataset") Object.assign(n.dataset, v);
     else n.setAttribute(k, v);
   }
@@ -100,14 +138,37 @@ function formatBytes(bytes) {
   return `${(kb / 1024).toFixed(1)} MB`;
 }
 
-function formatStats(stats) {
+// iast_bytes_est is the only size figure the frontend displays: raw `bytes`
+// is MediaWiki wikitext size in Devanagari, dominated by markup/template/
+// category-tag overhead and not meaningful on its own; content_bytes_est
+// subtracts that overhead but is still a Devanagari-script byte count, which
+// isn't directly comparable/intuitive (Devanagari runs ~1.975x IAST bytes
+// for the same text in UTF-8). iast_bytes_est converts through both steps.
+// Falls back through content_bytes_est to raw bytes only for older data
+// that predates one or both fields.
+function contentSizeBytes(stats) {
+  if (!stats) return null;
+  if (stats.iast_bytes_est != null) return stats.iast_bytes_est;
+  if (stats.content_bytes_est != null) return stats.content_bytes_est;
+  return stats.bytes;
+}
+
+function formatDate(iso) {
+  if (!iso) return "";
+  return iso.slice(0, 7);
+}
+
+function formatStats(stats, { includeDate } = {}) {
   if (!stats) return "";
-  const size = formatBytes(stats.bytes);
+  const size = formatBytes(contentSizeBytes(stats));
   if (!size) return "";
-  if (stats.count != null) {
-    return `(${size}, ${stats.count} pages)`;
+  const parts = [size];
+  if (stats.count != null) parts.push(`${stats.count} pages`);
+  if (includeDate) {
+    const date = formatDate(stats.last_changed);
+    if (date) parts.push(date);
   }
-  return `(${size})`;
+  return `(${parts.join(", ")})`;
 }
 
 function renderSidebarTree() {
@@ -115,13 +176,37 @@ function renderSidebarTree() {
   const host = document.getElementById("sidebarTree");
   host.innerHTML = "";
 
-  const tree = renderSidebarNode(root, 0);
-  host.appendChild(tree);
+  for (const ch of (root.children || [])) {
+    host.appendChild(renderSidebarNode(ch, 0));
+  }
+
+  const allStatsEl = document.getElementById("allStats");
+  if (allStatsEl) {
+    allStatsEl.textContent = formatStats(root.stats);
+  }
+
+  const allRowEl = document.getElementById("allRow");
+  if (allRowEl) {
+    allRowEl.classList.toggle("selected", state.selectedCatId == null || state.selectedCatId === root.id);
+    allRowEl.onclick = (ev) => {
+      if (isExpandAllGesture(ev)) {
+        setExpandedDeep(root, true);
+      }
+      state.selectedCatId = null;
+      renderSidebarTree();
+      renderMain();
+    };
+  }
 }
 
 function renderSidebarNode(catNode, depth) {
+  const isPointer = catNode.type === "category-pointer";
+  // A pointer occurrence has no children/pages/stats of its own -- expanding it
+  // browses into the occurrence that actually holds the content.
+  const content = resolveContent(catNode);
+
   const isExpanded = state.expanded.has(catNode.id);
-  const hasKids = (catNode.children || []).length > 0;
+  const hasKids = (content.children || []).length > 0;
 
   const toggleArrow = el("span", {
     class: "toggleArrow",
@@ -146,26 +231,45 @@ function renderSidebarNode(catNode, depth) {
     }
   }, hasKids ? (isExpanded ? "▾" : "▸") : "·");
 
-  // Only show stats for root and top-level categories in the sidebar
-  const statsText = (depth <= 1) ? formatStats(catNode.stats) : "";
+  // Every occurrence of a shared category is equally real and shows its own real
+  // stats -- no occurrence is privileged over another for display purposes.
+  const statsText = formatStats(catNode.stats);
+
+  // Shared-category bookkeeping: siblings are the other occurrence(s) of this same
+  // category elsewhere in the tree. Non-shared categories have none.
+  const siblings = state.siblingIds.get(catNode.id) || [];
+  const isShared = siblings.length > 0;
+  // Group key for hover highlighting -- same value for every occurrence in the group.
+  const groupKey = isPointer ? catNode.points_to : (isShared ? catNode.id : null);
+  const siblingLocations = siblings
+    .map((sid) => (state.parentPath.get(sid) || []).map(displayTitle).join(" > "))
+    .filter(Boolean);
+  const rowTitle = siblingLocations.length
+    ? `Also filed under: ${siblingLocations.join("; ")}`
+    : catNode.title;
 
   const row = el("div", {
     class: "row" + (state.selectedCatId === catNode.id ? " selected" : ""),
+    dataset: groupKey ? { sharedGroup: groupKey } : {},
+    title: rowTitle,
     onclick: () => {
       state.selectedCatId = catNode.id;
       renderSidebarTree();
       renderMain();
-    }
+    },
+    onmouseenter: () => setSharedGroupHighlight(groupKey, true),
+    onmouseleave: () => setSharedGroupHighlight(groupKey, false),
   },
     toggleArrow,
-    el("span", { class: "title", title: catNode.title }, displayTitle(catNode.title)),
-    statsText ? el("span", { class: "small", style: "margin-left:auto; padding-left:10px; opacity:0.7;" }, statsText) : null
+    el("span", { class: depth === 0 ? "title topLevel" : "title" }, displayTitle(catNode.title)),
+    OCR_TYPES.has(catNode.type) ? el("span", { class: "ocrBadge" }, "OCR") : null,
+    statsText ? el("span", { class: depth === 0 ? "small topLevel" : "small", style: "margin-left:auto; padding-left:10px; opacity:0.7;" }, statsText) : null
   );
 
   const wrap = el("div", { class: depth ? "indent" : "" }, row);
 
   if (hasKids && isExpanded) {
-    for (const ch of catNode.children) {
+    for (const ch of content.children) {
       wrap.appendChild(renderSidebarNode(ch, depth + 1));
     }
   }
@@ -189,51 +293,285 @@ function renderMain() {
       host.innerHTML = "<div class='block'>No results found.</div>";
     }
   } else {
-    // focused
+    // focused: render the selected node's own subtree in full, but wrapped in sticky
+    // "breadcrumb" headers for its ancestors, so super-category context (e.g. दर्शनानि >
+    // आस्तिकदर्शनानि > उत्तरमीमांसादर्शनम्) stays visible/stuck while scrolling, instead of
+    // being discarded just because a deeper category was picked in the sidebar.
     const selected = findCatById(root, state.selectedCatId) || root;
-    host.appendChild(renderCategoryBlock(selected, { includePages: true, depth: 0, isRoot: true }));
+    const ancestors = findAncestorPath(root, state.selectedCatId) || [];
+    // ancestors[0] is the true root (no header of its own); skip it, keep the rest.
+    const breadcrumb = ancestors.slice(1);
+
+    // The actual root has ~22k descendant pages across the whole tree -- fully
+    // recursing here (as any other category selection does) would build DOM for
+    // all of them on every initial load. Show one level of category summaries
+    // instead; drilling into a specific category still renders its subtree in full.
+    const isActualRoot = selected.id === root.id;
+    const selectedBlock = isActualRoot
+      ? renderRootOverview(selected)
+      : renderCategoryBlock(selected, { includePages: true, depth: breadcrumb.length + 1, isRoot: false });
+
+    let inner = selectedBlock;
+    for (let i = breadcrumb.length - 1; i >= 0; i--) {
+      const anc = breadcrumb[i];
+      const ancDepth = i + 1;
+      const header = el("div", {
+        class: "panelTitle sticky-header",
+        dataset: { stickyDepth: String(ancDepth) },
+        style: `z-index:${1000 - ancDepth};`
+      },
+        displayTitle(anc.title),
+        (() => {
+          const s = formatStats(anc.stats, { includeDate: true });
+          return s ? el("span", { class: "small", style: "font-weight:normal; margin-left:8px;" }, s) : null;
+        })()
+      );
+      inner = el("div", { class: "block" }, header, el("div", { style: "margin-top:10px" }, inner));
+    }
+
+    host.appendChild(inner);
+  }
+
+  positionStickyHeaders(host);
+}
+
+// Each sticky header's `top` must equal the total height of all its ancestor
+// sticky headers, so nested headers stack below one another instead of overlapping.
+// Computed from actual measured heights (rather than a fixed constant) since
+// header height varies with title length/wrapping and stats text.
+function positionStickyHeaders(host) {
+  const headers = host.querySelectorAll(".sticky-header");
+  for (const header of headers) {
+    let offset = 0;
+    let node = header.parentElement;
+    while (node && node !== host) {
+      const ancestorHeader = node.querySelector(":scope > .sticky-header");
+      if (ancestorHeader && ancestorHeader !== header) {
+        offset += ancestorHeader.getBoundingClientRect().height;
+      }
+      node = node.parentElement;
+    }
+    header.style.top = `${offset}px`;
   }
 }
 
+// Lightweight initial/root view: one row per top-level category with its stats,
+// clickable to drill in via the same selection path as clicking the sidebar.
+// See the comment at its call site in renderMain() for why this exists.
+function renderRootOverview(root) {
+  const block = el("div", {});
+  for (const ch of (root.children || [])) {
+    const content = resolveContent(ch);
+    const statsText = formatStats(ch.stats, { includeDate: true });
+    const row = el("div", {
+      class: "block panelTitle",
+      style: "cursor:pointer;",
+      onclick: () => {
+        state.selectedCatId = ch.id;
+        renderSidebarTree();
+        renderMain();
+      },
+    },
+      displayTitle(ch.title),
+      OCR_TYPES.has(ch.type) ? el("span", { class: "ocrBadge" }, "OCR") : null,
+      statsText ? el("span", { class: "small", style: "font-weight:normal; margin-left:8px;" }, statsText) : null,
+      (content.children || []).length
+        ? el("span", { class: "small", style: "font-weight:normal; margin-left:8px; opacity:0.6;" }, `${content.children.length} subcategories`)
+        : null,
+    );
+    block.appendChild(row);
+  }
+  return block;
+}
+
+// Renders a single page's <li> (link + size/date meta), plus, if it has its own
+// MediaWiki subpages (see scrape.py's PageSkeleton/page_skeleton_to_json -- and
+// the same shape for OCR scans, see build_unpublished_ocr_bucket's `subpages`
+// field), a collapsible toggle that reveals a nested indented sub-list. This is
+// deliberately NOT the same visual treatment as category nesting (renderCategoryBlock):
+// no sticky header, no per-node stats block, just a plain indented <ul> -- reads as
+// "parts of this page" (structural, from the page-title graph itself) rather than
+// "a subcategory" (an editorial grouping). Same function handles both mainspace
+// pages and OCR scans, since both now share the same `subpages` node shape.
+function renderPageLi(p) {
+  const hasSubpages = (p.subpages || []).length > 0;
+  // In search mode, a matched nested subpage must stay visible even if the user
+  // never manually expanded its parent -- force-expand rather than hide the hit.
+  const isExpanded = state.expandedSubpages.has(p.id) || (state.searchQuery && hasSubpages);
+
+  const a = el("a", { href: p.url, target: "_blank", rel: "noreferrer" }, displayTitle(p.title));
+
+  // Collapsed: stats.bytes/last_changed are already a full rollup (this page's
+  // own size/date plus every descendant subpage's, see scrape.py's
+  // page_skeleton_to_json) -- shown as-is, reads like a mini category total.
+  // Expanded: label it "index:" and show the page's own UN-rolled-up
+  // own_bytes/own_last_changed instead, since the rollup total is now visibly
+  // decomposed into this row plus its children below it -- showing the total
+  // again here would be double-counting information already on screen, and
+  // would misrepresent this specific page's own contribution (e.g. नैषधीयचरितम्'s
+  // index page is 2.1KB of its own text, not the 1MB+ of all 23 subpages combined).
+  const metaParts = [];
+  const pageSize = hasSubpages && isExpanded
+    ? contentSizeBytes({ iast_bytes_est: p.stats?.own_iast_bytes_est, content_bytes_est: p.stats?.own_content_bytes_est, bytes: p.stats?.own_bytes })
+    : contentSizeBytes(p.stats);
+  if (pageSize != null) metaParts.push(formatBytes(pageSize));
+  const date = formatDate(hasSubpages && isExpanded ? (p.stats?.own_last_changed || p.stats?.last_changed) : p.stats?.last_changed);
+  if (date) metaParts.push(date);
+  const metaLabel = hasSubpages && isExpanded ? "index: " : "";
+  const meta = metaParts.length ? ` (${metaLabel}${metaParts.join(", ")})` : "";
+
+  const toggle = hasSubpages
+    ? el("span", {
+        class: "toggleArrow subpageToggle",
+        onclick: (ev) => {
+          ev.preventDefault();
+          if (isExpanded) state.expandedSubpages.delete(p.id);
+          else state.expandedSubpages.add(p.id);
+          renderMain();
+        },
+      }, isExpanded ? "▾" : "▸")
+    : null;
+
+  const row = el("div", { class: "pageRow" },
+    el("span", { class: "pageRowMain" },
+      a,
+      meta ? el("span", { class: "small" }, meta) : null,
+      hasSubpages
+        ? el("span", { class: "small", style: "margin-left:6px; opacity:0.6;" }, `(${p.subpages.length} subpages)`)
+        : null,
+    ),
+    toggle,
+  );
+
+  const li = el("li", {}, row);
+
+  if (hasSubpages && isExpanded) {
+    const subUl = el("ul", { class: "subpageList" });
+    for (const sp of p.subpages) {
+      subUl.appendChild(renderPageLi(sp));
+    }
+    li.appendChild(subUl);
+  }
+
+  return li;
+}
+
 function renderCategoryBlock(catNode, { includePages, depth, isRoot, isSearch }) {
-  const isExpanded = true; // main pane always renders expanded blocks by default (you can change later)
+  const isActualRoot = catNode.id === state.data.root.id;
+
+  // Resolve to the occurrence that actually holds children/pages (a category-pointer
+  // occurrence carries none of its own -- see scrape.py's skeleton_to_json). Every
+  // occurrence renders its full content here; nothing is collapsed.
+  const content = resolveContent(catNode);
 
   // In search mode: show stats ONLY if it's a direct match or a leaf page match?
   // Prompt: "along with their parent categories (whose size and count labels can be suppressed in this context)"
   // So: if `isSearch` is true, we ONLY show stats if `catNode.__isMatch` is true.
   // If `catNode` is just a parent container (not a match itself), stats are hidden.
   let showStats = true;
-  if (isSearch && !catNode.__isMatch) {
+  if (isSearch && !content.__isMatch) {
     showStats = false;
   }
 
-  const statsText = showStats ? formatStats(catNode.stats) : "";
-  const header = el("div", { class: "panelTitle" },
+  const statsText = showStats ? formatStats(catNode.stats, { includeDate: true }) : "";
+
+  // "See also" hint: this category is filed under more than one parent -- name the
+  // other occurrence(s) and link to jump there instead of duplicating full content.
+  const siblings = state.siblingIds.get(catNode.id) || [];
+  const seeAlso = siblings.length
+    ? el("span", { class: "small", style: "font-weight:normal; margin-left:8px; opacity:0.75;" },
+        "see also: ",
+        ...siblings.flatMap((sid, i) => {
+          const loc = (state.parentPath.get(sid) || []).map(displayTitle).join(" > ") || displayTitle(catNode.title);
+          const link = el("a", {
+            href: "#",
+            onclick: (ev) => {
+              ev.preventDefault();
+              state.selectedCatId = sid;
+              renderSidebarTree();
+              renderMain();
+            },
+          }, loc);
+          return i === 0 ? [link] : [", ", link];
+        })
+      )
+    : null;
+
+  // index_page (see scrape.py's build_skeleton page/subcategory title-collision
+  // handling, e.g. महाकाव्यम्/किरातार्जुनीयम्): a same-titled MediaWiki page whose
+  // own subpages turned out to be exactly this category's members -- not
+  // duplicated as a second copy of the same 18 सर्गः, just linked out to as the
+  // page that organizes them, with its own (distinct) size/date shown alongside.
+  const idx = content.index_page;
+  const indexLink = idx
+    ? el("span", { class: "small", style: "font-weight:normal; margin-left:8px;" },
+        "index page: ",
+        el("a", { href: idx.url, target: "_blank", rel: "noreferrer" }, displayTitle(idx.title)),
+        (() => {
+          const parts = [];
+          const sz = contentSizeBytes({ iast_bytes_est: idx.stats?.own_iast_bytes_est, content_bytes_est: idx.stats?.own_content_bytes_est, bytes: idx.stats?.own_bytes });
+          if (sz != null) parts.push(formatBytes(sz));
+          const d = formatDate(idx.stats?.own_last_changed || idx.stats?.last_changed);
+          if (d) parts.push(d);
+          return parts.length ? ` (${parts.join(", ")})` : "";
+        })()
+      )
+    : null;
+
+  // depth (1-indexed among non-root headers) determines stacking order/offset of sticky headers.
+  // Shallower headers must paint OVER deeper ones (so descendants scroll underneath their
+  // ancestors' sticky headers, not on top of them) -- hence z-index decreases with depth.
+  const header = isActualRoot ? null : el("div", {
+    class: "panelTitle sticky-header",
+    dataset: { stickyDepth: String(depth) },
+    style: `z-index:${1000 - depth};`
+  },
     displayTitle(catNode.title),
-    statsText ? el("span", { class: "small", style: "font-weight:normal; margin-left:8px;" }, statsText) : null
+    OCR_TYPES.has(catNode.type) ? el("span", { class: "ocrBadge" }, "OCR") : null,
+    statsText ? el("span", { class: "small", style: "font-weight:normal; margin-left:8px;" }, statsText) : null,
+    seeAlso,
+    indexLink
   );
 
-  const block = el("div", { class: "block" }, header);
-
-  if (!isExpanded) return block;
+  const block = el("div", { class: isActualRoot ? "" : "block" }, header);
 
   // child categories
-  for (const ch of (catNode.children || [])) {
+  for (const ch of (content.children || [])) {
     block.appendChild(el("div", { style: "margin-top:10px" },
       renderCategoryBlock(ch, { includePages, depth: depth + 1, isRoot: false, isSearch })
     ));
   }
 
-  // pages
-  if (includePages && (catNode.pages || []).length) {
+  // pages -- category nodes hold their top-level pages in `pages`; an ocr-work
+  // node (see scrape.py's build_unpublished_ocr_bucket) has no `pages` of its
+  // own, only `subpages` (its OCR scans), so fall back to that.
+  const leafPages = content.pages || content.subpages || [];
+  if (includePages && leafPages.length) {
+    const allPages = leafPages;
+    const isExpanded = state.expandedPageLists.has(catNode.id);
+    const capped = !isExpanded && allPages.length > PAGE_LIST_CAP;
+    const shownPages = capped ? allPages.slice(0, PAGE_LIST_CAP) : allPages;
+
     const ul = el("ul", {});
-    for (const p of catNode.pages) {
-      const a = el("a", { href: p.url, target: "_blank", rel: "noreferrer" }, displayTitle(p.title));
-      const meta = p.stats?.bytes != null ? ` (${formatBytes(p.stats.bytes)})` : "";
-      ul.appendChild(el("li", {}, a, meta ? el("span", { class: "small" }, meta) : null));
+    for (const p of shownPages) {
+      ul.appendChild(renderPageLi(p));
     }
+
+    const showAllBtn = capped
+      ? el("button", {
+          class: "theme-toggle",
+          type: "button",
+          style: "margin-top:8px;",
+          onclick: () => {
+            state.expandedPageLists.add(catNode.id);
+            renderMain();
+          },
+        }, `Show all ${allPages.length} pages`)
+      : null;
+
     block.appendChild(el("div", { style: "margin-top:10px" },
-      ul
+      ul,
+      showAllBtn
     ));
   }
 
@@ -241,6 +579,16 @@ function renderCategoryBlock(catNode, { includePages, depth, isRoot, isSearch })
 }
 
 // --- wiring
+
+function indexById(node, byId, parentPath, ancestorTitles = []) {
+  if (node.id) {
+    byId.set(node.id, node);
+    parentPath.set(node.id, ancestorTitles);
+  }
+  const isActualRoot = node.id === "root";
+  const childAncestors = isActualRoot ? ancestorTitles : [...ancestorTitles, node.title];
+  for (const ch of (node.children || [])) indexById(ch, byId, parentPath, childAncestors);
+}
 
 async function loadData() {
   const r = await fetch(DATA_URL, { cache: "no-store" });
@@ -251,8 +599,43 @@ async function loadData() {
   if (!state.data.root.id) state.data.root.id = "root";
   if (!state.data.root.title) state.data.root.title = "ग्रन्थाः (धर्मशास्त्राणि च)";
 
+  state.byId = new Map();
+  state.parentPath = new Map();
+  indexById(state.data.root, state.byId, state.parentPath);
+
+  // Group every occurrence of a shared category (content-holder + all its
+  // category-pointers) so each can look up its sibling(s), in either direction.
+  const groups = new Map(); // content-holder id -> [all occurrence ids in that group]
+  for (const node of state.byId.values()) {
+    if (node.type === "category-pointer") {
+      if (!groups.has(node.points_to)) groups.set(node.points_to, [node.points_to]);
+      groups.get(node.points_to).push(node.id);
+    }
+  }
+  state.siblingIds = new Map();
+  for (const ids of groups.values()) {
+    for (const id of ids) {
+      state.siblingIds.set(id, ids.filter((x) => x !== id));
+    }
+  }
+
   state.selectedCatId = state.data.root.id;
   state.expanded.add(state.data.root.id);
+}
+
+// Hover highlight for occurrences of a shared category: toggles a CSS class on
+// every sidebar row (content-holder + all pointer occurrences) sharing groupKey.
+function setSharedGroupHighlight(groupKey, on) {
+  if (!groupKey) return;
+  const rows = document.querySelectorAll(`[data-shared-group="${groupKey}"]`);
+  for (const row of rows) row.classList.toggle("shared-highlight", on);
+}
+
+function updateThemeToggleLabel() {
+  const btn = document.getElementById("themeToggle");
+  if (!btn) return;
+  const theme = document.documentElement.getAttribute("data-theme") || "dark";
+  btn.textContent = theme === "dark" ? "☀ Light" : "☾ Dark";
 }
 
 function initUI() {
@@ -266,14 +649,40 @@ function initUI() {
     state.searchQuery = ev.target.value.toLowerCase().trim();
     renderMain();
   });
+
+  updateThemeToggleLabel();
+  document.getElementById("themeToggle").addEventListener("click", () => {
+    const current = document.documentElement.getAttribute("data-theme") || "dark";
+    const next = current === "dark" ? "light" : "dark";
+    document.documentElement.setAttribute("data-theme", next);
+    localStorage.setItem("theme", next);
+    updateThemeToggleLabel();
+  });
+}
+
+// Checks a page (or OCR scan) against the query, recursively including its
+// nested subpages -- a subpage whose own title matches (even if its parent
+// index page's title doesn't) still needs to surface in search, same as
+// before nesting was introduced (when subpages were flat category siblings
+// and therefore already searchable at the top level).
+function filterPage(p, query) {
+  const matchingSubpages = (p.subpages || [])
+    .map(sp => filterPage(sp, query))
+    .filter(Boolean);
+  const selfMatch = displayTitle(p.title).toLowerCase().includes(query);
+  if (selfMatch || matchingSubpages.length > 0) {
+    return { ...p, subpages: matchingSubpages };
+  }
+  return null;
 }
 
 function filterTree(node, query) {
-  // Check pages
-  const matchingPages = (node.pages || []).filter(p => {
-    const t = displayTitle(p.title).toLowerCase();
-    return t.includes(query);
-  });
+  // Check pages (categories) / subpages (ocr-work) -- see renderCategoryBlock's
+  // leafPages fallback for why ocr-work uses `subpages` instead of `pages`.
+  const leafField = node.pages ? "pages" : (node.subpages ? "subpages" : null);
+  const matchingPages = leafField
+    ? (node[leafField] || []).map(p => filterPage(p, query)).filter(Boolean)
+    : [];
 
   // Check children
   const matchingChildren = [];
@@ -293,7 +702,7 @@ function filterTree(node, query) {
     return {
       ...node,
       children: matchingChildren,
-      pages: matchingPages,
+      ...(leafField ? { [leafField]: matchingPages } : {}),
       __isMatch: selfMatch, // Flag to indicate if the node title itself matched
     };
   }
@@ -306,11 +715,21 @@ async function loadVersion() {
     const r = await fetch("./VERSION");
     if (!r.ok) return;
     const text = await r.text();
-    const firstLine = text.split("\n")[0];
-    if (firstLine.includes("=")) {
-      const version = firstLine.split("=")[1].trim().replace(/['"]/g, "");
-      const el = document.getElementById("appVersion");
-      if (el) el.textContent = "v" + version;
+    const lines = text.split("\n");
+    for (const line of lines) {
+      if (!line.includes("=")) continue;
+      const [key, rawValue] = line.split("=");
+      const value = rawValue.trim().replace(/['"]/g, "");
+      if (key.trim() === "__version__") {
+        const el = document.getElementById("appVersion");
+        if (el) el.textContent = "v" + value;
+      } else if (key.trim() === "__data_version__") {
+        const el = document.getElementById("dataUpdated");
+        if (el) {
+          el.textContent = `data updated ${value}`;
+          el.title = "Date the scraping pipeline was last run (see About for full changelog)";
+        }
+      }
     }
   } catch (e) {
     console.log("Could not load version:", e);

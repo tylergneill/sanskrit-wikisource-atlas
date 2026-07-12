@@ -74,7 +74,7 @@ a.topbar-link:hover { text-decoration: underline; }
   border: 1px solid var(--border);
   padding: 4px 8px;
   border-radius: 6px;
-  width: 200px;
+  width: 320px;
   font-family: inherit;
 }
 .search-input:focus {

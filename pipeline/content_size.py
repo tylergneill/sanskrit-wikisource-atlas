@@ -480,17 +480,24 @@ def compute_content_sizes_parallel(
     transliterate: bool = True,
     workers: int | None = None,
     chunksize: int = 64,
-    progress_every: int = 5000,
     progress_label: str = "content size",
 ) -> dict[str, ContentSizeResult]:
     """Same computation as calling compute_content_size() over every record,
     parallelized across a process pool. Returns a dict keyed by record.title
     (records must have unique titles within the batch, true for both the
-    Main and Index namespaces individually)."""
+    Main and Index namespaces individually).
+
+    Progress is a live pinned status line (see pipeline.progress.LiveCounter),
+    repainted as each result arrives from the pool -- pool.map() yields in
+    input order as soon as each is ready, so this is a true "how far along
+    are we" signal, just not a "here's what's in flight right now" one (the
+    main process only learns a title finished, not when a worker started it;
+    several workers are mid-computation on different pages at any moment)."""
     import os
     import sys
-    import time
     from concurrent.futures import ProcessPoolExecutor
+
+    from pipeline.progress import LiveCounter
 
     if workers is None:
         workers = os.cpu_count() or 1
@@ -499,17 +506,15 @@ def compute_content_sizes_parallel(
     if not records:
         return results
 
-    start = time.time()
+    counter = LiveCounter(f"{progress_label} ({workers} workers)", total=len(records))
     with ProcessPoolExecutor(
         max_workers=workers,
         initializer=_init_worker,
         initargs=(template_index, known_titles, category_ns_name, transliterate),
     ) as pool:
-        for i, (title, result) in enumerate(pool.map(_compute_one, records, chunksize=chunksize)):
+        for title, result in pool.map(_compute_one, records, chunksize=chunksize):
             results[title] = result
-            if (i + 1) % progress_every == 0:
-                elapsed = time.time() - start
-                print(f"  {progress_label}: {i + 1}/{len(records)} ({elapsed:.0f}s elapsed)", file=sys.stderr)
+            counter.update(detail=title)
+    counter.close()
 
-    print(f"{progress_label}: {len(records)} done ({time.time() - start:.0f}s, {workers} workers)", file=sys.stderr)
     return results

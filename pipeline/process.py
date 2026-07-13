@@ -40,6 +40,7 @@ from __future__ import annotations
 import argparse
 import json
 import sys
+import time
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -330,6 +331,8 @@ def main() -> None:
                          help="worker processes for content-size computation (default: os.cpu_count())")
     args = parser.parse_args()
 
+    run_start = time.time()
+
     xml_path = args.xml_path
     if xml_path is None:
         candidates = sorted(Path("dump").glob("sawikisource-*.xml"))
@@ -371,6 +374,9 @@ def main() -> None:
 
     print(f"wrote {args.out}", file=sys.stderr)
     print(f"root stats: {tree['root']['stats']}", file=sys.stderr)
+
+    elapsed = time.time() - run_start
+    print(f"total run time: {elapsed:.0f}s ({elapsed / 60:.1f}m)", file=sys.stderr)
 
 
 if __name__ == "__main__":

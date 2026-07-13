@@ -97,11 +97,17 @@ def parse_dump(xml_path: Path, namespaces_of_interest: set[int] | None = None) -
     context = ET.iterparse(str(xml_path), events=("start", "end"))
     _, root = next(context)  # root <mediawiki> element, "start" event
 
+    from pipeline.progress import LiveCounter
+
     site_name: str | None = None
     namespaces: dict[int, str] = {}
     dump_index: DumpIndex | None = None
     skipped = 0
     kept = 0
+    # No fixed total is known up front (the dump's page count isn't in
+    # siteinfo) -- LiveCounter falls back to a rate/elapsed-only display,
+    # same as scrape.py's SimpleStatusLine for non-category-tree phases.
+    counter = LiveCounter("parsing dump")
 
     current_page: dict | None = None
     current_revision: dict | None = None
@@ -175,10 +181,14 @@ def parse_dump(xml_path: Path, namespaces_of_interest: set[int] | None = None) -
                 )
                 dump_index.pages_by_ns[ns].append(record)
                 kept += 1
+                counter.update(detail=record.title)
             else:
                 skipped += 1
+                counter.update()
             current_page = None
             root.clear()
+
+    counter.close()
 
     if dump_index is None:
         raise ValueError("dump had no <siteinfo>; cannot resolve namespaces")

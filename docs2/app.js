@@ -576,7 +576,7 @@ function indexById(node, byId, parentPath, ancestorTitles = []) {
 }
 
 async function loadData() {
-  const r = await fetch(DATA_URL, { cache: "no-store" });
+  const r = await fetch(DATA_URL);
   if (!r.ok) throw new Error(`Failed to load ${DATA_URL}: ${r.status}`);
   state.data = await r.json();
 

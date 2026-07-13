@@ -41,12 +41,50 @@ class ContentSizeResult:
     transliterated_bytes: int
 
 
+_NOINCLUDE_RE = re.compile(r"<noinclude\s*/?>.*?</noinclude>|<noinclude\s*/>", re.DOTALL | re.IGNORECASE)
+_INCLUDEONLY_TAGS_RE = re.compile(r"</?includeonly\s*/?>", re.IGNORECASE)
+_ONLYINCLUDE_RE = re.compile(r"<onlyinclude\s*>(.*?)</onlyinclude>", re.DOTALL | re.IGNORECASE)
+
+
+def _transclusion_body(raw_text: str) -> str:
+    """Applies MediaWiki's <noinclude>/<includeonly>/<onlyinclude> transclusion-
+    control tags to a template's raw page body, returning ONLY the text that
+    would actually appear when the template is transcluded elsewhere -- i.e.
+    what {{Template}} substitutes to, not what you'd see visiting the
+    Template: page directly.
+
+    Confirmed live as a real, high-impact bug without this: फलकम्:Verse (used
+    7,868x per the earlier template-usage survey) wraps its entire English
+    documentation paragraph in <noinclude>...</noinclude>, and naive body
+    substitution was duplicating that whole paragraph into EVERY verse's
+    expanded content across the corpus (concretely: बैबल्/मथिलिखितः
+    सुसंवादः/अध्यायः १ went from 6,404 raw bytes to 19,322 "content" bytes --
+    content_bytes exceeding raw_bytes is impossible for genuinely
+    markup-stripped output, which is what caught this).
+
+    Rule order matches MediaWiki: if <onlyinclude> appears at all, ONLY its
+    contents are used (everything else in the page, included or not, is
+    dropped) -- rare in practice here but must be checked first. Otherwise,
+    <noinclude>...</noinclude> blocks are removed and <includeonly> tags are
+    unwrapped (their content kept, tags stripped) since that content should
+    appear when transcluded despite not appearing on the template page itself.
+    """
+    only = _ONLYINCLUDE_RE.findall(raw_text)
+    if only:
+        return "".join(only)
+    text = _NOINCLUDE_RE.sub("", raw_text)
+    text = _INCLUDEONLY_TAGS_RE.sub("", text)
+    return text
+
+
 def build_template_index(template_records: list[PageRecord], template_ns_name: str) -> dict[str, str]:
     """Maps a template's bare name (as it would appear in a {{Name}} call,
-    i.e. without the namespace prefix) to its raw wikitext body. MediaWiki
-    template-name matching is first-letter-case-insensitive and normalizes
-    underscores to spaces; both are applied to lookup keys here so a
-    {{some_template}} call matches a "Some template" page.
+    i.e. without the namespace prefix) to its transclusion-ready wikitext
+    body (see _transclusion_body -- NOT the raw page body, which may include
+    <noinclude> documentation never meant to appear at the call site).
+    MediaWiki template-name matching is first-letter-case-insensitive and
+    normalizes underscores to spaces; both are applied to lookup keys here
+    so a {{some_template}} call matches a "Some template" page.
     """
     index: dict[str, str] = {}
     prefix = template_ns_name + ":"
@@ -54,7 +92,7 @@ def build_template_index(template_records: list[PageRecord], template_ns_name: s
         if not rec.title.startswith(prefix):
             continue
         bare = rec.title[len(prefix):]
-        index[_normalize_template_name(bare)] = rec.text
+        index[_normalize_template_name(bare)] = _transclusion_body(rec.text)
     return index
 
 
@@ -314,13 +352,62 @@ def strip_markup(expanded_wikitext: str, category_ns_name: str = "वर्ग�
     content). Removed explicitly here before stripping, since every single
     page in the corpus carries at least one category tag and this would
     otherwise inflate content_bytes tree-wide, not just as an edge case.
+
+    Navigation link-lists (navboxes, TOC bullet lists) are also stripped
+    post-hoc via _strip_navigation_lines -- see that function's docstring
+    for the अग्निपुराणम् case that motivated it.
     """
     wikicode = mwparserfromhell.parse(expanded_wikitext)
     for link in wikicode.filter_wikilinks(recursive=True):
         title = str(link.title).strip()
         if title.startswith(category_ns_name + ":") or title.startswith(category_ns_name.lower() + ":"):
             wikicode.remove(link)
-    return wikicode.strip_code()
+    stripped = wikicode.strip_code()
+    return _strip_navigation_lines(stripped)
+
+
+def _strip_navigation_lines(stripped_text: str) -> str:
+    """Second-pass filter on already-stripped plain text: drops lines that
+    are pure navigation remnants -- e.g. after strip_code() converts
+    "*[[Work/Ch 1|अध्यायः १]]" to "अध्यायः १", a bare short line with no
+    sentence punctuation, repeated as a near-identical pattern across many
+    consecutive lines (a chapter list), is recognizable by consecutive-line
+    repetition of a short template even though the wikilink syntax itself
+    is already gone by this point. Conservative trigger: only fires on a
+    run of 5+ short (<40 char) lines with no danda/punctuation, which real
+    verse text essentially never produces (verses use ॥/। markers and vary
+    in length line to line) but chapter-link lists do. Blank lines are
+    skipped when measuring run length rather than breaking it -- some
+    navboxes (e.g. पद्मपुराणम्/खण्डः ६'s 255-chapter list) emit one blank
+    line after every entry, which would otherwise isolate each entry as a
+    run of 1 and let the whole list through.
+    """
+    lines = stripped_text.split("\n")
+    is_navish = [
+        len(l.strip()) > 0 and len(l.strip()) < 40 and not any(p in l for p in "।॥.!?")
+        for l in lines
+    ]
+    is_blank = [len(l.strip()) == 0 for l in lines]
+    result_lines = list(lines)
+    i = 0
+    while i < len(lines):
+        if is_navish[i]:
+            j = i
+            navish_count = 0
+            while j < len(lines) and (is_navish[j] or is_blank[j]):
+                if is_navish[j]:
+                    navish_count += 1
+                j += 1
+            # trailing blank lines don't count toward the run itself
+            while j > i and is_blank[j - 1]:
+                j -= 1
+            if navish_count >= 5:
+                for k in range(i, j):
+                    result_lines[k] = None
+            i = j
+        else:
+            i += 1
+    return "\n".join(l for l in result_lines if l is not None)
 
 
 def compute_content_size(
@@ -347,3 +434,82 @@ def compute_content_size(
         transliterated_text=transliterated_text,
         transliterated_bytes=transliterated_bytes,
     )
+
+
+# --- Parallel batch computation -------------------------------------------
+#
+# compute_content_size() is a pure function of its arguments (template_index
+# and known_titles are read-only lookups shared across every page, no page's
+# computation depends on any other's), so it's an embarrassingly parallel
+# batch job. CPU-bound (template re-parsing/substitution, skrutable
+# transliteration), not I/O-bound, so a process pool is used rather than
+# threads -- the GIL would otherwise serialize the actual work.
+#
+# template_index/known_titles are sent once per worker via the pool
+# initializer rather than pickled on every task.
+
+_worker_template_index: dict[str, str] | None = None
+_worker_known_titles: set[str] | None = None
+_worker_category_ns_name: str = "वर्गः"
+_worker_transliterate: bool = True
+
+
+def _init_worker(template_index, known_titles, category_ns_name, transliterate) -> None:
+    global _worker_template_index, _worker_known_titles, _worker_category_ns_name, _worker_transliterate
+    _worker_template_index = template_index
+    _worker_known_titles = known_titles
+    _worker_category_ns_name = category_ns_name
+    _worker_transliterate = transliterate
+
+
+def _compute_one(record: PageRecord) -> tuple[str, ContentSizeResult]:
+    return record.title, compute_content_size(
+        record,
+        _worker_template_index,
+        _worker_known_titles,
+        _worker_category_ns_name,
+        transliterate=_worker_transliterate,
+    )
+
+
+def compute_content_sizes_parallel(
+    records: list[PageRecord],
+    template_index: dict[str, str],
+    known_titles: set[str] | None = None,
+    category_ns_name: str = "वर्गः",
+    transliterate: bool = True,
+    workers: int | None = None,
+    chunksize: int = 64,
+    progress_every: int = 5000,
+    progress_label: str = "content size",
+) -> dict[str, ContentSizeResult]:
+    """Same computation as calling compute_content_size() over every record,
+    parallelized across a process pool. Returns a dict keyed by record.title
+    (records must have unique titles within the batch, true for both the
+    Main and Index namespaces individually)."""
+    import os
+    import sys
+    import time
+    from concurrent.futures import ProcessPoolExecutor
+
+    if workers is None:
+        workers = os.cpu_count() or 1
+
+    results: dict[str, ContentSizeResult] = {}
+    if not records:
+        return results
+
+    start = time.time()
+    with ProcessPoolExecutor(
+        max_workers=workers,
+        initializer=_init_worker,
+        initargs=(template_index, known_titles, category_ns_name, transliterate),
+    ) as pool:
+        for i, (title, result) in enumerate(pool.map(_compute_one, records, chunksize=chunksize)):
+            results[title] = result
+            if (i + 1) % progress_every == 0:
+                elapsed = time.time() - start
+                print(f"  {progress_label}: {i + 1}/{len(records)} ({elapsed:.0f}s elapsed)", file=sys.stderr)
+
+    print(f"{progress_label}: {len(records)} done ({time.time() - start:.0f}s, {workers} workers)", file=sys.stderr)
+    return results

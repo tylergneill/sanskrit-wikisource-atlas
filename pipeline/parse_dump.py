@@ -61,6 +61,9 @@ class DumpIndex:
     def page_ns_id(self) -> int:
         return self._find_ns_id("पृष्ठम्", fallback=104)
 
+    def template_ns_id(self) -> int:
+        return self._find_ns_id("फलकम्", fallback=10)
+
     def author_ns_id(self) -> int | None:
         for ns_id, name in self.namespaces.items():
             if name == "लेखकः":
@@ -134,6 +137,7 @@ def parse_dump(xml_path: Path, namespaces_of_interest: set[int] | None = None) -
                 namespaces_of_interest = {
                     dump_index.category_ns_id(),
                     dump_index.index_ns_id(),
+                    dump_index.template_ns_id(),
                     0,  # Main
                 }
             for ns_id in namespaces_of_interest:

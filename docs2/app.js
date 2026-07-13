@@ -412,22 +412,27 @@ function renderPageLi(p) {
 
 // Renders a single Index-namespace item (untranscluded scan/OCR-source page --
 // see transclusion.is_transcluded and publish.py's build_index_item_node).
-// Never expandable into Page-namespace (scanned-leaf) detail, consistent with
-// the spec's explicit non-goal. This is a scanned book with OCR proofing
-// underway on Wikisource but NOT YET assembled into a readable mainspace
-// article -- there is nothing to click through to but the raw scan. Badge
-// text and title spell that out explicitly (a bare "Index" badge reads as a
-// content-type label, not a "not real content yet" warning). No byte-size
-// shown: stats.content_bytes reflects the Index page's own proofreading-
-// status wikitext (mostly template/status scaffolding around the scan link),
-// not the scanned book's actual size -- there is no meaningful size metric
-// for a scan in this pipeline, and showing "0.0 KB" reads as "empty/broken"
-// rather than "not measured".
+// Never expandable into individual पृष्ठम्:Title/N (scanned-leaf) rows --
+// Index is the organizing principle pre-transclusion, so leaves are only
+// ever summed into one rolled-up stat on the Index item, never listed (see
+// notes/sawikisource-scraper-spec.md, "Untranscluded Index items"). This is
+// a scanned book with OCR proofing underway on Wikisource but NOT YET
+// assembled into a readable mainspace article -- there is nothing to click
+// through to but the raw scan. Badge text and tooltip spell that out
+// explicitly (a bare "Index" badge reads as a content-type label, not a
+// "not real content yet" warning). stats here already include the
+// पृष्ठम्:Title/N rollup (see build_index_item_node/compute_page_ns_rollup),
+// so the byte size shown is the real scanned/proofread content size, not
+// just the Index page's own near-empty proofreading-status scaffolding.
 function renderIndexItemLi(item) {
   const a = el("a", { href: item.url, target: "_blank", rel: "noreferrer" }, displayTitle(item.title));
 
+  const metaParts = [];
+  const size = contentSizeBytes(item.stats);
+  if (size != null) metaParts.push(formatBytes(size));
   const date = formatDate(item.stats?.last_changed);
-  const meta = date ? ` (${date})` : "";
+  if (date) metaParts.push(date);
+  const meta = metaParts.length ? ` (${metaParts.join(", ")})` : "";
 
   return el("li", {},
     el("span", { class: "pageRow" },

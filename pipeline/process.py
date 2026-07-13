@@ -26,13 +26,26 @@ IndexItemNode (Index-namespace item with ZERO transclusion anywhere in
 Main-namespace content -- i.e. raw/unpublished OCR, per
 transclusion.is_transcluded):
   { id, type: "index-item", title, url, stats }
-  Never expandable into Page-namespace (scanned-leaf) detail -- consistent
-  with the spec's explicit non-goal.
+  Never expandable into individual पृष्ठम्:Title/N (scanned-leaf) rows --
+  those are only ever summed into this node's own stats, never listed (see
+  compute_page_ns_rollup below and notes/sawikisource-scraper-spec.md,
+  "Untranscluded Index items").
 
 stats: { raw_bytes, content_bytes, transliterated_bytes, count, last_changed }
   count = number of distinct Main pages + Index items reachable from this
   node (dedup'd the same way the old scraper's attach_stats deduped shared
   categories -- see reachable_content() below).
+
+Orphan bucket (असम्बद्धवर्गीकृतम्, see ORPHAN_BUCKET_TITLE): an ordinary
+category node, appended as a sibling of the real category tree under root,
+holding every Main page and untranscluded Index item unreachable from
+वर्गसर्वस्वम् by category descent -- either zero category tags, or tags that
+only point to categories themselves never filed under any reachable parent
+(orphaned category roots, walked in as real subtrees the same way the main
+tree is). Root's own headline stats deliberately exclude this bucket's
+totals (matches scrape.py's अवर्गीकृतम्/OCR-bucket convention) -- it's
+listed and browsable, just not counted as part of the "central" corpus
+size. See build_tree_json for the mechanics.
 """
 
 from __future__ import annotations
@@ -59,6 +72,8 @@ from pipeline.content_size import (
 from pipeline.parse_dump import DumpIndex, PageRecord, category_links, is_excluded_category, parse_dump
 from pipeline.transclusion import build_transclusion_map, direct_categories, is_transcluded
 
+Stats = dict  # {raw_bytes, content_bytes, transliterated_bytes, count, last_changed}
+
 ROOT_CATEGORY_TITLE = "वर्गसर्वस्वम्"
 
 
@@ -82,11 +97,71 @@ class ContentIndex:
     main_categories: dict[str, set[str]]  # Main page title -> its own direct category tags
     index_categories: dict[str, set[str]]  # Index item bare title -> its own direct category tags
     index_timestamps: dict[str, str]  # Index item bare title -> its own revision timestamp
+    index_page_rollup: dict[str, Stats]  # Index item bare title -> summed stats over its untranscluded पृष्ठम्:Title/N children
+
+
+def _owning_index_title(page_title: str, page_ns_name: str) -> str | None:
+    """पृष्ठम्:<IndexBareTitle>/<N> -> <IndexBareTitle>, or None if the title
+    doesn't match the Title/N convention at all (rare malformed case)."""
+    prefix = page_ns_name + ":"
+    if not page_title.startswith(prefix):
+        return None
+    bare = page_title[len(prefix):]
+    if "/" not in bare:
+        return None
+    return bare.rsplit("/", 1)[0]
+
+
+def compute_page_ns_rollup(
+    dump_index: DumpIndex,
+    template_index: dict[str, str],
+    known_titles: set[str] | None,
+    cat_ns_name: str,
+    transliterate: bool,
+    workers: int | None,
+    transclusion_map: dict[str, set[str]],
+) -> dict[str, Stats]:
+    """Rolls up size/date stats from पृष्ठम्:Title/N (scanned-leaf) records
+    onto their owning Index item, for untranscluded Index items only --
+    Index is the organizing principle pre-transclusion, so individual leaves
+    are never listed/browsed, only summed into one stat on the Index item
+    (see notes/sawikisource-scraper-spec.md, "Untranscluded Index items").
+    Restricting to untranscluded items keeps this cheap: a transcluded
+    Index's Page: content is superseded by real Main-namespace text and
+    dropped from display anyway, so there's no reason to pay for its
+    (often large) template-expansion + transliteration cost here.
+    """
+    page_ns_name = dump_index.namespaces[dump_index.page_ns_id()]
+    all_page_records = dump_index.pages_by_ns.get(dump_index.page_ns_id(), [])
+
+    relevant_records = [
+        rec for rec in all_page_records
+        if (owner := _owning_index_title(rec.title, page_ns_name)) is not None
+        and not is_transcluded(owner, transclusion_map)
+    ]
+
+    sizes = compute_content_sizes_parallel(
+        relevant_records, template_index, known_titles, cat_ns_name,
+        transliterate=transliterate, workers=workers, progress_label="content size: Page (scan) leaves",
+    )
+
+    rollup: dict[str, Stats] = {}
+    for rec in relevant_records:
+        owner = _owning_index_title(rec.title, page_ns_name)
+        size = sizes[rec.title]
+        current = rollup.get(owner) or _empty_stats()
+        rollup[owner] = _merge_stats(current, _stats_dict(
+            size.raw_wikitext_bytes, size.content_bytes, size.transliterated_bytes,
+            0,  # leaves don't each count as a separate "work" -- only the Index item itself does
+            rec.timestamp,
+        ))
+    return rollup
 
 
 def compute_all_content_sizes(
     dump_index: DumpIndex,
     transliterate: bool,
+    transclusion_map: dict[str, set[str]],
     workers: int | None = None,
 ) -> ContentIndex:
     template_ns_name = dump_index.namespaces[dump_index.template_ns_id()]
@@ -119,12 +194,18 @@ def compute_all_content_sizes(
     index_categories = {bare(rec.title): direct_categories(rec, cat_ns_name) for rec in index_records}
     index_timestamps = {bare(rec.title): rec.timestamp for rec in index_records}
 
+    index_page_rollup = compute_page_ns_rollup(
+        dump_index, template_index, known_titles, cat_ns_name,
+        transliterate, workers, transclusion_map,
+    )
+
     return ContentIndex(
         main_sizes=main_sizes,
         main_categories=main_categories,
         index_sizes=index_sizes,
         index_categories=index_categories,
         index_timestamps=index_timestamps,
+        index_page_rollup=index_page_rollup,
     )
 
 
@@ -191,13 +272,20 @@ def build_page_node(
 def build_index_item_node(bare_title: str, content_index: ContentIndex, index_ns_name: str) -> dict:
     size = content_index.index_sizes.get(bare_title)
     rec_timestamp = content_index.index_timestamps.get(bare_title, "")
-    stats = _stats_dict(
+    own_stats = _stats_dict(
         size.raw_wikitext_bytes if size else 0,
         size.content_bytes if size else 0,
         size.transliterated_bytes if size else 0,
         1,
         rec_timestamp,
     )
+    # The Index page's own wikitext is just proofreading-status scaffolding
+    # (near-zero content by design) -- the real scanned/proofread text lives
+    # on its पृष्ठम्:Title/N children, rolled up separately (see
+    # compute_page_ns_rollup). Merge that in so stats reflect the actual
+    # scan, not just the Index page shell.
+    page_rollup = content_index.index_page_rollup.get(bare_title)
+    stats = _merge_stats(own_stats, page_rollup) if page_rollup else own_stats
     return {
         "id": f"index-item:{bare_title}",
         "type": "index-item",
@@ -229,6 +317,9 @@ def build_category_membership_maps(content_index: ContentIndex) -> tuple[dict[st
     return pages_by_cat, index_items_by_cat
 
 
+ORPHAN_BUCKET_TITLE = "असम्बद्धवर्गीकृतम्"
+
+
 def build_tree_json(
     dump_index: DumpIndex,
     graph: CategoryGraph,
@@ -241,6 +332,7 @@ def build_tree_json(
 
     emitted_ids: dict[str, str] = {}  # category title -> id of its first (real) emission
     seen_main_titles_top: set[str] = set()  # titles already emitted as a top-level page under SOME category (dedup across categories)
+    seen_index_titles_top: set[str] = set()  # same dedup, for Index items (an item can carry >1 category tag too)
 
     def cat_id(title: str) -> str:
         return "cat:" + title
@@ -278,8 +370,11 @@ def build_tree_json(
 
         index_jsons = []
         for bare_title in sorted(index_items_by_cat.get(title, [])):
+            if bare_title in seen_index_titles_top:
+                continue  # an Index item filed under >1 category directly: emitted once, at first category encountered
             if is_transcluded(bare_title, transclusion_map):
                 continue  # published elsewhere in Main -- drop the raw Index item per spec
+            seen_index_titles_top.add(bare_title)
             index_json = build_index_item_node(bare_title, content_index, index_ns_name)
             index_jsons.append(index_json)
             rolled = _merge_stats(rolled, index_json["stats"])
@@ -300,6 +395,85 @@ def build_tree_json(
         }
 
     root = build_category(graph.root_title)
+
+    # Content unreachable from root by category descent: a page/Index item
+    # whose only category tag(s) are themselves never filed under any parent
+    # reachable from वर्गसर्वस्वम् (an orphaned category -- e.g. a whole
+    # sub-tree that exists on the wiki but was never linked in), or that
+    # carries no category tag at all. build_category() above already walked
+    # every category reachable from root, so emitted_ids now IS the
+    # reachable set -- same trick scrape.py's build_orphan_bucket used with
+    # its seen_cats dict. Reusing build_category for orphan-category roots
+    # means a category shared between two orphan clusters (or one that's
+    # simply a deeper, not-yet-visited part of an orphan tree) gets the same
+    # category-pointer/dedup handling for free.
+    orphan_main_titles = sorted(
+        t for t, n in main_nodes.items()
+        if n.parent_title is None and t not in seen_main_titles_top
+    )
+    orphan_index_titles = sorted(
+        t for t in content_index.index_categories
+        if t not in seen_index_titles_top and not is_transcluded(t, transclusion_map)
+    )
+
+    orphan_cat_roots: dict[str, None] = {}  # ordered set of category titles to crawl as fresh roots
+    orphan_zero_cat_main: list[str] = []
+    orphan_zero_cat_index: list[str] = []
+    for t in orphan_main_titles:
+        cats = [c for c in content_index.main_categories.get(t, set()) if not is_excluded_category(c)]
+        unreached = [c for c in cats if c not in emitted_ids]
+        if unreached:
+            for c in unreached:
+                orphan_cat_roots.setdefault(c, None)
+        else:
+            orphan_zero_cat_main.append(t)
+    for t in orphan_index_titles:
+        cats = [c for c in content_index.index_categories.get(t, set()) if not is_excluded_category(c)]
+        unreached = [c for c in cats if c not in emitted_ids]
+        if unreached:
+            for c in unreached:
+                orphan_cat_roots.setdefault(c, None)
+        else:
+            orphan_zero_cat_index.append(t)
+
+    orphan_children = []
+    for orphan_root_title in orphan_cat_roots:
+        if orphan_root_title in emitted_ids:
+            continue  # already swept in by an earlier orphan root this same loop
+        orphan_children.append(build_category(orphan_root_title))
+    orphan_children.sort(key=lambda n: n["title"])
+
+    orphan_page_jsons = []
+    orphan_rolled = _empty_stats()
+    for t in orphan_zero_cat_main:
+        main_node = main_nodes[t]
+        page_json, page_rolled = build_page_node(main_node, cat_id(ORPHAN_BUCKET_TITLE), content_index)
+        orphan_page_jsons.append(page_json)
+        orphan_rolled = _merge_stats(orphan_rolled, page_rolled)
+
+    orphan_index_jsons = []
+    for t in orphan_zero_cat_index:
+        index_json = build_index_item_node(t, content_index, index_ns_name)
+        orphan_index_jsons.append(index_json)
+        orphan_rolled = _merge_stats(orphan_rolled, index_json["stats"])
+
+    for child in orphan_children:
+        if child["type"] == "category-pointer":
+            continue
+        orphan_rolled = _merge_stats(orphan_rolled, child["stats"])
+
+    orphan_bucket = None
+    if orphan_children or orphan_page_jsons or orphan_index_jsons:
+        orphan_bucket = {
+            "id": cat_id(ORPHAN_BUCKET_TITLE),
+            "type": "category",
+            "title": ORPHAN_BUCKET_TITLE,
+            "children": orphan_children,
+            "pages": orphan_page_jsons,
+            "index_items": orphan_index_jsons,
+            "stats": orphan_rolled,
+        }
+        root["children"].append(orphan_bucket)
 
     # Resolve category-pointer stats (they point to a node built earlier in
     # the same walk, whose stats dict now exists in emitted_ids' owner).
@@ -324,19 +498,29 @@ def build_tree_json(
     # वर्गसर्वस्वम् (the literal MediaWiki category root) isn't a useful node to
     # show readers -- once the junk siblings are excluded (see
     # EXCLUDED_CATEGORIES) and धर्मशास्त्रम् is folded into ग्रन्थाः (see
-    # refile_category in main()), root has exactly one real child, ग्रन्थाः,
-    # which just adds an extra meaningless click. Splice ग्रन्थाः's own
-    # contents up to root directly, same as scrape.py did (it crawled
-    # starting *at* ग्रन्थाः and never emitted it as a node at all).
+    # refile_category in main()), root's only *category-tree* child is
+    # ग्रन्थाः, which just adds an extra meaningless click. Splice ग्रन्थाः's
+    # own contents up to root directly, same as scrape.py did (it crawled
+    # starting *at* ग्रन्थाः and never emitted it as a node at all) -- but
+    # keep any OTHER real root children as siblings of ग्रन्थाः's contents
+    # (currently just the orphan bucket, असम्बद्धवर्गीकृतम्, appended above;
+    # scrape.py kept its equivalent अवर्गीकृतम्/OCR buckets as siblings of
+    # the ग्रन्थाः-rooted tree the same way).
     granth = next((c for c in root["children"] if c["title"] == "ग्रन्थाः" and c["type"] == "category"), None)
     if granth is not None:
+        other_siblings = [c for c in root["children"] if c is not granth]
         root = {
             "id": "root",
             "type": "category",
             "title": "ग्रन्थाः (धर्मशास्त्राणि च)",
-            "children": granth["children"],
+            "children": granth["children"] + other_siblings,
             "pages": granth["pages"],
             "index_items": granth["index_items"],
+            # Root's headline stats intentionally cover only the central,
+            # well-categorized tree (ग्रन्थाः) -- same convention scrape.py
+            # used (attach_stats ran on the central tree before अवर्गीकृतम्/
+            # OCR buckets were appended as siblings). The orphan bucket's
+            # own stats are still real and shown on its own node.
             "stats": granth["stats"],
         }
 
@@ -391,7 +575,8 @@ def main() -> None:
 
     print("computing content sizes (this is the slow step)...", file=sys.stderr)
     content_index = compute_all_content_sizes(
-        dump_index, transliterate=not args.no_transliterate, workers=args.workers
+        dump_index, transliterate=not args.no_transliterate,
+        transclusion_map=transclusion_map, workers=args.workers,
     )
 
     print("assembling tree...", file=sys.stderr)

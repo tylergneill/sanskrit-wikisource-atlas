@@ -152,6 +152,7 @@ def parse_dump(xml_path: Path, namespaces_of_interest: set[int] | None = None) -
                     dump_index.category_ns_id(),
                     dump_index.index_ns_id(),
                     dump_index.template_ns_id(),
+                    dump_index.page_ns_id(),
                     0,  # Main
                 }
             for ns_id in namespaces_of_interest:

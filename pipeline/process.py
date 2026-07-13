@@ -589,8 +589,22 @@ def main() -> None:
     print(f"wrote {args.out}", file=sys.stderr)
     print(f"root stats: {tree['root']['stats']}", file=sys.stderr)
 
+    _stamp_data_version()
+
     elapsed = time.time() - run_start
     print(f"total run time: {elapsed:.0f}s ({elapsed / 60:.1f}m)", file=sys.stderr)
+
+
+def _stamp_data_version() -> None:
+    """Record today's date as __data_version__ in docs2/VERSION (second line),
+    alongside __version__ (code version, bumped manually/separately). Mirrors
+    scrape.py's _stamp_data_version() for the legacy docs/ pipeline."""
+    version_path = Path(__file__).resolve().parent.parent / "docs2" / "VERSION"
+    today = time.strftime("%Y-%m-%d", time.gmtime())
+    lines = version_path.read_text(encoding="utf-8").splitlines() if version_path.exists() else ['__version__ = "0.1.0"']
+    lines = [ln for ln in lines if not ln.startswith("__data_version__")]
+    lines.append(f'__data_version__ = "{today}"')
+    version_path.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
 
 if __name__ == "__main__":

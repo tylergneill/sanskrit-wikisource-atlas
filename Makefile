@@ -7,6 +7,9 @@ serve:
 serve2:
 	cd docs2 && python -m http.server 8001
 
+ngrok:
+	ngrok http 8001
+
 fetch-dump:
 	python -m pipeline.fetch
 

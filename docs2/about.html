@@ -16,7 +16,7 @@
 <body>
   <header class="topbar">
     <div class="brand">
-      Sanskrit Wikisource Mirror <span class="small" style="opacity:0.6;">(v2 preview)</span>
+      Sanskrit Wikisource Mirror
       <a href="./index.html" class="topbar-link">← Back to tree</a>
     </div>
   </header>
@@ -36,8 +36,37 @@
           <a href="https://sa.wikisource.org/wiki/वर्गः:वर्गसर्वस्वम्" target="_blank" class="topbar-link" style="margin-left:0;" title="Original Wikisource Root Category">Source Root Page</a>
           <a href="https://github.com/tylergneill/sanskrit-wikisource-mirror" target="_blank" class="topbar-link">GitHub</a>
         </p>
+        <p class="small">
+          <span id="appVersion"></span>
+          <span id="dataUpdated" style="margin-left:10px;"></span>
+        </p>
       </div>
     </section>
   </main>
+
+  <script type="module">
+    async function loadVersion() {
+      try {
+        const r = await fetch("./VERSION");
+        if (!r.ok) return;
+        const text = await r.text();
+        for (const line of text.split("\n")) {
+          if (!line.includes("=")) continue;
+          const [key, rawValue] = line.split("=");
+          const value = rawValue.trim().replace(/['"]/g, "");
+          if (key.trim() === "__version__") {
+            const el = document.getElementById("appVersion");
+            if (el) el.textContent = "v" + value;
+          } else if (key.trim() === "__data_version__") {
+            const el = document.getElementById("dataUpdated");
+            if (el) el.textContent = `data updated ${value}`;
+          }
+        }
+      } catch (e) {
+        console.log("Could not load version:", e);
+      }
+    }
+    loadVersion();
+  </script>
 </body>
 </html>

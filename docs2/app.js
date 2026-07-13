@@ -165,6 +165,7 @@ function renderSidebarTree() {
       state.selectedCatId = null;
       renderSidebarTree();
       renderMain();
+      closeSidebarIfMobile();
     };
   }
 }
@@ -226,6 +227,7 @@ function renderSidebarNode(catNode, depth) {
       state.selectedCatId = catNode.id;
       renderSidebarTree();
       renderMain();
+      closeSidebarIfMobile();
     },
     onmouseenter: () => setSharedGroupHighlight(groupKey, true),
     onmouseleave: () => setSharedGroupHighlight(groupKey, false),
@@ -610,14 +612,51 @@ function setSharedGroupHighlight(groupKey, on) {
   for (const row of rows) row.classList.toggle("shared-highlight", on);
 }
 
+const SUN_ICON = `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 3v2"/><path d="M12 19v2"/><path d="M5 5l1.4 1.4"/><path d="M17.6 17.6L19 19"/><path d="M3 12h2"/><path d="M19 12h2"/><path d="M5 19l1.4-1.4"/><path d="M17.6 6.4L19 5"/></svg>`;
+const MOON_ICON = `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5Z"/></svg>`;
+
 function updateThemeToggleLabel() {
   const btn = document.getElementById("themeToggle");
   if (!btn) return;
   const theme = document.documentElement.getAttribute("data-theme") || "dark";
-  btn.textContent = theme === "dark" ? "☀ Light" : "☾ Dark";
+  const icon = theme === "dark" ? SUN_ICON : MOON_ICON;
+  const label = theme === "dark" ? "Light" : "Dark";
+  btn.innerHTML = `${icon}<span class="toggle-label">${label}</span>`;
+}
+
+const MOBILE_BREAKPOINT = 800;
+
+function isMobileLayout() {
+  return window.matchMedia(`(max-width: ${MOBILE_BREAKPOINT}px)`).matches;
+}
+
+function openSidebar() {
+  document.getElementById("sidenav").classList.add("open");
+  document.getElementById("sidebarBackdrop").classList.add("open");
+  document.getElementById("sidebarToggle").setAttribute("aria-expanded", "true");
+}
+
+function closeSidebar() {
+  document.getElementById("sidenav").classList.remove("open");
+  document.getElementById("sidebarBackdrop").classList.remove("open");
+  document.getElementById("sidebarToggle").setAttribute("aria-expanded", "false");
+}
+
+function closeSidebarIfMobile() {
+  if (isMobileLayout()) closeSidebar();
 }
 
 function initUI() {
+  document.getElementById("sidebarToggle").addEventListener("click", () => {
+    const sidenav = document.getElementById("sidenav");
+    if (sidenav.classList.contains("open")) closeSidebar();
+    else openSidebar();
+  });
+  document.getElementById("sidebarBackdrop").addEventListener("click", closeSidebar);
+  document.addEventListener("keydown", (ev) => {
+    if (ev.key === "Escape") closeSidebar();
+  });
+
   document.getElementById("schemeSelect").addEventListener("change", (ev) => {
     state.scheme = ev.target.value;
     renderSidebarTree();
@@ -696,6 +735,12 @@ async function loadVersion() {
       if (key.trim() === "__version__") {
         const el = document.getElementById("appVersion");
         if (el) el.textContent = "v" + value;
+      } else if (key.trim() === "__data_version__") {
+        const el = document.getElementById("dataUpdated");
+        if (el) {
+          el.textContent = `${value}`;
+          el.title = "Date the pipeline was last run (see About for full changelog)";
+        }
       }
     }
   } catch (e) {

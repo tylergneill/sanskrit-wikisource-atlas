@@ -49,6 +49,7 @@ from pipeline.build_tree import (
     MainPageNode,
     build_category_graph,
     build_main_tree,
+    refile_category,
 )
 from pipeline.content_size import (
     ContentSizeResult,
@@ -80,6 +81,7 @@ class ContentIndex:
     index_sizes: dict[str, ContentSizeResult]
     main_categories: dict[str, set[str]]  # Main page title -> its own direct category tags
     index_categories: dict[str, set[str]]  # Index item bare title -> its own direct category tags
+    index_timestamps: dict[str, str]  # Index item bare title -> its own revision timestamp
 
 
 def compute_all_content_sizes(
@@ -115,12 +117,14 @@ def compute_all_content_sizes(
 
     index_sizes = {bare(rec.title): index_sizes_by_full_title[rec.title] for rec in index_records}
     index_categories = {bare(rec.title): direct_categories(rec, cat_ns_name) for rec in index_records}
+    index_timestamps = {bare(rec.title): rec.timestamp for rec in index_records}
 
     return ContentIndex(
         main_sizes=main_sizes,
         main_categories=main_categories,
         index_sizes=index_sizes,
         index_categories=index_categories,
+        index_timestamps=index_timestamps,
     )
 
 
@@ -186,7 +190,7 @@ def build_page_node(
 
 def build_index_item_node(bare_title: str, content_index: ContentIndex, index_ns_name: str) -> dict:
     size = content_index.index_sizes.get(bare_title)
-    rec_timestamp = ""
+    rec_timestamp = content_index.index_timestamps.get(bare_title, "")
     stats = _stats_dict(
         size.raw_wikitext_bytes if size else 0,
         size.content_bytes if size else 0,
@@ -317,6 +321,25 @@ def build_tree_json(
 
     resolve_pointers(root)
 
+    # वर्गसर्वस्वम् (the literal MediaWiki category root) isn't a useful node to
+    # show readers -- once the junk siblings are excluded (see
+    # EXCLUDED_CATEGORIES) and धर्मशास्त्रम् is folded into ग्रन्थाः (see
+    # refile_category in main()), root has exactly one real child, ग्रन्थाः,
+    # which just adds an extra meaningless click. Splice ग्रन्थाः's own
+    # contents up to root directly, same as scrape.py did (it crawled
+    # starting *at* ग्रन्थाः and never emitted it as a node at all).
+    granth = next((c for c in root["children"] if c["title"] == "ग्रन्थाः" and c["type"] == "category"), None)
+    if granth is not None:
+        root = {
+            "id": "root",
+            "type": "category",
+            "title": "ग्रन्थाः (धर्मशास्त्राणि च)",
+            "children": granth["children"],
+            "pages": granth["pages"],
+            "index_items": granth["index_items"],
+            "stats": granth["stats"],
+        }
+
     return {"root": root}
 
 
@@ -356,6 +379,12 @@ def main() -> None:
     if graph.root_title not in graph.nodes:
         print(f"error: root category '{graph.root_title}' not found", file=sys.stderr)
         sys.exit(1)
+
+    # धर्मशास्त्रम् is filed on the live site as a top-level sibling of ग्रन्थाः
+    # under root -- not useful for readers, since it's really a body of
+    # ग्रन्थाः-type texts. Fold it in as a subcategory instead (scrape.py made
+    # the same call). See refile_category's docstring for details.
+    refile_category(graph, "धर्मशास्त्रम्", new_parent_title="ग्रन्थाः", old_parent_title=graph.root_title)
 
     print("building transclusion map...", file=sys.stderr)
     transclusion_map = build_transclusion_map(dump_index.pages_by_ns[0])

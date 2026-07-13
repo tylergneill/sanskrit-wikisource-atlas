@@ -147,6 +147,28 @@ def build_category_graph(records: list[PageRecord], category_ns_name: str) -> Ca
     return CategoryGraph(nodes=nodes, root_title=ROOT_CATEGORY_TITLE)
 
 
+def refile_category(graph: CategoryGraph, title: str, new_parent_title: str, old_parent_title: str) -> None:
+    """Move `title` from being a direct child of `old_parent_title` to being a
+    direct child of `new_parent_title` instead, editing both nodes' parent/
+    child edge sets in place. Used to fold धर्मशास्त्रम् under ग्रन्थाः: on the
+    live site it's filed as a top-level sibling of ग्रन्थाः under root, but
+    that's an artifact of Wikisource's own category structure, not a useful
+    grouping for this mirror's readers (same call scrape.py made previously
+    by injecting it as an extra child rather than following the site as-is).
+    No-ops if the edge doesn't exist (e.g. upstream re-categorizes it), so a
+    future dump doesn't need this call removed defensively.
+    """
+    node = graph.nodes.get(title)
+    old_parent = graph.nodes.get(old_parent_title)
+    new_parent = graph.nodes.get(new_parent_title)
+    if node is None or old_parent is None or new_parent is None:
+        return
+    old_parent.children.discard(title)
+    node.parents.discard(old_parent_title)
+    new_parent.children.add(title)
+    node.parents.add(new_parent_title)
+
+
 def orphaned_category_titles(graph: CategoryGraph) -> list[str]:
     """Categories with zero parents that are also not the root itself --
     per the spec, these are real (disconnected components), not an error,

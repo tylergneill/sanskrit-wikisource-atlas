@@ -24,10 +24,18 @@ DEFAULT_DUMP_GLOB = "sawikisource-*.xml"
 
 # Same maintenance/junk categories excluded in scrape.py -- these are
 # Wikisource housekeeping categories, not real subject classification.
+# ग्रन्थकर्तारः (author index), वर्गनिर्वहणम् (category-maintenance meta-tree), and
+# विकिस्रोतः (Wikisource-project meta pages) are top-level siblings of ग्रन्थाः
+# under root but carry no actual Sanskrit-text content -- excluded per explicit
+# user direction (this mirror favors a useful interface over slavish adherence
+# to Wikisource's own category structure).
 EXCLUDED_CATEGORIES = {
     "अवैध एचटीएमएल टैग का उपयोग कर रहे पृष्ठ",
     "अनिर्दिष्टानि पुटानि",
     "निष्कासनाय",
+    "ग्रन्थकर्तारः",
+    "वर्गनिर्वहणम्",
+    "विकिस्रोतः",
 }
 
 # Matches [[वर्गः:Title]] or [[वर्गः:Title|sortkey]] category links in wikitext.

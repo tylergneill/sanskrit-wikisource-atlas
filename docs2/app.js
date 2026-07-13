@@ -413,22 +413,25 @@ function renderPageLi(p) {
 // Renders a single Index-namespace item (untranscluded scan/OCR-source page --
 // see transclusion.is_transcluded and publish.py's build_index_item_node).
 // Never expandable into Page-namespace (scanned-leaf) detail, consistent with
-// the spec's explicit non-goal. Flagged visually with an "Index" badge, parallel
-// to the old schema's ocrBadge, since this is the same "raw/unpublished, don't
-// present as if it were curated mainspace content" distinction.
+// the spec's explicit non-goal. This is a scanned book with OCR proofing
+// underway on Wikisource but NOT YET assembled into a readable mainspace
+// article -- there is nothing to click through to but the raw scan. Badge
+// text and title spell that out explicitly (a bare "Index" badge reads as a
+// content-type label, not a "not real content yet" warning). No byte-size
+// shown: stats.content_bytes reflects the Index page's own proofreading-
+// status wikitext (mostly template/status scaffolding around the scan link),
+// not the scanned book's actual size -- there is no meaningful size metric
+// for a scan in this pipeline, and showing "0.0 KB" reads as "empty/broken"
+// rather than "not measured".
 function renderIndexItemLi(item) {
   const a = el("a", { href: item.url, target: "_blank", rel: "noreferrer" }, displayTitle(item.title));
 
-  const metaParts = [];
-  const size = contentSizeBytes(item.stats);
-  if (size != null) metaParts.push(formatBytes(size));
   const date = formatDate(item.stats?.last_changed);
-  if (date) metaParts.push(date);
-  const meta = metaParts.length ? ` (${metaParts.join(", ")})` : "";
+  const meta = date ? ` (${date})` : "";
 
   return el("li", {},
     el("span", { class: "pageRow" },
-      el("span", { class: "indexBadge" }, "Index"),
+      el("span", { class: "indexBadge", title: "Scanned/OCR source, not yet a finished mainspace text" }, "OCR only"),
       a,
       meta ? el("span", { class: "small" }, meta) : null,
     )

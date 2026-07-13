@@ -1,7 +1,8 @@
 """
-Publish stage: assemble parsed/derived structures (namespace records, Main
-subpage tree, Category digraph, transclusion map, content-size stats) into
-a single JSON tree for the frontend.
+Process stage: runs parse_dump/build_tree/transclusion/content_size in
+sequence and assembles their outputs (namespace records, Main subpage tree,
+Category digraph, transclusion map, content-size stats) into a single JSON
+tree for the frontend.
 
 New schema (deliberately not identical to the old scraper's tree.json --
 see notes/sawikisource-scraper-spec.md and the 2026-07 branch decision to
@@ -321,8 +322,8 @@ def build_tree_json(
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("xml_path", type=Path, nargs="?", help="path to the uncompressed dump XML")
-    parser.add_argument("--out", type=Path, default=Path("docs/data/tree2.json"),
-                         help="output path (default: docs/data/tree2.json, kept separate from tree.json for comparison)")
+    parser.add_argument("--out", type=Path, default=Path("docs2/data/tree2.json"),
+                         help="output path (default: docs2/data/tree2.json, the v2 frontend's data dir)")
     parser.add_argument("--no-transliterate", action="store_true",
                          help="skip skrutable transliteration (faster, for quick iteration)")
     parser.add_argument("--workers", type=int, default=None,

@@ -647,7 +647,54 @@ function closeSidebarIfMobile() {
   if (isMobileLayout()) closeSidebar();
 }
 
+const SIDEBAR_WIDTH_MIN = 240;
+const SIDEBAR_WIDTH_MAX = 800;
+
+function applySidebarWidth(px) {
+  document.documentElement.style.setProperty("--sidebar-width", `${px}px`);
+}
+
+function initSidebarResizer() {
+  const resizer = document.getElementById("sidebarResizer");
+  if (!resizer) return;
+
+  const saved = parseFloat(localStorage.getItem("sidebarWidth"));
+  if (!Number.isNaN(saved)) applySidebarWidth(saved);
+
+  resizer.addEventListener("pointerdown", (ev) => {
+    if (isMobileLayout()) return;
+    ev.preventDefault();
+    resizer.setPointerCapture(ev.pointerId);
+    resizer.classList.add("dragging");
+    const startX = ev.clientX;
+    const startWidth = document.getElementById("sidenav").getBoundingClientRect().width;
+
+    const onMove = (moveEv) => {
+      const raw = startWidth + (moveEv.clientX - startX);
+      const clamped = Math.min(SIDEBAR_WIDTH_MAX, Math.max(SIDEBAR_WIDTH_MIN, raw));
+      applySidebarWidth(clamped);
+    };
+    const onUp = () => {
+      resizer.classList.remove("dragging");
+      resizer.releasePointerCapture(ev.pointerId);
+      resizer.removeEventListener("pointermove", onMove);
+      resizer.removeEventListener("pointerup", onUp);
+      const width = document.getElementById("sidenav").getBoundingClientRect().width;
+      localStorage.setItem("sidebarWidth", String(Math.round(width)));
+    };
+    resizer.addEventListener("pointermove", onMove);
+    resizer.addEventListener("pointerup", onUp);
+  });
+
+  resizer.addEventListener("dblclick", () => {
+    document.documentElement.style.removeProperty("--sidebar-width");
+    localStorage.removeItem("sidebarWidth");
+  });
+}
+
 function initUI() {
+  initSidebarResizer();
+
   document.getElementById("sidebarToggle").addEventListener("click", () => {
     const sidenav = document.getElementById("sidenav");
     if (sidenav.classList.contains("open")) closeSidebar();

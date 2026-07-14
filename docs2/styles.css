@@ -120,7 +120,7 @@ a.topbar-link:hover { text-decoration: underline; }
 .layout{
   height: calc(100% - 48px);
   display:grid;
-  grid-template-columns: 400px 1fr;
+  grid-template-columns: var(--sidebar-width, 400px) 6px 1fr;
 }
 
 .sidenav{
@@ -128,6 +128,25 @@ a.topbar-link:hover { text-decoration: underline; }
   background: var(--panel2);
   padding: 12px;
   overflow:auto;
+}
+
+.sidebar-resizer{
+  cursor: col-resize;
+  background: transparent;
+  position: relative;
+}
+.sidebar-resizer::after{
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 2px;
+  width: 2px;
+  background: var(--border);
+}
+.sidebar-resizer:hover::after,
+.sidebar-resizer.dragging::after{
+  background: var(--accent);
 }
 
 .sidebar-backdrop{
@@ -304,6 +323,8 @@ a.topbar-link:hover { text-decoration: underline; }
     display: block;
     position: relative;
   }
+
+  .sidebar-resizer{ display: none; }
 
   .sidenav{
     position: fixed;

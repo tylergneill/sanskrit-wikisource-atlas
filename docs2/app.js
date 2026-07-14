@@ -217,7 +217,7 @@ function renderSidebarNode(catNode, depth) {
     .filter(Boolean);
   const rowTitle = siblingLocations.length
     ? `Also filed under: ${siblingLocations.join("; ")}`
-    : catNode.title;
+    : displayTitle(catNode.title);
 
   const row = el("div", {
     class: "row" + (state.selectedCatId === catNode.id ? " selected" : ""),

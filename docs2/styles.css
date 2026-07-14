@@ -171,6 +171,7 @@ a.topbar-link:hover { text-decoration: underline; }
 .toggleArrow{
   width: 28px;
   height: 28px;
+  flex-shrink: 0;
   display:inline-flex;
   align-items:center;
   justify-content:center;

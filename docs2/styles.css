@@ -236,6 +236,33 @@ a.topbar-link:hover { text-decoration: underline; }
 .content a{ color: var(--accent); text-decoration:none; }
 .content a:hover{ text-decoration:underline; }
 
+/* === External link icon === */
+a[target="_blank"]::after{
+  content: "";
+  display: inline-block;
+  width: 0.65em;
+  height: 0.65em;
+  margin-left: 0.15em;
+  vertical-align: middle;
+  position: relative;
+  top: -0.05em;
+  background-color: currentColor;
+  -webkit-mask-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 10 10' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 9 L9 1 M5 1 L9 1 L9 5' stroke='black' stroke-width='1.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  mask-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 10 10' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 9 L9 1 M5 1 L9 1 L9 5' stroke='black' stroke-width='1.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  -webkit-mask-size: contain;
+  mask-size: contain;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+}
+
+.catLinkArrow{
+  display: inline-block;
+  margin-left: 4px;
+  opacity: 0.6;
+  vertical-align: middle;
+}
+.catLinkArrow:hover{ opacity: 1; }
+
 .content ul {
   list-style: none;
   padding: 0;

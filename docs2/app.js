@@ -301,6 +301,9 @@ function renderMain() {
           const s = formatStats(anc.stats, { includeDate: true });
           return s ? el("span", { class: "small", style: "font-weight:normal; margin-left:8px;" }, s) : null;
         })(),
+        anc.url
+          ? el("a", { class: "catLinkArrow", href: anc.url, target: "_blank", rel: "noreferrer", title: "View category on Wikisource" })
+          : null,
         renderSeeAlso(anc)
       );
       inner = el("div", { class: "block" }, header, el("div", { style: "margin-top:10px" }, inner));
@@ -497,6 +500,14 @@ function renderCategoryBlock(catNode, { includeLeaves, depth, isRoot, isSearch }
 
   const statsText = showStats ? formatStats(catNode.stats, { includeDate: true }) : "";
 
+  // Link to the live Wikisource category page itself -- a plain external-link arrow
+  // (no visible text) placed right after the stats parenthesis. catNode.url is set by
+  // pipeline/process.py's build_category() for both "category" and "category-pointer"
+  // nodes; the synthetic spliced root has none (not a real wiki category).
+  const catLink = showStats && catNode.url
+    ? el("a", { class: "catLinkArrow", href: catNode.url, target: "_blank", rel: "noreferrer", title: "View category on Wikisource" })
+    : null;
+
   const seeAlso = renderSeeAlso(catNode);
 
   // depth (1-indexed among non-root headers) determines stacking order/offset of sticky headers.
@@ -516,6 +527,7 @@ function renderCategoryBlock(catNode, { includeLeaves, depth, isRoot, isSearch }
       },
     }, displayTitle(catNode.title)),
     statsText ? el("span", { class: "small", style: "font-weight:normal; margin-left:8px;" }, statsText) : null,
+    catLink,
     seeAlso
   );
 

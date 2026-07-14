@@ -87,6 +87,11 @@ def index_url(title: str, index_ns_name: str) -> str:
     return "https://sa.wikisource.org/wiki/" + quote((index_ns_name + ":" + title).replace(" ", "_"))
 
 
+def category_url(title: str, category_ns_name: str) -> str:
+    from urllib.parse import quote
+    return "https://sa.wikisource.org/wiki/" + quote((category_ns_name + ":" + title).replace(" ", "_"))
+
+
 @dataclass
 class ContentIndex:
     """Precomputed per-page/per-index-item content-size results, keyed by
@@ -328,6 +333,7 @@ def build_tree_json(
     content_index: ContentIndex,
 ) -> dict:
     index_ns_name = dump_index.namespaces[dump_index.index_ns_id()]
+    category_ns_name = dump_index.namespaces[dump_index.category_ns_id()]
     pages_by_cat, index_items_by_cat = build_category_membership_maps(content_index)
 
     emitted_ids: dict[str, str] = {}  # category title -> id of its first (real) emission
@@ -344,6 +350,7 @@ def build_tree_json(
                 "id": node_id + ":pointer",
                 "type": "category-pointer",
                 "title": title,
+                "url": category_url(title, category_ns_name),
                 "points_to": emitted_ids[title],
                 "stats": None,  # filled in by rollup pass
             }
@@ -388,6 +395,7 @@ def build_tree_json(
             "id": node_id,
             "type": "category",
             "title": title,
+            "url": category_url(title, category_ns_name),
             "children": children,
             "pages": page_jsons,
             "index_items": index_jsons,

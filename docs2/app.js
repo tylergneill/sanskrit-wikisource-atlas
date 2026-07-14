@@ -668,12 +668,16 @@ function openSidebar() {
   document.getElementById("sidenav").classList.add("open");
   document.getElementById("sidebarBackdrop").classList.add("open");
   document.getElementById("sidebarToggle").setAttribute("aria-expanded", "true");
+  // Body itself scrolls at the mobile breakpoint (see .layout in styles.css), so
+  // the mainpane's own overflow isn't enough to stop background scroll -- lock body.
+  document.body.classList.add("sidebar-open-lock");
 }
 
 function closeSidebar() {
   document.getElementById("sidenav").classList.remove("open");
   document.getElementById("sidebarBackdrop").classList.remove("open");
   document.getElementById("sidebarToggle").setAttribute("aria-expanded", "false");
+  document.body.classList.remove("sidebar-open-lock");
   hideTooltipPopup();
 }
 

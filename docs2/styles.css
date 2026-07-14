@@ -371,6 +371,18 @@ a[target="_blank"]::after{
   .sidebar-toggle{ display: inline-flex; align-items: center; justify-content: center; }
   .brand-meta{ display: none; }
 
+  /* Body (not .mainpane) scrolls at this width (see .layout below), so the
+     topbar needs its own sticky pin here -- above sticky category headers
+     (max z-index ~999, see renderCategoryBlock in app.js) but below the
+     off-canvas sidebar/backdrop (1900/2000) so an open sidebar still overlays it. */
+  .topbar{ position: sticky; top: 0; z-index: 1000; }
+
+  /* With the off-canvas sidebar open, prevent the background (mainpane/body) from
+     scrolling underneath it -- html, not just body, since body's own box isn't
+     what's scrolling here (see .layout below: document/viewport scroll is used). */
+  html:has(body.sidebar-open-lock){ overflow: hidden; }
+  body.sidebar-open-lock{ overflow: hidden; }
+
   body{ height: auto; min-height: 100%; }
   .layout{
     height: auto;

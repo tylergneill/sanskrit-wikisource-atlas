@@ -497,7 +497,7 @@ def compute_content_sizes_parallel(
     import sys
     from concurrent.futures import ProcessPoolExecutor
 
-    from pipeline.progress import LiveCounter
+    from pipeline.progress import LiveCounter, to_iast
 
     if workers is None:
         workers = os.cpu_count() or 1
@@ -514,7 +514,7 @@ def compute_content_sizes_parallel(
     ) as pool:
         for title, result in pool.map(_compute_one, records, chunksize=chunksize):
             results[title] = result
-            counter.update(detail=title)
+            counter.update(detail=to_iast(title))
     counter.close()
 
     return results

@@ -105,7 +105,7 @@ def parse_dump(xml_path: Path, namespaces_of_interest: set[int] | None = None) -
     context = ET.iterparse(str(xml_path), events=("start", "end"))
     _, root = next(context)  # root <mediawiki> element, "start" event
 
-    from pipeline.progress import LiveCounter
+    from pipeline.progress import LiveCounter, to_iast
 
     site_name: str | None = None
     namespaces: dict[int, str] = {}
@@ -190,7 +190,7 @@ def parse_dump(xml_path: Path, namespaces_of_interest: set[int] | None = None) -
                 )
                 dump_index.pages_by_ns[ns].append(record)
                 kept += 1
-                counter.update(detail=record.title)
+                counter.update(detail=to_iast(record.title))
             else:
                 skipped += 1
                 counter.update()

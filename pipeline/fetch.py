@@ -1,6 +1,6 @@
 """
-Fetch stage: locate, download, and verify the monthly MediaWiki Content File
-Export for sa.wikisource.org.
+Fetch stage: locate, download, verify, and decompress the monthly MediaWiki
+Content File Export for sa.wikisource.org.
 
 Source: https://dumps.wikimedia.org/other/mediawiki_content_current/sawikisource/<date>/xml/bzip2/
 Generation starts monthly on the 1st; a run is complete once SHA256SUMS
@@ -13,8 +13,10 @@ See notes/sawikisource-scraper-spec.md for the full pipeline design.
 from __future__ import annotations
 
 import argparse
+import bz2
 import datetime
 import hashlib
+import shutil
 import sys
 from dataclasses import dataclass
 from pathlib import Path
@@ -89,21 +91,41 @@ def _sha256sum(path: Path, chunk_size: int = 1024 * 1024) -> str:
     return h.hexdigest()
 
 
+def _remove_stale_files(export: DumpExport, out_dir: Path) -> None:
+    """Delete any file in out_dir left over from a prior (now-superseded) export,
+    i.e. anything not among the current export's expected part files or their
+    decompressed .xml counterparts."""
+    if not out_dir.exists():
+        return
+    expected = set(export.part_files) | {Path(f).with_suffix("").name for f in export.part_files}
+    for path in out_dir.iterdir():
+        if path.is_file() and path.name not in expected:
+            print(f"removing stale file from prior export: {path.name}", file=sys.stderr)
+            path.unlink()
+
+
 def download_and_verify(export: DumpExport, out_dir: Path, force: bool = False) -> list[Path]:
     """Download every part file listed in export.part_files into out_dir, verifying
     each against its published sha256 digest. Returns the list of verified paths.
-    Skips re-downloading a file that's already present and already verifies correctly.
+    Skips re-downloading a file that's already present and already verifies correctly,
+    unless force is set.
     """
     out_dir.mkdir(parents=True, exist_ok=True)
+    _remove_stale_files(export, out_dir)
     verified_paths = []
     for filename, expected_digest in export.part_files.items():
         dest = out_dir / filename
-        if dest.exists() and not force:
+        if dest.exists():
             if _sha256sum(dest) == expected_digest:
-                print(f"already present, verified: {filename}", file=sys.stderr)
-                verified_paths.append(dest)
-                continue
-            print(f"present but hash mismatch, re-downloading: {filename}", file=sys.stderr)
+                if force:
+                    print(f"already present and verified, but --force set: re-downloading: {filename}",
+                          file=sys.stderr)
+                else:
+                    print(f"already present, verified: {filename}", file=sys.stderr)
+                    verified_paths.append(dest)
+                    continue
+            else:
+                print(f"present but hash mismatch, re-downloading: {filename}", file=sys.stderr)
 
         url = f"{export.dir_url}/{filename}"
         print(f"downloading: {url}", file=sys.stderr)
@@ -132,14 +154,38 @@ def download_and_verify(export: DumpExport, out_dir: Path, force: bool = False) 
     return verified_paths
 
 
+def _decompress(bz2_path: Path, force: bool = False) -> Path:
+    """Decompress a .bz2 dump part into a sibling .xml file. Skips re-decompressing
+    if the .xml already exists and is at least as new as the .bz2, unless force is set."""
+    xml_path = bz2_path.with_suffix("")
+    if xml_path.exists() and not force:
+        if xml_path.stat().st_mtime >= bz2_path.stat().st_mtime:
+            print(f"already decompressed: {xml_path.name}", file=sys.stderr)
+            return xml_path
+    print(f"decompressing: {bz2_path.name}", file=sys.stderr)
+    tmp_path = xml_path.with_suffix(".xml.tmp")
+    with bz2.open(bz2_path, "rb") as src, open(tmp_path, "wb") as dst:
+        shutil.copyfileobj(src, dst)
+    tmp_path.rename(xml_path)
+    print(f"decompressed: {xml_path.name}", file=sys.stderr)
+    return xml_path
+
+
 def fetch(out_dir: Path = DEFAULT_OUT_DIR, max_months_back: int = 6, force: bool = False) -> list[Path]:
+    """Resolve the latest available export online, compare it against what's already
+    verified in out_dir, download/verify whatever's missing or stale, and decompress
+    each verified part into a sibling .xml file. Deletes any leftover files from a
+    prior, now-superseded export. If everything is already present, verified, and
+    decompressed, this is a no-op unless force is set.
+    """
     export = find_latest_export(max_months_back=max_months_back)
     if export is None:
         raise RuntimeError(
             f"no complete {DATASET} export found for {WIKI_ID} in the last {max_months_back} months"
         )
-    print(f"found export dated {export.date}: {len(export.part_files)} part file(s)", file=sys.stderr)
-    return download_and_verify(export, out_dir, force=force)
+    print(f"latest export online: {export.date} ({len(export.part_files)} part file(s))", file=sys.stderr)
+    bz2_paths = download_and_verify(export, out_dir, force=force)
+    return [_decompress(p, force=force) for p in bz2_paths]
 
 
 def main() -> None:
@@ -149,22 +195,9 @@ def main() -> None:
     parser.add_argument("--max-months-back", type=int, default=6,
                          help="how many months back to search for a complete export (default: 6)")
     parser.add_argument("--force", action="store_true",
-                         help="re-download and re-verify even if a matching file is already present")
-    parser.add_argument("--check-only", action="store_true",
-                         help="only resolve the latest available export (no download); prints date, "
-                              "directory URL, and part files")
+                         help="re-download and re-verify every part file even if already present "
+                              "and verified locally")
     args = parser.parse_args()
-
-    if args.check_only:
-        export = find_latest_export(max_months_back=args.max_months_back)
-        if export is None:
-            print(f"no complete export found in the last {args.max_months_back} months", file=sys.stderr)
-            sys.exit(1)
-        print(f"date: {export.date}")
-        print(f"dir_url: {export.dir_url}")
-        for filename, digest in export.part_files.items():
-            print(f"  {filename}  {digest}")
-        return
 
     paths = fetch(out_dir=args.out_dir, max_months_back=args.max_months_back, force=args.force)
     for p in paths:

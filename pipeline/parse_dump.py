@@ -241,7 +241,7 @@ def main() -> None:
         candidates = sorted(Path("dump").glob(DEFAULT_DUMP_GLOB))
         candidates = [p for p in candidates if p.suffix == ".xml"]
         if not candidates:
-            print("no dump/*.xml found; run `make fetch-dump` and decompress it, "
+            print("no dump/*.xml found; run `make refresh-dump`, "
                   "or pass a path explicitly", file=sys.stderr)
             sys.exit(1)
         xml_path = candidates[0]

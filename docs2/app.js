@@ -167,6 +167,16 @@ function renderSidebarTree() {
       renderMain();
       closeSidebarIfMobile();
     };
+    // allRowEl is a static element (re-fetched, not re-created) on every render --
+    // bind the long-press gesture once rather than accumulating listeners.
+    if (!allRowEl.dataset.longPressExpandBound) {
+      allRowEl.dataset.longPressExpandBound = "1";
+      bindLongPressExpand(allRowEl, () => {
+        setExpandedDeep(root, true);
+        renderSidebarTree();
+        renderMain();
+      });
+    }
   }
 }
 
@@ -179,28 +189,33 @@ function renderSidebarNode(catNode, depth) {
   const isExpanded = state.expanded.has(catNode.id);
   const hasKids = (content.children || []).length > 0;
 
+  const toggleNode = (expandAll) => {
+    const currentlyExpanded = state.expanded.has(catNode.id);
+    if (currentlyExpanded) {
+      // Collapsing: always collapse deep so that re-opening shows only immediate children
+      setExpandedDeep(catNode, false);
+    } else {
+      // Expanding
+      if (expandAll) {
+        setExpandedDeep(catNode, true);
+      } else {
+        state.expanded.add(catNode.id);
+      }
+    }
+    renderSidebarTree();
+    renderMain();
+  };
+
   const toggleArrow = el("span", {
     class: "toggleArrow",
     onclick: (ev) => {
       ev.stopPropagation();
-      const expandAll = isExpandAllGesture(ev);
-      const currentlyExpanded = state.expanded.has(catNode.id);
-
-      if (currentlyExpanded) {
-        // Collapsing: always collapse deep so that re-opening shows only immediate children
-        setExpandedDeep(catNode, false);
-      } else {
-        // Expanding
-        if (expandAll) {
-          setExpandedDeep(catNode, true);
-        } else {
-          state.expanded.add(catNode.id);
-        }
-      }
-      renderSidebarTree();
-      renderMain();
+      toggleNode(isExpandAllGesture(ev));
     }
   }, hasKids ? (isExpanded ? "▾" : "▸") : "·");
+  // Touch devices have no Option/Shift-click -- long-pressing the disclosure
+  // arrow does the same "expand all descendants" gesture instead.
+  bindLongPressExpand(toggleArrow, () => toggleNode(true));
 
   // Every occurrence of a shared category is equally real and shows its own real
   // stats -- no occurrence is privileged over another for display purposes.
@@ -757,6 +772,37 @@ function hideTooltipPopup() {
     longPressTarget.remove();
     longPressTarget = null;
   }
+}
+
+// Touch-device equivalent of isExpandAllGesture's Option/Shift/Ctrl/Cmd-click:
+// binds a long-press on `element` to `onExpandAll`, and swallows the
+// synthesized click that follows touchend so a long-press doesn't also
+// trigger the element's normal (single-level) onclick handler.
+function bindLongPressExpand(element, onExpandAll) {
+  let timer = null;
+  let fired = false;
+
+  element.addEventListener("touchstart", (ev) => {
+    fired = false;
+    timer = setTimeout(() => {
+      fired = true;
+      if (navigator.vibrate) navigator.vibrate(15);
+      onExpandAll();
+    }, LONG_PRESS_MS);
+  }, { passive: true });
+
+  const cancel = () => clearTimeout(timer);
+  element.addEventListener("touchmove", cancel, { passive: true });
+  element.addEventListener("touchend", cancel);
+  element.addEventListener("touchcancel", cancel);
+
+  element.addEventListener("click", (ev) => {
+    if (fired) {
+      fired = false;
+      ev.preventDefault();
+      ev.stopPropagation();
+    }
+  }, { capture: true });
 }
 
 function initLongPressTooltips() {

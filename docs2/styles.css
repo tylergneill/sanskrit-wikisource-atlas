@@ -156,6 +156,14 @@ a.topbar-link:hover { text-decoration: underline; }
 .panelTitle{ font-weight: 600; margin-bottom: 6px; }
 .panelTitleLink{ cursor: pointer; }
 .hint{ font-size: 14px; color: var(--muted); margin-bottom: 10px; }
+.hint-touch{ display: none; }
+/* Coarse-pointer devices (touch, no hover) get the long-press hint instead of
+   the Option/Shift-click one -- keyed on pointer capability, not viewport width,
+   so it also applies to touch laptops/tablets at wide viewports. */
+@media (hover: none) and (pointer: coarse){
+  .hint-desktop{ display: none; }
+  .hint-touch{ display: inline; }
+}
 .loadingHint{ font-size: 14px; color: var(--muted); padding: 10px 4px; }
 .allRow{
   display:flex;

@@ -1,6 +1,18 @@
 scrape:
 	python scrape.py
 
+check-dump:
+	python -m pipeline.fetch --check-only
+
+fetch-dump:
+	python -m pipeline.fetch
+
+fetch-dump-force:
+	python -m pipeline.fetch --force
+
+process:
+	python -m pipeline.process --out docs2/data/tree2.json
+
 serve:
 	cd docs && python -m http.server
 
@@ -9,15 +21,3 @@ serve2:
 
 ngrok:
 	ngrok http 8001
-
-fetch-dump:
-	python -m pipeline.fetch
-
-fetch-dump-force:
-	python -m pipeline.fetch --force
-
-check-dump:
-	python -m pipeline.fetch --check-only
-
-process:
-	python -m pipeline.process --out docs2/data/tree2.json

@@ -186,9 +186,15 @@ a.topbar-link:hover { text-decoration: underline; }
   white-space:nowrap;
   overflow:hidden;
   text-overflow:ellipsis;
+  flex: 1 1 auto;
+  min-width: 0;
 }
 .title.topLevel, .small.topLevel{
   font-weight: bold;
+}
+.tree .row .small{
+  flex-shrink: 0;
+  white-space: nowrap;
 }
 .indent{ margin-left: 18px; }
 

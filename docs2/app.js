@@ -133,7 +133,7 @@ function formatStats(stats, { includeDate } = {}) {
   const size = formatBytes(contentSizeBytes(stats));
   if (!size) return "";
   const parts = [size];
-  if (stats.count != null) parts.push(`${stats.count} pages`);
+  if (stats.count != null) parts.push(`${stats.count} ${stats.count === 1 ? "p" : "pp"}`);
   if (includeDate) {
     const date = formatDate(stats.last_changed);
     if (date) parts.push(date);
@@ -215,9 +215,10 @@ function renderSidebarNode(catNode, depth) {
   const siblingLocations = siblings
     .map((sid) => (state.parentPath.get(sid) || []).map(displayTitle).join(" > "))
     .filter(Boolean);
+  const nameAndStats = statsText ? `${displayTitle(catNode.title)} ${statsText}` : displayTitle(catNode.title);
   const rowTitle = siblingLocations.length
-    ? `Also filed under: ${siblingLocations.join("; ")}`
-    : displayTitle(catNode.title);
+    ? `Also filed under: ${siblingLocations.join("; ")}\n${nameAndStats}`
+    : nameAndStats;
 
   const row = el("div", {
     class: "row" + (state.selectedCatId === catNode.id ? " selected" : ""),

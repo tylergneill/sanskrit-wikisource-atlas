@@ -6,7 +6,7 @@ const state = {
   siblingIds: new Map(),    // id -> [other occurrence ids of the same shared category] (both directions)
   parentPath: new Map(),    // id -> array of ancestor titles (root excluded), for "see also X > Y" hints
   selectedCatId: null,
-  scheme: "devanagari",     // devanagari | iast | hk | itrans | slp1
+  scheme: "iast",           // devanagari | iast | hk | itrans | slp1
   expanded: new Set(),      // node ids expanded in sidebar
   searchQuery: "",
   expandedPageLists: new Set(), // category ids whose page/index-item list has been expanded past the cap

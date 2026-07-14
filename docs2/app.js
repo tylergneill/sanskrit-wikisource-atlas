@@ -641,6 +641,7 @@ function closeSidebar() {
   document.getElementById("sidenav").classList.remove("open");
   document.getElementById("sidebarBackdrop").classList.remove("open");
   document.getElementById("sidebarToggle").setAttribute("aria-expanded", "false");
+  hideTooltipPopup();
 }
 
 function closeSidebarIfMobile() {
@@ -692,8 +693,78 @@ function initSidebarResizer() {
   });
 }
 
+// Native `title` tooltips never fire on touch devices (no hover concept), so
+// on mobile a long-press on any element carrying a `title` attribute (sidebar
+// rows, badges, etc.) shows the same text in a small floating popup instead.
+// Delegated at the document level rather than wired per-row, so it works for
+// every current and future `title`-bearing element without extra plumbing.
+const LONG_PRESS_MS = 500;
+let longPressTimer = null;
+let longPressTarget = null;
+// Set true the moment a long-press popup is actually shown (timer fired, not
+// just started), so the click that mobile browsers synthesize right after
+// the matching touchend can be told apart from a normal tap-to-select and
+// suppressed -- otherwise every long-press-to-view-tooltip also navigated/
+// selected the row underneath it.
+let longPressFired = false;
+
+function showTooltipPopup(text, x, y) {
+  hideTooltipPopup();
+  const popup = el("div", { class: "touch-tooltip", style: `left:${x}px; top:${y}px;` }, text);
+  document.body.appendChild(popup);
+  longPressTarget = popup;
+}
+
+function hideTooltipPopup() {
+  if (longPressTarget) {
+    longPressTarget.remove();
+    longPressTarget = null;
+  }
+}
+
+function initLongPressTooltips() {
+  document.addEventListener("touchstart", (ev) => {
+    hideTooltipPopup();
+    const target = ev.target.closest("[title]");
+    if (!target) return;
+    const touch = ev.touches[0];
+    const x = touch.clientX;
+    const y = touch.clientY;
+    longPressTimer = setTimeout(() => {
+      longPressFired = true;
+      showTooltipPopup(target.getAttribute("title"), x, y);
+    }, LONG_PRESS_MS);
+  }, { passive: true });
+
+  const cancel = () => clearTimeout(longPressTimer);
+  document.addEventListener("touchmove", cancel, { passive: true });
+  document.addEventListener("touchend", cancel);
+  document.addEventListener("touchcancel", cancel);
+
+  // Swallow the click a mobile browser synthesizes right after the touch
+  // that triggered our popup, so releasing a long-press doesn't also
+  // select/navigate the row underneath. Capture phase so it runs before the
+  // row's own onclick handler.
+  document.addEventListener("click", (ev) => {
+    if (longPressFired) {
+      longPressFired = false;
+      ev.preventDefault();
+      ev.stopPropagation();
+    }
+  }, { capture: true });
+
+  // iOS/Safari's native long-press (text selection callout, "copy" /
+  // "search with Google" context menu) fires independently of our JS timer
+  // above -- block it specifically on title-bearing elements so it doesn't
+  // show up alongside our popup.
+  document.addEventListener("contextmenu", (ev) => {
+    if (ev.target.closest("[title]")) ev.preventDefault();
+  });
+}
+
 function initUI() {
   initSidebarResizer();
+  initLongPressTooltips();
 
   document.getElementById("sidebarToggle").addEventListener("click", () => {
     const sidenav = document.getElementById("sidenav");

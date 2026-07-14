@@ -267,6 +267,33 @@ a.topbar-link:hover { text-decoration: underline; }
 
 .small{ font-size: 14px; color: var(--muted); }
 
+/* Elements with a `title` attribute get a long-press popup instead (see
+   initLongPressTooltips in app.js) -- suppress iOS/Safari's native
+   long-press text-selection callout and copy/search context menu so it
+   doesn't show up alongside our own popup. */
+[title]{
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.touch-tooltip{
+  position: fixed;
+  z-index: 3000;
+  max-width: min(80vw, 320px);
+  transform: translate(-50%, -100%) translateY(-10px);
+  background: var(--panel2);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 6px 10px;
+  font-size: 13px;
+  line-height: 1.4;
+  white-space: pre-line;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+  pointer-events: none;
+}
+
 .ocrBadge, .indexBadge{
   font-size: 11px;
   font-weight: 600;

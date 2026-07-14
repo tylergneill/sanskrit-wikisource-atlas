@@ -289,11 +289,19 @@ function renderMain() {
         dataset: { stickyDepth: String(ancDepth) },
         style: `z-index:${1000 - ancDepth};`
       },
-        displayTitle(anc.title),
+        el("span", {
+          class: "panelTitleLink",
+          onclick: () => {
+            state.selectedCatId = anc.id;
+            renderSidebarTree();
+            renderMain();
+          },
+        }, displayTitle(anc.title)),
         (() => {
           const s = formatStats(anc.stats, { includeDate: true });
           return s ? el("span", { class: "small", style: "font-weight:normal; margin-left:8px;" }, s) : null;
-        })()
+        })(),
+        renderSeeAlso(anc)
       );
       inner = el("div", { class: "block" }, header, el("div", { style: "margin-top:10px" }, inner));
     }
@@ -394,7 +402,7 @@ function renderPageLi(p) {
       a,
       meta ? el("span", { class: "small" }, meta) : null,
       hasSubpages
-        ? el("span", { class: "small", style: "margin-left:6px; opacity:0.6;" }, `(${p.subpages.length} subpages)`)
+        ? el("span", { class: "small", style: "margin-left:6px; opacity:0.6;" }, `(+ ${p.subpages.length} pp)`)
         : null,
     ),
     toggle,
@@ -446,6 +454,32 @@ function renderIndexItemLi(item) {
   );
 }
 
+// "See also" hint: this category is filed under more than one parent -- name the
+// other occurrence(s) and link to jump there instead of duplicating full content.
+// Shared by renderCategoryBlock (for the selected node and its descendants) and
+// the breadcrumb ancestor headers in renderMain (ancestors are shared categories
+// just as often as the selected node itself, and previously lost this hint).
+function renderSeeAlso(catNode) {
+  const siblings = state.siblingIds.get(catNode.id) || [];
+  if (!siblings.length) return null;
+  return el("span", { class: "small", style: "font-weight:normal; margin-left:8px; opacity:0.75;" },
+    "see also: ",
+    ...siblings.flatMap((sid, i) => {
+      const loc = (state.parentPath.get(sid) || []).map(displayTitle).join(" > ") || displayTitle(catNode.title);
+      const link = el("a", {
+        href: "#",
+        onclick: (ev) => {
+          ev.preventDefault();
+          state.selectedCatId = sid;
+          renderSidebarTree();
+          renderMain();
+        },
+      }, loc);
+      return i === 0 ? [link] : [", ", link];
+    })
+  );
+}
+
 function renderCategoryBlock(catNode, { includeLeaves, depth, isRoot, isSearch }) {
   const isActualRoot = catNode.id === state.data.root.id;
 
@@ -463,27 +497,7 @@ function renderCategoryBlock(catNode, { includeLeaves, depth, isRoot, isSearch }
 
   const statsText = showStats ? formatStats(catNode.stats, { includeDate: true }) : "";
 
-  // "See also" hint: this category is filed under more than one parent -- name the
-  // other occurrence(s) and link to jump there instead of duplicating full content.
-  const siblings = state.siblingIds.get(catNode.id) || [];
-  const seeAlso = siblings.length
-    ? el("span", { class: "small", style: "font-weight:normal; margin-left:8px; opacity:0.75;" },
-        "see also: ",
-        ...siblings.flatMap((sid, i) => {
-          const loc = (state.parentPath.get(sid) || []).map(displayTitle).join(" > ") || displayTitle(catNode.title);
-          const link = el("a", {
-            href: "#",
-            onclick: (ev) => {
-              ev.preventDefault();
-              state.selectedCatId = sid;
-              renderSidebarTree();
-              renderMain();
-            },
-          }, loc);
-          return i === 0 ? [link] : [", ", link];
-        })
-      )
-    : null;
+  const seeAlso = renderSeeAlso(catNode);
 
   // depth (1-indexed among non-root headers) determines stacking order/offset of sticky headers.
   // Shallower headers must paint OVER deeper ones (so descendants scroll underneath their
@@ -493,7 +507,14 @@ function renderCategoryBlock(catNode, { includeLeaves, depth, isRoot, isSearch }
     dataset: { stickyDepth: String(depth) },
     style: `z-index:${1000 - depth};`
   },
-    displayTitle(catNode.title),
+    el("span", {
+      class: "panelTitleLink",
+      onclick: () => {
+        state.selectedCatId = catNode.id;
+        renderSidebarTree();
+        renderMain();
+      },
+    }, displayTitle(catNode.title)),
     statsText ? el("span", { class: "small", style: "font-weight:normal; margin-left:8px;" }, statsText) : null,
     seeAlso
   );

@@ -9,11 +9,13 @@ see notes/sawikisource-scraper-spec.md and the 2026-07 branch decision to
 adapt the frontend rather than force new concepts into the old shape):
 
 Node (category):
-  { id, type: "category", title, children: [Node], category_pointers: [str],
+  { id, type: "category", title, children: [Node],
     pages: [PageNode], index_items: [IndexItemNode], stats }
 
 Node (category-pointer): a second+ filing of a category already emitted
 elsewhere in the tree (multi-parent category, see build_tree.CategoryGraph).
+Appears inline among its parent's own `children`, alongside real category
+nodes -- there is no separate list of pointers.
   { id, type: "category-pointer", title, points_to: <id>, stats }
 
 PageNode (Main-namespace page, filed into this category via its own direct
@@ -21,6 +23,14 @@ PageNode (Main-namespace page, filed into this category via its own direct
   { id, type: "page", title, url, stats, subpages: [PageNode] }
   subpages come from the Main-namespace tree (build_tree.MainPageNode),
   nested the same way the old schema nested them.
+
+Node (page-pointer): a second+ filing of a page already emitted elsewhere in
+the tree (a page tagged with >1 category directly -- same multi-filing
+concept as category-pointer, just for pages instead of categories).
+  { id, type: "page-pointer", title, url, points_to: <id> }
+  No stats/subpages of its own; resolve via points_to to the occurrence that
+  has them (mirrors category-pointer's resolution, see docs2/app.js's
+  resolveContent).
 
 IndexItemNode (Index-namespace item with ZERO transclusion anywhere in
 Main-namespace content -- i.e. raw/unpublished OCR, per
@@ -31,10 +41,19 @@ transclusion.is_transcluded):
   compute_page_ns_rollup below and notes/sawikisource-scraper-spec.md,
   "Untranscluded Index items").
 
+Node (index-item-pointer): a second+ filing of an Index item already emitted
+elsewhere in the tree. Same shape/resolution as page-pointer.
+  { id, type: "index-item-pointer", title, url, points_to: <id> }
+
 stats: { raw_bytes, content_bytes, transliterated_bytes, count, last_changed }
   count = number of distinct Main pages + Index items reachable from this
-  node (dedup'd the same way the old scraper's attach_stats deduped shared
-  categories -- see reachable_content() below).
+  node. Dedup is enforced at build time by build_category(): the first DFS
+  occurrence of a category/page/Index-item builds real content and folds its
+  stats into every ancestor's rollup; every later occurrence anywhere else in
+  the tree is emitted as a *-pointer node instead and is skipped when summing
+  ancestor stats -- so a page/category reachable via two paths is still
+  counted exactly once, at whichever ancestor its two paths first converge
+  (not only at root).
 
 Orphan bucket (असम्बद्धवर्गीकृतम्, see ORPHAN_BUCKET_TITLE): an ordinary
 category node, appended as a sibling of the real category tree under root,
@@ -337,8 +356,6 @@ def build_tree_json(
     pages_by_cat, index_items_by_cat = build_category_membership_maps(content_index)
 
     emitted_ids: dict[str, str] = {}  # category title -> id of its first (real) emission
-    seen_main_titles_top: set[str] = set()  # titles already emitted as a top-level page under SOME category (dedup across categories)
-    seen_index_titles_top: set[str] = set()  # same dedup, for Index items (an item can carry >1 category tag too)
 
     def cat_id(title: str) -> str:
         return "cat:" + title
@@ -362,34 +379,29 @@ def build_tree_json(
             for child_title in sorted(cat_node.children):
                 children.append(build_category(child_title))
 
+        # Every category that directly tags a page/Index item builds and shows
+        # its own full, real node -- a page tagged into 2+ categories is a
+        # genuinely true member of each, not a redundant duplicate (unlike a
+        # multi-parented *category*, whose descendant content really is
+        # identical everywhere). No pointer/skip logic at this level; dedup
+        # for ancestor rollups happens in a separate pass below
+        # (recompute_stats_dedup) that sums over the *distinct* set of page/
+        # Index-item ids reachable from a node, so a page counted here and
+        # again at a sibling category is still only counted once wherever
+        # their paths converge.
         page_jsons = []
-        rolled = _empty_stats()
         for page_title in sorted(pages_by_cat.get(title, [])):
-            if page_title in seen_main_titles_top:
-                continue  # a page filed under >1 category directly: emitted once, at first category encountered
             main_node = main_nodes.get(page_title)
             if main_node is None or main_node.parent_title is not None:
                 continue  # not a Main record, or it's itself a subpage of another page (nested there instead)
-            seen_main_titles_top.add(page_title)
-            page_json, page_rolled = build_page_node(main_node, node_id, content_index)
+            page_json, _ = build_page_node(main_node, node_id, content_index)
             page_jsons.append(page_json)
-            rolled = _merge_stats(rolled, page_rolled)
 
         index_jsons = []
         for bare_title in sorted(index_items_by_cat.get(title, [])):
-            if bare_title in seen_index_titles_top:
-                continue  # an Index item filed under >1 category directly: emitted once, at first category encountered
             if is_transcluded(bare_title, transclusion_map):
                 continue  # published elsewhere in Main -- drop the raw Index item per spec
-            seen_index_titles_top.add(bare_title)
-            index_json = build_index_item_node(bare_title, content_index, index_ns_name)
-            index_jsons.append(index_json)
-            rolled = _merge_stats(rolled, index_json["stats"])
-
-        for child in children:
-            if child["type"] == "category-pointer":
-                continue  # pointer stats are resolved in the rollup pass, not summed here (would double count)
-            rolled = _merge_stats(rolled, child["stats"])
+            index_jsons.append(build_index_item_node(bare_title, content_index, index_ns_name))
 
         return {
             "id": node_id,
@@ -399,7 +411,7 @@ def build_tree_json(
             "children": children,
             "pages": page_jsons,
             "index_items": index_jsons,
-            "stats": rolled,
+            "stats": None,  # filled in by recompute_stats_dedup below
         }
 
     root = build_category(graph.root_title)
@@ -415,13 +427,14 @@ def build_tree_json(
     # means a category shared between two orphan clusters (or one that's
     # simply a deeper, not-yet-visited part of an orphan tree) gets the same
     # category-pointer/dedup handling for free.
-    orphan_main_titles = sorted(
-        t for t, n in main_nodes.items()
-        if n.parent_title is None and t not in seen_main_titles_top
-    )
+    #
+    # A page/Index item is reachable iff at least one of its direct tags is
+    # itself reachable (in emitted_ids) -- unlike the old page-pointer scheme,
+    # there's no "first-claimed-it" bookkeeping to consult here anymore, since
+    # every reachable category independently re-emits its own direct tags.
+    orphan_main_titles = sorted(t for t, n in main_nodes.items() if n.parent_title is None)
     orphan_index_titles = sorted(
-        t for t in content_index.index_categories
-        if t not in seen_index_titles_top and not is_transcluded(t, transclusion_map)
+        t for t in content_index.index_categories if not is_transcluded(t, transclusion_map)
     )
 
     orphan_cat_roots: dict[str, None] = {}  # ordered set of category titles to crawl as fresh roots
@@ -429,17 +442,19 @@ def build_tree_json(
     orphan_zero_cat_index: list[str] = []
     for t in orphan_main_titles:
         cats = [c for c in content_index.main_categories.get(t, set()) if not is_excluded_category(c)]
-        unreached = [c for c in cats if c not in emitted_ids]
-        if unreached:
-            for c in unreached:
+        if any(c in emitted_ids for c in cats):
+            continue  # reachable via at least one real tag -- already emitted above
+        if cats:
+            for c in cats:
                 orphan_cat_roots.setdefault(c, None)
         else:
             orphan_zero_cat_main.append(t)
     for t in orphan_index_titles:
         cats = [c for c in content_index.index_categories.get(t, set()) if not is_excluded_category(c)]
-        unreached = [c for c in cats if c not in emitted_ids]
-        if unreached:
-            for c in unreached:
+        if any(c in emitted_ids for c in cats):
+            continue
+        if cats:
+            for c in cats:
                 orphan_cat_roots.setdefault(c, None)
         else:
             orphan_zero_cat_index.append(t)
@@ -452,23 +467,14 @@ def build_tree_json(
     orphan_children.sort(key=lambda n: n["title"])
 
     orphan_page_jsons = []
-    orphan_rolled = _empty_stats()
     for t in orphan_zero_cat_main:
         main_node = main_nodes[t]
-        page_json, page_rolled = build_page_node(main_node, cat_id(ORPHAN_BUCKET_TITLE), content_index)
+        page_json, _ = build_page_node(main_node, cat_id(ORPHAN_BUCKET_TITLE), content_index)
         orphan_page_jsons.append(page_json)
-        orphan_rolled = _merge_stats(orphan_rolled, page_rolled)
 
-    orphan_index_jsons = []
-    for t in orphan_zero_cat_index:
-        index_json = build_index_item_node(t, content_index, index_ns_name)
-        orphan_index_jsons.append(index_json)
-        orphan_rolled = _merge_stats(orphan_rolled, index_json["stats"])
-
-    for child in orphan_children:
-        if child["type"] == "category-pointer":
-            continue
-        orphan_rolled = _merge_stats(orphan_rolled, child["stats"])
+    orphan_index_jsons = [
+        build_index_item_node(t, content_index, index_ns_name) for t in orphan_zero_cat_index
+    ]
 
     orphan_bucket = None
     if orphan_children or orphan_page_jsons or orphan_index_jsons:
@@ -479,12 +485,19 @@ def build_tree_json(
             "children": orphan_children,
             "pages": orphan_page_jsons,
             "index_items": orphan_index_jsons,
-            "stats": orphan_rolled,
+            "stats": None,  # filled in below
         }
         root["children"].append(orphan_bucket)
 
-    # Resolve category-pointer stats (they point to a node built earlier in
-    # the same walk, whose stats dict now exists in emitted_ids' owner).
+    # Compute every category's stats bottom-up as the sum over the *distinct*
+    # set of page/Index-item ids reachable from it -- not a naive sum of
+    # children's stats, which would double-count a page/Index item filed
+    # directly under two categories that both appear beneath this node (see
+    # build_category above: every reachable category now independently
+    # re-emits its own direct tags in full, on purpose, so this pass is the
+    # only place dedup happens). Mirrors old scrape.py's attach_stats.
+    # Memoized by node id since a category-pointer's target subtree, or a
+    # category shared by two orphan-root sweeps, can be reached more than once.
     by_id: dict[str, dict] = {}
 
     def index_by_id(node: dict) -> None:
@@ -492,16 +505,47 @@ def build_tree_json(
         for ch in node.get("children", []):
             index_by_id(ch)
 
-    index_by_id(root)
+    index_by_id(root)  # orphan_bucket is already among root["children"] by this point
 
-    def resolve_pointers(node: dict) -> None:
-        for i, child in enumerate(node.get("children", [])):
-            if child["type"] == "category-pointer" and child["stats"] is None:
-                target = by_id.get(child["points_to"])
-                child["stats"] = target["stats"] if target else _empty_stats()
-            resolve_pointers(child)
+    memo: dict[str, tuple[dict, dict, dict]] = {}
 
-    resolve_pointers(root)
+    def recompute_stats_dedup(node: dict) -> tuple[dict, dict, dict]:
+        """Returns (stats, page_stats_by_id, index_stats_by_id) for the distinct
+        set of page/Index-item ids reachable from `node`, each mapped to its own
+        (already-correct, per-page) stats dict."""
+        node_id = node["id"]
+        if node_id in memo:
+            return memo[node_id]
+
+        if node["type"] == "category-pointer":
+            target = by_id.get(node["points_to"])
+            result = recompute_stats_dedup(target) if target else (_empty_stats(), {}, {})
+            node["stats"] = result[0]
+            memo[node_id] = result
+            return result
+
+        page_stats: dict[str, dict] = {p["id"]: p["stats"] for p in node.get("pages", [])}
+        index_stats: dict[str, dict] = {it["id"]: it["stats"] for it in node.get("index_items", [])}
+
+        for child in node.get("children", []):
+            _, child_page_stats, child_index_stats = recompute_stats_dedup(child)
+            for pid, s in child_page_stats.items():
+                page_stats.setdefault(pid, s)
+            for iid, s in child_index_stats.items():
+                index_stats.setdefault(iid, s)
+
+        stats = _empty_stats()
+        for s in page_stats.values():
+            stats = _merge_stats(stats, s)
+        for s in index_stats.values():
+            stats = _merge_stats(stats, s)
+
+        node["stats"] = stats
+        result = (stats, page_stats, index_stats)
+        memo[node_id] = result
+        return result
+
+    recompute_stats_dedup(root)  # recurses into orphan_bucket too, as one of root's children
 
     # वर्गसर्वस्वम् (the literal MediaWiki category root) isn't a useful node to
     # show readers -- once the junk siblings are excluded (see

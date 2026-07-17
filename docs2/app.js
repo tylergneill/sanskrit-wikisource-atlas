@@ -5,6 +5,9 @@ const state = {
   byId: new Map(),          // id -> node, built at load time (needed to resolve category-pointer nodes)
   siblingIds: new Map(),    // id -> [other occurrence ids of the same shared category] (both directions)
   parentPath: new Map(),    // id -> array of ancestor titles (root excluded), for "see also X > Y" hints
+  multiCatTitles: new Set(),// page/index-item titles that appear under >1 category (see build_category_membership_maps
+                             // in pipeline/process.py -- each such category independently shows the full real item, so
+                             // this is purely a UI hint, not a dedup mechanism) -- powers the "also filed under..." button
   selectedCatId: null,
   scheme: "iast",           // devanagari | iast | hk | itrans | slp1
   expanded: new Set(),      // node ids expanded in sidebar
@@ -422,6 +425,7 @@ function renderPageLi(p) {
       hasSubpages
         ? el("span", { class: "small", style: "margin-left:6px; opacity:0.6;" }, `(+ ${p.subpages.length} pp)`)
         : null,
+      renderMultiCatButton(p.title),
     ),
     toggle,
   );
@@ -468,8 +472,33 @@ function renderIndexItemLi(item) {
       el("span", { class: "indexBadge", title: "Scanned/OCR source, not yet a finished mainspace text" }, "OCR only"),
       a,
       meta ? el("span", { class: "small" }, meta) : null,
+      renderMultiCatButton(item.title),
     )
   );
+}
+
+// Small icon button shown only on a page/index-item row whose title is filed
+// under more than one category directly (see state.multiCatTitles). Clicking it
+// populates the search box with the item's exact title -- reusing search (rather
+// than a bespoke "see also" cross-reference UI) is a deliberately lightweight way
+// to show every category location at once, since each now renders the item in
+// full with its own real stats (see pipeline/process.py's build_category).
+function renderMultiCatButton(title) {
+  if (!state.multiCatTitles.has(title)) return null;
+  return el("button", {
+    class: "multiCatBtn",
+    type: "button",
+    title: "Filed under more than one category -- click to search and see all locations",
+    onclick: (ev) => {
+      ev.preventDefault();
+      ev.stopPropagation();
+      const input = document.getElementById("searchInput");
+      input.value = displayTitle(title);
+      state.searchQuery = displayTitle(title).toLowerCase();
+      renderSidebarTree();
+      renderMain();
+    },
+  }, el("span", { class: "searchIcon" }));
 }
 
 // "See also" hint: this category is filed under more than one parent -- name the
@@ -614,6 +643,31 @@ function renderCategoryBlock(catNode, { includeLeaves, depth, isRoot, isSearch }
 
 // --- wiring
 
+// Walks every page/index-item title in the tree (including nested subpages) and
+// records which ones appear more than once -- i.e. filed under >1 category
+// directly, per pipeline/process.py's build_category_membership_maps. Powers
+// renderMultiCatButton; a plain occurrence count is enough since the pipeline no
+// longer emits pointer nodes for pages/index-items (each category shows the full
+// real item -- see pipeline/process.py's recompute_stats_dedup for how ancestor
+// rollups still avoid double-counting without needing pointers at this level).
+function collectMultiCatTitles(node, counts) {
+  for (const p of (node.pages || [])) {
+    counts.set(p.title, (counts.get(p.title) || 0) + 1);
+    collectSubpageTitles(p, counts);
+  }
+  for (const it of (node.index_items || [])) {
+    counts.set(it.title, (counts.get(it.title) || 0) + 1);
+  }
+  for (const ch of (node.children || [])) collectMultiCatTitles(ch, counts);
+}
+
+function collectSubpageTitles(p, counts) {
+  for (const sp of (p.subpages || [])) {
+    counts.set(sp.title, (counts.get(sp.title) || 0) + 1);
+    collectSubpageTitles(sp, counts);
+  }
+}
+
 function indexById(node, byId, parentPath, ancestorTitles = []) {
   if (node.id) {
     byId.set(node.id, node);
@@ -648,6 +702,10 @@ async function loadData() {
       state.siblingIds.set(id, ids.filter((x) => x !== id));
     }
   }
+
+  const titleCounts = new Map();
+  collectMultiCatTitles(state.data.root, titleCounts);
+  state.multiCatTitles = new Set([...titleCounts].filter(([, n]) => n > 1).map(([t]) => t));
 
   state.selectedCatId = state.data.root.id;
   state.expanded.add(state.data.root.id);

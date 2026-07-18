@@ -41,7 +41,12 @@
         </p>
         <p class="small">
           <span id="appVersion"></span>
-          <span id="dataUpdated" style="margin-left:10px;"></span>
+        </p>
+        <p class="small">
+          data last sourced from <a href="https://dumps.wikimedia.org/other/mediawiki_content_current/sawikisource/" target="_blank" rel="noopener">Wikimedia</a>: <span id="contentDate"></span>
+        </p>
+        <p class="small">
+          <span id="pipelineRun"></span>
         </p>
       </div>
     </section>
@@ -55,20 +60,25 @@
         const text = await r.text();
         for (const line of text.split("\n")) {
           if (!line.includes("=")) continue;
-          const [key, rawValue] = line.split("=");
-          const value = rawValue.trim().replace(/['"]/g, "");
-          if (key.trim() === "__version__") {
+          const eqIdx = line.indexOf("=");
+          const key = line.slice(0, eqIdx).trim();
+          const value = line.slice(eqIdx + 1).trim().replace(/^['"]|['"]$/g, "");
+          if (key === "__code_version__") {
             const el = document.getElementById("appVersion");
-            if (el) el.textContent = "v" + value;
-          } else if (key.trim() === "__data_version__") {
-            const el = document.getElementById("dataUpdated");
-            if (el) el.textContent = `data updated ${value}`;
+            if (el) el.textContent = `code version: v${value}`;
+          } else if (key === "__data_version__") {
+            const el = document.getElementById("pipelineRun");
+            if (el) el.textContent = `data pipeline last run: ${value}`;
+          } else if (key === "__content_version__") {
+            const el = document.getElementById("contentDate");
+            if (el) el.textContent = value;
           }
         }
       } catch (e) {
         console.log("Could not load version:", e);
       }
     }
+
     loadVersion();
   </script>
 </body>

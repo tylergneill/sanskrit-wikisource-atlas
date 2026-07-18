@@ -322,8 +322,10 @@ a[target="_blank"]::after{
 /* Elements with a `title` attribute get a long-press popup instead (see
    initLongPressTooltips in app.js) -- suppress iOS/Safari's native
    long-press text-selection callout and copy/search context menu so it
-   doesn't show up alongside our own popup. */
-[title]{
+   doesn't show up alongside our own popup. .selectable-title opts an
+   element back into normal text selection (e.g. #dataUpdated, whose text
+   is itself useful to copy) while still getting the long-press popup. */
+[title]:not(.selectable-title){
   -webkit-touch-callout: none;
   -webkit-user-select: none;
   user-select: none;

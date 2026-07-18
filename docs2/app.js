@@ -982,26 +982,40 @@ function filterTree(node, query) {
   return null;
 }
 
+// Primary datestamp shown to users (topbar #dataUpdated) is __content_version__:
+// the date of the Wikimedia dump snapshot itself (not a rollup over
+// page-edit timestamps -- the main panel already surfaces per-item edit
+// dates on its own). __data_version__ (when we last ran the pipeline
+// against that snapshot) is secondary and only surfaces as a tooltip here;
+// see about.html for both shown in full.
 async function loadVersion() {
   try {
     const r = await fetch("./VERSION");
     if (!r.ok) return;
     const text = await r.text();
     const lines = text.split("\n");
+    let pipelineRunDate = "";
+    let contentDate = "";
     for (const line of lines) {
       if (!line.includes("=")) continue;
-      const [key, rawValue] = line.split("=");
-      const value = rawValue.trim().replace(/['"]/g, "");
-      if (key.trim() === "__version__") {
+      const eqIdx = line.indexOf("=");
+      const key = line.slice(0, eqIdx).trim();
+      const value = line.slice(eqIdx + 1).trim().replace(/^['"]|['"]$/g, "");
+      if (key === "__code_version__") {
         const el = document.getElementById("appVersion");
         if (el) el.textContent = "v" + value;
-      } else if (key.trim() === "__data_version__") {
-        const el = document.getElementById("dataUpdated");
-        if (el) {
-          el.textContent = `${value}`;
-          el.title = "Date the pipeline was last run (see About for full changelog)";
-        }
+      } else if (key === "__data_version__") {
+        pipelineRunDate = value;
+      } else if (key === "__content_version__") {
+        contentDate = value;
       }
+    }
+    const el = document.getElementById("dataUpdated");
+    if (el && contentDate) {
+      el.textContent = contentDate;
+      el.title = pipelineRunDate
+        ? `data last sourced from Wikimedia; pipeline last run ${pipelineRunDate}`
+        : "date of the Wikimedia dump snapshot this data was built from";
     }
   } catch (e) {
     console.log("Could not load version:", e);

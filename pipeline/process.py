@@ -71,6 +71,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 import sys
 import time
 from dataclasses import dataclass
@@ -641,21 +642,36 @@ def main() -> None:
     print(f"wrote {args.out}", file=sys.stderr)
     print(f"root stats: {tree['root']['stats']}", file=sys.stderr)
 
-    _stamp_data_version()
+    dump_date_match = re.search(r"sawikisource-(\d{4}-\d{2}-\d{2})-", xml_path.name)
+    dump_date = dump_date_match.group(1) if dump_date_match else ""
+
+    _stamp_data_version(dump_date)
 
     elapsed = time.time() - run_start
     print(f"total run time: {elapsed:.0f}s ({elapsed / 60:.1f}m)", file=sys.stderr)
 
 
-def _stamp_data_version() -> None:
-    """Record today's date as __data_version__ in docs2/VERSION (second line),
-    alongside __version__ (code version, bumped manually/separately). Mirrors
-    scrape.py's _stamp_data_version() for the legacy docs/ pipeline."""
+def _stamp_data_version(dump_date: str) -> None:
+    """Record today's date as __data_version__ (pipeline-run date) and the
+    Wikimedia dump export's own date (parsed from the source XML filename,
+    e.g. sawikisource-2026-07-01-....xml -> "2026-07-01") as
+    __content_version__ in docs2/VERSION, alongside __code_version__ (bumped
+    manually/separately). __content_version__ is deliberately just the
+    dump's snapshot date -- not a rollup over page-edit timestamps, which
+    the main panel already surfaces per-item on its own. Mirrors scrape.py's
+    _stamp_data_version() for the legacy docs/ pipeline, which does not
+    track __content_version__."""
     version_path = Path(__file__).resolve().parent.parent / "docs2" / "VERSION"
     today = time.strftime("%Y-%m-%d", time.gmtime())
-    lines = version_path.read_text(encoding="utf-8").splitlines() if version_path.exists() else ['__version__ = "0.1.0"']
-    lines = [ln for ln in lines if not ln.startswith("__data_version__")]
+    lines = version_path.read_text(encoding="utf-8").splitlines() if version_path.exists() else ['__code_version__ = "0.1.0"']
+    lines = [
+        ln for ln in lines
+        if not ln.startswith("__data_version__")
+        and not ln.startswith("__content_version__")
+    ]
     lines.append(f'__data_version__ = "{today}"')
+    if dump_date:
+        lines.append(f'__content_version__ = "{dump_date}"')
     version_path.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
 

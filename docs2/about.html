@@ -49,6 +49,120 @@
           <span id="pipelineRun"></span>
         </p>
       </div>
+
+      <details class="block collapsible">
+        <summary><h2>A Practical Intro to Wikisource Structure</h2></summary>
+
+        <h3>A Graph of Pages</h3>
+        <p>
+          Wikisource's most basic ontological unit is the page.
+          Pages can freely link to each other, creating a directed graph.
+          "Subpage" is not a distinct type, but when one page links to a number of others, as in a table of contents,
+          then we can think of the linking page as the parent and the linked "subpages" as the children.
+          These connections are all made manually.
+        </p>
+
+        <h3>Breadcrumbs</h3>
+        <p>
+          In order for subpages to automatically link back to their parent pages,
+          their names must be prefixed with the parent page's exact name and a slash.
+          E.g., "अग्निपुराणम्/अध्यायः १".
+          Wikisource automatically parses such child-page names and inserts a link to the parent page at the top,
+          so-called "breadcrumbs."
+        </p>
+
+        <h3>Categories</h3>
+        <p>
+          The next basic ontological unit is the category. Pages can be labeled with any number of categories.
+          Categories also relate to each other, creating their own directed graph.
+          When set up correctly, the category graph forms a simple hierarchical tree, with a single root and nothing left out.
+          However, since categorization is done manually, this is not guaranteed.
+        </p>
+
+        <h3>Namespaces</h3>
+        <p>
+          Distinct ontological types exist in different "namespaces".
+          Regular pages are in namespace 0 (technically called "Main"), and categories constitute namespace 14.
+          This makes it easy to use the computational backend (API) to request all items of a given type.
+        </p>
+
+        <h3>OCR "Proofreading" Pipeline Types</h3>
+        <p>
+          Everything above assumes manual creation of pages and population of content.
+          However, Wikisource also contains a "Proofreading" workflow which supports OCRing books.
+          The central item holding the image file (type "Index," namespace 106)
+          uses the image file's metadata to automatically create a proofreading progress table,
+          with one link per page and color-coding to show whether that page has been proofread.
+          Individual page items (type "Page," namespace 104) are created one at a time
+          the first time someone clicks on one of those links and saves it.
+          These pages assist proofreading by OCRing the page content (with Tesseract)
+          and offering a side-by-side image display and editing window.
+          Proofreading progress is then incremented manually, moving the color-coding from red to yellow to green.
+        </p>
+        <p>
+          These "Pages" (namespace 104) are ontologically distinct from mainspace pages (namespace 0).
+        </p>
+
+        <h3>Transclusion</h3>
+        <p>
+          Content of a given item can be injected into the content of another.
+          This is especially relevant for symbolically linking to proofreading-flow "Pages" from a user-facing mainspace page.
+          In that way, as an individual proofreading-flow "Page" is updated, the mainspace page automatically updates,
+          and the mainspace page can be made to include (or "transclude") only relevant pages,
+          skipping unwanted scan pages (e.g., front matter, index).
+        </p>
+
+        <p>
+          However, nothing guarantees that transclusion is used in this way.
+          Instead, an editor may occasionally copy-paste Page text into Main.
+          This will look identical to readers unless they inspect the wiki code,
+          but it breaks the link back to the source scan, so later proofreading corrections will no longer propagate.
+        </p>
+
+        <p>
+          Finally, these proofreading-flow items (Index and Page) can be given categories just like anything else.
+          To avoid bloated display of category contents,
+          the ideal convention is to categorize only the proofreading Index
+          and/or the Mainspace page that transcludes the content, not the individual proofreading Page.
+        </p>
+
+      </details>
+
+      <details class="block collapsible">
+        <summary><h2>Notes on How this Mirror Represents Wikisource Structure</h2></summary>
+
+        <h3>Representing Deviations from the Category Tree</h3>
+        <p>
+          Categories link to their own parent category the same way any page links to a category —
+          there's no technical enforcement of a single connected structure. In practice this means
+          some categories are orphaned, small clusters can sit disconnected from the main hierarchy,
+          and a category can legitimately have more than one parent.
+        </p>
+        <p>
+          To help visualize this, this mirror places all orphaned communities and individual items
+          under the artificial label "asaṃbaddhavargīkṛta."
+          Furthermore, when a category is filed under two parents, the mirror shows it at both locations, cross-linked,
+          and it is careful not to double-count contents for the sake of filesize or page counts.
+          When individual Mainspace or proofreading Index items are categorized in ways that do not sit comfortably at a single place in the tree
+          — which is fully expected and proper! —
+          a magnifying glass icon helps the user visualize the item in its multiple locations by populating the search bar.
+        </p>
+
+        <h3>How byte counts are calculated</h3>
+        <p>
+          The size Wikisource itself reports for a page is just its stored wikitext — markup, templates,
+          and category tags included, and for a page that transcludes another page's content, the
+          transcluding page's own size is tiny regardless of how much text actually displays. Getting a
+          true sense of "how much real text is here" requires parsing the wikitext and stripping all of
+          that overhead out, which is what this mirror's own size figures are built from, rather than
+          repeating Wikisource's raw byte counts as-is.
+        </p>
+        <p>
+          It also transliterates from Devanagari to IAST in order to enable more meaningful comparison across collections,
+          whose sizes are more usually given in terms of IAST content.
+          Content transliterated as IAST is approximately 60% the filesize of its Devanagari equivalent.
+        </p>
+      </details>
     </section>
   </main>
 

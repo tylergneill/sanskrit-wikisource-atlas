@@ -250,6 +250,31 @@ a.topbar-link:hover { text-decoration: underline; }
   margin-bottom: 10px;
 }
 
+.content .block.collapsible{ padding: 10px 12px; }
+.content .block.collapsible > summary{
+  cursor: pointer;
+  list-style: none;
+  display: flex;
+  align-items: center;
+}
+.content .block.collapsible > summary::-webkit-details-marker{ display: none; }
+.content .block.collapsible > summary h2{ margin: 0; }
+.content .block.collapsible > summary::before{
+  content: "";
+  display: inline-block;
+  width: 0.6em;
+  height: 0.6em;
+  margin-right: 10px;
+  border-right: 2px solid var(--muted);
+  border-bottom: 2px solid var(--muted);
+  transform: rotate(-45deg);
+  transition: transform 0.15s ease;
+}
+.content .block.collapsible[open] > summary::before{ transform: rotate(45deg); }
+.content .block.collapsible h3{ margin: 14px 0 4px; }
+.content .block.collapsible h3:first-of-type{ margin-top: 14px; }
+.content .block.collapsible p{ margin: 4px 0 10px; }
+
 .sticky-header{
   position: sticky;
   background: var(--panel);

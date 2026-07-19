@@ -163,6 +163,95 @@
           Content transliterated as IAST is approximately 60% the filesize of its Devanagari equivalent.
         </p>
       </details>
+
+      <details class="block collapsible">
+        <summary><h2>How the Data Pipeline Works</h2></summary>
+
+        <h3>Data acquisition</h3>
+        <p>
+          Content comes from Wikimedia's official monthly Content File Export for sa.wikisource.org
+          (<code>mediawiki_content_current</code>), not the live API and not the deprecated legacy XML dumps.
+          A single downloaded file covers every namespace the pipeline needs — Main, Category, Index, Page,
+          Template, and Module — verified against Wikimedia's published SHA256 checksums before use.
+          This is a full-refresh model, not incremental: the whole site is rebuilt fresh from each month's
+          snapshot rather than tracking day-to-day edits.
+        </p>
+
+        <h3>Main-namespace tree</h3>
+        <p>
+          Parent/child relationships among mainspace pages come entirely from breadcrumb parsing:
+          splitting a title on its last slash (e.g. "कार्यम्/भागः १" → parent "कार्यम्").
+          Unlike the category graph below, this is a genuine tree — every title has exactly one parent,
+          so no deduplication is needed when rolling up size or latest-change stats.
+        </p>
+
+        <h3>Category graph and multi-parenting</h3>
+        <p>
+          Category edges come from each category page's own <code>[[Category:Parent]]</code> tag —
+          a manually-maintained graph, not guaranteed to form a clean tree.
+          A category can have more than one parent, and not everything is reachable from the root
+          category, वर्गसर्वस्वम्. Multiply-filed categories are shown at every location they're filed,
+          cross-linked, with rollups deduplicated so shared content is never double-counted.
+          Disconnected clusters that never reach the root are listed separately rather than forced into it.
+        </p>
+        <p>
+          Category membership does not bubble up: a category tag on a deeply nested subpage does not
+          cause its ancestor works to inherit that category. One narrow exception exists — if every
+          subpage under a work shares a category the work itself lacks, that category is inferred onto
+          the work and visibly marked as inferred; this is a display-only convenience and never edits
+          the live wiki.
+        </p>
+
+        <h3>असंबद्धवर्गीकृतम् (insufficiently categorized content)</h3>
+        <p>
+          Some content is unreachable from the root category — either because it carries no category
+          tag at all, or because every tag it carries points to a category that is itself orphaned from
+          the root (for example, a full parvan-category hierarchy that exists on the live wiki but is
+          never linked in from anywhere reachable). Both cases are swept into one bucket labeled
+          असंबद्धवर्गीकृतम् — deliberately not "अवर्गीकृतम्" (uncategorized), since the second case genuinely
+          does carry a category tag, just not one that connects anywhere. This bucket is fully browsable
+          as its own set of subtrees and loose items, but is excluded from the main tree's own headline
+          size/count totals.
+        </p>
+
+        <h3>Transclusion and untranscluded OCR content</h3>
+        <p>
+          Many works begin life as a scanned, OCR'd Index item (proofreading namespace) before an editor
+          assembles a finished mainspace page that transcludes the proofread pages. The pipeline parses
+          mainspace wikitext for transclusion tags: if a mainspace page transcludes any content from a
+          given Index item, that Index item is considered sufficiently complete and only the mainspace
+          version is shown. If an Index item is never transcluded anywhere, it's surfaced directly in the
+          category tree instead, explicitly marked as untranscluded/raw OCR content, using its own
+          category tags. This transcluded/untranscluded distinction is deliberately kept separate from
+          proofreading-quality (color-coded) status — a fully proofread work can still be untranscluded
+          if no one has assembled the mainspace page yet.
+        </p>
+        <p>
+          Rather than listing an untranscluded Index item's individual scanned-page children one by one,
+          the pipeline reads them once to compute a single rolled-up size and latest-change stat, attached
+          to the Index item itself — the same kind of rollup a finished mainspace work gets from its own
+          subpages, so untranscluded works don't misleadingly appear near-empty.
+        </p>
+
+        <h3>Size computation</h3>
+        <p>
+          Rather than estimating content size with heuristics, the pipeline fully parses each page's
+          wikitext, expands template calls for real (substituting parameters and recursively re-parsing,
+          rather than merely describing that a template was called), evaluates Lua-based (Scribunto)
+          modules where they materially affect visible text, and then runs actual transliteration to
+          produce true byte counts — rather than an estimated Devanagari→IAST expansion factor.
+        </p>
+
+        <h3>Pipeline stages</h3>
+        <p>
+          The pipeline runs in three decoupled stages, driven monthly by a GitHub Action: fetch
+          (locate, download, and verify the latest dump), build (parse the dump once into per-namespace
+          records, construct the mainspace tree and category graph, detect transclusion, compute sizes
+          and rollups), and publish (materialize the result into this site's data format). Keeping fetch
+          separate from build/publish means the tree-building and size-computation logic can be iterated
+          on locally against an already-downloaded, cached dump without re-fetching it each time.
+        </p>
+      </details>
     </section>
   </main>
 

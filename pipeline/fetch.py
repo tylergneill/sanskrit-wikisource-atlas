@@ -48,19 +48,27 @@ def _dir_url(date_str: str) -> str:
     return f"{BASE_URL}/{DATASET}/{WIKI_ID}/{date_str}/xml/bzip2"
 
 
+def find_export(date_str: str) -> DumpExport | None:
+    """Check one exact month (e.g. "2026-05-01") for a complete export. Returns
+    None if SHA256SUMS isn't present there (run incomplete or date has no export)."""
+    dir_url = _dir_url(date_str)
+    sums_url = f"{dir_url}/SHA256SUMS"
+    resp = session.get(sums_url, timeout=30)
+    if resp.ok:
+        part_files = _parse_sha256sums(resp.text)
+        if part_files:
+            return DumpExport(date=date_str, dir_url=dir_url, part_files=part_files)
+    return None
+
+
 def find_latest_export(max_months_back: int = 6) -> DumpExport | None:
     """Walk backward month-by-month from today, returning the first complete export found."""
     today = datetime.date.today()
     d = today.replace(day=1)
     for _ in range(max_months_back):
-        date_str = d.isoformat()
-        dir_url = _dir_url(date_str)
-        sums_url = f"{dir_url}/SHA256SUMS"
-        resp = session.get(sums_url, timeout=30)
-        if resp.ok:
-            part_files = _parse_sha256sums(resp.text)
-            if part_files:
-                return DumpExport(date=date_str, dir_url=dir_url, part_files=part_files)
+        export = find_export(d.isoformat())
+        if export is not None:
+            return export
         d = _prev_month(d)
     return None
 
@@ -171,19 +179,30 @@ def _decompress(bz2_path: Path, force: bool = False) -> Path:
     return xml_path
 
 
-def fetch(out_dir: Path = DEFAULT_OUT_DIR, max_months_back: int = 6, force: bool = False) -> list[Path]:
-    """Resolve the latest available export online, compare it against what's already
-    verified in out_dir, download/verify whatever's missing or stale, and decompress
-    each verified part into a sibling .xml file. Deletes any leftover files from a
-    prior, now-superseded export. If everything is already present, verified, and
-    decompressed, this is a no-op unless force is set.
+def fetch(
+    out_dir: Path = DEFAULT_OUT_DIR,
+    max_months_back: int = 6,
+    force: bool = False,
+    date: str | None = None,
+) -> list[Path]:
+    """Resolve an available export online (the latest, or a specific month if `date`
+    is given), compare it against what's already verified in out_dir, download/verify
+    whatever's missing or stale, and decompress each verified part into a sibling .xml
+    file. Deletes any leftover files from a prior, now-superseded export in the same
+    out_dir. If everything is already present, verified, and decompressed, this is a
+    no-op unless force is set.
     """
-    export = find_latest_export(max_months_back=max_months_back)
-    if export is None:
-        raise RuntimeError(
-            f"no complete {DATASET} export found for {WIKI_ID} in the last {max_months_back} months"
-        )
-    print(f"latest export online: {export.date} ({len(export.part_files)} part file(s))", file=sys.stderr)
+    if date is not None:
+        export = find_export(date)
+        if export is None:
+            raise RuntimeError(f"no complete {DATASET} export found for {WIKI_ID} at {date}")
+    else:
+        export = find_latest_export(max_months_back=max_months_back)
+        if export is None:
+            raise RuntimeError(
+                f"no complete {DATASET} export found for {WIKI_ID} in the last {max_months_back} months"
+            )
+    print(f"export: {export.date} ({len(export.part_files)} part file(s))", file=sys.stderr)
     bz2_paths = download_and_verify(export, out_dir, force=force)
     return [_decompress(p, force=force) for p in bz2_paths]
 
@@ -197,9 +216,12 @@ def main() -> None:
     parser.add_argument("--force", action="store_true",
                          help="re-download and re-verify every part file even if already present "
                               "and verified locally")
+    parser.add_argument("--date", type=str, default=None,
+                         help="fetch one specific month's export (e.g. 2026-05-01) instead of "
+                              "the latest available; errors if that month's export isn't complete")
     args = parser.parse_args()
 
-    paths = fetch(out_dir=args.out_dir, max_months_back=args.max_months_back, force=args.force)
+    paths = fetch(out_dir=args.out_dir, max_months_back=args.max_months_back, force=args.force, date=args.date)
     for p in paths:
         print(p)
 

@@ -252,6 +252,18 @@
           on locally against an already-downloaded, cached dump without re-fetching it each time.
         </p>
       </details>
+
+      <details class="block collapsible">
+        <summary><h2>Data Changelog</h2></summary>
+        <p class="small">
+          Wikimedia's Content File Export format (what this pipeline reads) launched in January 2026,
+          and as of this writing only 3 months are available online (older ones return 404), so this
+          history starts there rather than further back. No published retention policy states this in
+          writing; it's inferred from the format's young age and from the same 3-month window holding
+          across unrelated wikis.
+        </p>
+        <div id="changelog2">Loading…</div>
+      </details>
     </section>
   </main>
 
@@ -284,5 +296,6 @@
 
     loadVersion();
   </script>
+  <script type="module" src="./about2.js"></script>
 </body>
 </html>

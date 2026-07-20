@@ -164,13 +164,7 @@ def main() -> None:
         entry = {
             "id": next_id,
             "date": f"{new_date}T00:00:00Z",
-            "label": f"{old_date} -> {new_date} (live Wikisource content, monthly dump backfill)",
-            "notes": (
-                f"Backfilled from Wikimedia's mediawiki_content_current monthly export archive "
-                f"(3-month retention window). Both snapshots processed by the same current pipeline "
-                f"code -- this diff isolates live-content change between the two dump dates, not a "
-                f"pipeline/code change."
-            ),
+            "old_date": f"{old_date}T00:00:00Z",
             **report,
         }
         log.append(entry)

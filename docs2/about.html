@@ -12,6 +12,9 @@
       document.documentElement.setAttribute("data-theme", theme);
     })();
   </script>
+
+  <!-- Sanscript: pick one source you like; this one is commonly used -->
+  <script src="https://cdn.jsdelivr.net/npm/@indic-transliteration/sanscript@1.3.3/sanscript.min.js"></script>
 </head>
 <body>
   <header class="topbar">
@@ -19,6 +22,18 @@
       <span class="brand-title">Sanskrit Wikisource Mirror</span>
       <a href="./index.html" class="topbar-link">← Back to tree</a>
     </div>
+
+    <nav class="topnav">
+      <label class="navlabel" for="schemeSelect">अ→a</label>
+      <select id="schemeSelect">
+        <option value="devanagari">Devanagari</option>
+        <option value="iast" selected>IAST</option>
+        <option value="itrans">ITRANS</option>
+        <option value="hk">Harvard-Kyoto</option>
+        <option value="iso">ISO 15919</option>
+        <option value="slp1">SLP1</option>
+      </select>
+    </nav>
   </header>
 
   <main class="mainpane" style="height: calc(100% - 48px); display:flex; justify-content:center;">
@@ -43,7 +58,7 @@
           <span id="appVersion"></span>
         </p>
         <p class="small">
-          data last sourced from <a href="https://dumps.wikimedia.org/other/mediawiki_content_current/sawikisource/" target="_blank" rel="noopener">Wikimedia</a>: <span id="contentDate"></span>
+          data last <a href="https://dumps.wikimedia.org/other/mediawiki_content_current/sawikisource/" target="_blank" rel="noopener">sourced</a>: <span id="contentDate"></span>
         </p>
         <p class="small">
           <span id="pipelineRun"></span>
@@ -256,11 +271,7 @@
       <details class="block collapsible">
         <summary><h2>Data Changelog</h2></summary>
         <p class="small">
-          Wikimedia's Content File Export format (what this pipeline reads) launched in January 2026,
-          and as of this writing only 3 months are available online (older ones return 404), so this
-          history starts there rather than further back. No published retention policy states this in
-          writing; it's inferred from the format's young age and from the same 3-month window holding
-          across unrelated wikis.
+          Based on Wikimedia's Content File Export format for 2026-05-01 onward.
         </p>
         <div id="changelog2">Loading…</div>
       </details>

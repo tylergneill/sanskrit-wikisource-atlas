@@ -84,7 +84,10 @@ def diff_timestamps(old_items: Dict[str, dict], new_items: Dict[str, dict]) -> l
 
 
 def added_removed(old_items: Dict[str, dict], new_items: Dict[str, dict]) -> Tuple[list, list]:
-    added = sorted(set(new_items) - set(old_items))
+    added = [
+        {"id": iid, "date": new_items[iid].get("last_changed")}
+        for iid in sorted(set(new_items) - set(old_items))
+    ]
     removed = sorted(set(old_items) - set(new_items))
     return added, removed
 

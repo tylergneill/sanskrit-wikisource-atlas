@@ -68,6 +68,7 @@ import argparse
 import bz2
 import gzip
 import re
+import shutil
 import sys
 import xml.etree.ElementTree as ET
 from datetime import datetime, timezone
@@ -86,15 +87,64 @@ def localname(tag: str) -> str:
     return tag.rsplit("}", 1)[-1]
 
 
+class _ProgressReader:
+    """Wraps a raw binary file, tracking bytes read for progress reporting.
+    Sits underneath bz2/gzip so .tell() reflects *compressed* bytes consumed,
+    comparable against the on-disk file size for a rough % complete."""
+
+    def __init__(self, fh):
+        self._fh = fh
+        self.bytes_read = 0
+
+    def read(self, *args, **kwargs):
+        data = self._fh.read(*args, **kwargs)
+        self.bytes_read += len(data)
+        return data
+
+    def close(self):
+        self._fh.close()
+
+
+def _decompress_once(bz2_path: Path) -> Path:
+    """Decompress bz2_path to a sibling .xml, skipping the work if that .xml
+    already exists and is newer than the .bz2 (mtime-checked, same convention
+    as fetch_legacy._decompress). This lets repeated runs against the same
+    dump -- e.g. trying different --dates -- pay the decompression cost once,
+    not on every invocation."""
+    xml_path = bz2_path.with_suffix("")
+    if xml_path.exists() and xml_path.stat().st_mtime >= bz2_path.stat().st_mtime:
+        print(f"already decompressed: {xml_path.name}", file=sys.stderr)
+        return xml_path
+    print(f"decompressing {bz2_path.name} -> {xml_path.name} (one-time)...", file=sys.stderr)
+    tmp_path = xml_path.with_suffix(".xml.tmp")
+    with bz2.open(bz2_path, "rb") as src, open(tmp_path, "wb") as dst:
+        shutil.copyfileobj(src, dst)
+    tmp_path.rename(xml_path)
+    print(f"decompressed: {xml_path.name}", file=sys.stderr)
+    return xml_path
+
+
 def open_dump(path: str):
-    """Open the dump as a binary stream, transparently decompressing."""
+    """Open the dump as a binary stream. Returns (stream, progress_reader_or_None,
+    size_reference_path_or_None) -- progress_reader exposes .bytes_read (bytes
+    consumed so far, of the uncompressed .xml once a .bz2/.gz input has been
+    materialized to one -- see _decompress_once) for progress reporting;
+    size_reference_path is what its total size should be compared against
+    (None for stdin, where none of this is meaningful).
+
+    A .bz2 input is decompressed to a sibling .xml on disk once (cached on
+    subsequent calls); a .gz input is streamed directly since decompressing
+    it isn't the bottleneck bz2 is. Either way the returned stream is plain
+    uncompressed XML."""
     if path == "-":
-        return sys.stdin.buffer
+        return sys.stdin.buffer, None, None
     if path.endswith(".bz2"):
-        return bz2.open(path, "rb")
+        path = str(_decompress_once(Path(path)))
     if path.endswith(".gz"):
-        return gzip.open(path, "rb")
-    return open(path, "rb")
+        progress = _ProgressReader(open(path, "rb"))
+        return gzip.open(progress, "rb"), progress, None  # .gz size isn't the uncompressed size
+    progress = _ProgressReader(open(path, "rb"))
+    return progress, progress, Path(path)
 
 
 def parse_ts(ts: str) -> datetime:
@@ -203,8 +253,14 @@ def main():
 
     # Streaming parse. "start" events let us grab the root tag/namespace;
     # "end" events hand us complete <siteinfo> and <page> subtrees.
-    stream = open_dump(args.dump)
+    # (A .bz2 input is decompressed to a cached sibling .xml first --
+    # see _decompress_once -- which is itself the main source of any long
+    # silent pause before the lines below start appearing.)
+    stream, progress, size_ref_path = open_dump(args.dump)
+    print("starting streaming parse (no output until the first <page> is "
+          "fully read -- not a hang)...", file=sys.stderr)
     context = ET.iterparse(stream, events=("start", "end"))
+    total_size = size_ref_path.stat().st_size if size_ref_path is not None else None
 
     pages_seen = 0
     for event, elem in context:
@@ -247,6 +303,14 @@ def main():
                     w.write_header(mediawiki_open, "")
 
             pages_seen += 1
+            if pages_seen == 1:
+                print("...first <page> read, streaming is working", file=sys.stderr)
+            if pages_seen % 5000 == 0:
+                if progress is not None and total_size:
+                    pct = 100 * progress.bytes_read / total_size
+                    print(f"...{pages_seen} pages processed (~{pct:.1f}% of input read)", file=sys.stderr)
+                else:
+                    print(f"...{pages_seen} pages processed", file=sys.stderr)
             q = (lambda t: f"{{{ns_uri}}}{t}") if ns_uri else (lambda t: t)
             title = (elem.findtext(q("title")) or "")
             ns = (elem.findtext(q("ns")) or "0")

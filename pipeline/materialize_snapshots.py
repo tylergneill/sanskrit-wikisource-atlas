@@ -271,15 +271,36 @@ def main():
             # declare the same export schema version as the source.
             if elem.tag.startswith("{"):
                 ns_uri = elem.tag[1:].split("}")[0]
-            # Restore the reserved "xml:" prefix, which iterparse expands
-            # to Clark notation ({http://www.w3.org/XML/1998/namespace}lang).
-            XML_NS = "{http://www.w3.org/XML/1998/namespace}"
-            attrs = " ".join(
-                f'{("xml:" + k[len(XML_NS):]) if k.startswith(XML_NS) else k}="{v}"'
-                for k, v in elem.attrib.items()
-            )
+            # iterparse expands any namespaced attribute to Clark notation
+            # ({uri}local), not just the reserved "xml:" prefix -- e.g. real
+            # sawikisource dumps carry xsi:schemaLocation, bound via
+            # {http://www.w3.org/2001/XMLSchema-instance}schemaLocation.
+            # Restore *any* such attribute to a prefixed form (falling back to
+            # a synthesized "nsN" prefix for an unrecognized URI) rather than
+            # emitting raw curly-brace Clark notation, which is not
+            # well-formed XML and breaks every downstream parser.
+            KNOWN_NS_PREFIXES = {
+                "http://www.w3.org/XML/1998/namespace": "xml",
+                "http://www.w3.org/2001/XMLSchema-instance": "xsi",
+            }
+            extra_xmlns = {}
+            attrs = []
+            for k, v in elem.attrib.items():
+                if k.startswith("{"):
+                    uri, local = k[1:].split("}", 1)
+                    prefix = KNOWN_NS_PREFIXES.get(uri)
+                    if prefix is None:
+                        prefix = f"ns{len(extra_xmlns) + 1}"
+                        extra_xmlns[prefix] = uri
+                    elif prefix != "xml":
+                        extra_xmlns.setdefault(prefix, uri)
+                    attrs.append(f'{prefix}:{local}="{v}"')
+                else:
+                    attrs.append(f'{k}="{v}"')
             xmlns = f' xmlns="{ns_uri}"' if ns_uri else ""
-            mediawiki_open = f"<mediawiki{xmlns}{' ' + attrs if attrs else ''}>"
+            extra_xmlns_decl = "".join(f' xmlns:{p}="{u}"' for p, u in extra_xmlns.items())
+            attrs_str = " ".join(attrs)
+            mediawiki_open = f"<mediawiki{xmlns}{extra_xmlns_decl}{' ' + attrs_str if attrs_str else ''}>"
             continue
 
         if event != "end":

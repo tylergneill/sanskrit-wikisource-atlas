@@ -37,10 +37,15 @@ Three source eras, all handled here:
    pipeline/materialize_snapshots.py reconstructs one from
    sawikisource-latest-pages-meta-history.xml.bz2 (every surviving revision
    ever made) -- for a cutoff date D, the wiki's state at D is just, per
-   page, the newest revision <= D. Reconstruction is a one-time, manual,
-   out-of-band step; pipeline.backfill only ever reads its pre-existing
-   output (dump/_materialized/<date>/ by default), never runs the script or
-   downloads meta-history itself. See that script's docstring for the known
+   page, the newest revision <= D. The ~533MB meta-history dump itself is
+   downloaded once (auto-fetched on first need, cached at
+   dump/_materialize_src/) and reused for every month in the gap; each
+   month's reconstruction is generated on demand, one at a time, the moment
+   ensure_month needs it -- never all 41 months up front, since each
+   materialized XML runs 1-2GB and there's no reason to hold more than one
+   on disk at a time (see cleanup_raw_dump, which now deletes a materialized
+   month's XML right after its snapshot is written, same as every other
+   era). See pipeline/materialize_snapshots.py's docstring for the known
    deviations from a genuine dump of that month.
 
 For each month, ensure_month resolves an exact date to an era:
@@ -60,9 +65,12 @@ Once a month's snapshot is written, its raw dump directory is deleted
 immediately (cleanup_raw_dump) -- the multi-GB .xml/.bz2 export is never
 read again afterward, only the snapshot is (by pipeline.compare2, or by a
 resumed run's ensure_snapshot existence check). Pass --keep-raw-dumps to
-disable this and keep raw dumps around for inspection. Materialized-era
-dumps are always exempt from this deletion (see cleanup_raw_dump) -- they
-aren't guaranteed re-fetchable the way legacy/current-era dumps are.
+disable this and keep raw dumps around for inspection. This now includes
+materialized-era months too: unlike the raw meta-history dump they're
+reconstructed from (which stays cached, since re-downloading it is the
+expensive part), a materialized month's XML is cheap to regenerate on
+demand from that local cache, so there's no reason to keep it around after
+its snapshot exists.
 
 Deliberately does NOT write docs2/data/tree2.json or docs2/VERSION -- those
 reflect the live, current-month pipeline state, not a historical replay.
@@ -74,13 +82,22 @@ overwrite docs2/VERSION with backfill dates.
 With no --months given, the default is the full available range: every
 legacy month (queried live -- see default_months() -- rather than
 hardcoded, since the underlying sources' own listings are the source of
-truth for what's actually fetchable), every materialized gap month already
-reconstructed on disk, plus the 3 current-era months.
+truth for what's actually fetchable), every materialized gap month
+(MATERIALIZED_MONTHS, reconstructed on demand as each is reached), plus the
+3 current-era months.
 
 For a smart, resumable, one-month-at-a-time walk through this whole range
 (so results can be inspected incrementally rather than run in one long
 batch), use `make backfill` / pipeline/run_backfill_sequence.sh instead of
 calling this module directly with the full default range.
+
+Regardless of the order --months lists dates in (run_backfill_sequence.sh
+passes each step as `OLDER NEWER`), the actual fetch/snapshot work in
+main() always happens newest-to-oldest -- so within any single invocation,
+nothing older is ever fetched/processed before something newer. Only the
+final pairwise-comparison step (cheap once every snapshot already exists)
+runs in --months's given order, since that's what the changelog's
+old_date/date pairing and existing_transitions dedup rely on.
 
 Usage:
     python -m pipeline.backfill --months 2022-04-01 2022-05-01
@@ -92,6 +109,7 @@ from __future__ import annotations
 import argparse
 import json
 import shutil
+import subprocess
 import sys
 from pathlib import Path
 from typing import Callable
@@ -117,15 +135,14 @@ CURRENT_ERA_MONTHS = ["2026-05-01", "2026-06-01", "2026-07-01"]
 # non-incremental query return the same 119 items, none newer), and the live
 # rolling window (pipeline.fetch_legacy's other source) only reaches back to
 # 2025-11-20 -- leaving this span with no dump-file source at all. Filled via
-# pipeline/materialize_snapshots.py instead: a one-time, manual, out-of-band
+# pipeline/materialize_snapshots.py instead: an on-demand, one-month-at-a-time
 # reconstruction from sawikisource-latest-pages-meta-history.xml.bz2 (every
-# surviving revision ever made), which derives each month's full-state XML by
+# surviving revision ever made, auto-downloaded once and cached -- see
+# _ensure_materialize_source), which derives each month's full-state XML by
 # taking, per page, the newest revision <= that month's cutoff. See that
 # script's module docstring for the known deviations from a "real" dump of
 # that month (deleted-page handling, title/namespace drift, heuristic
-# redirect re-derivation). ensure_month/_ensure_materialized_month below only
-# ever *read* pre-existing output of that script -- pipeline.backfill never
-# runs it or downloads meta-history itself.
+# redirect re-derivation).
 MATERIALIZED_START = "2022-06-01"
 MATERIALIZED_END = "2025-10-01"
 MATERIALIZED_MONTHS = [
@@ -135,9 +152,15 @@ MATERIALIZED_MONTHS = [
     if MATERIALIZED_START <= f"{y:04d}-{m:02d}-01" <= MATERIALIZED_END
 ]
 
+MATERIALIZE_SOURCE_URL = (
+    "https://dumps.wikimedia.org/sawikisource/latest/"
+    "sawikisource-latest-pages-meta-history.xml.bz2"
+)
+
 DEFAULT_DUMP_ROOT = Path(__file__).resolve().parent.parent / "dump"
 DEFAULT_LEGACY_DUMP_ROOT = Path(__file__).resolve().parent.parent / "dump" / "_legacy"
 DEFAULT_MATERIALIZED_DUMP_ROOT = Path(__file__).resolve().parent.parent / "dump" / "_materialized"
+DEFAULT_MATERIALIZE_SRC_DIR = Path(__file__).resolve().parent.parent / "dump" / "_materialize_src"
 DEFAULT_SNAPSHOT_DIR = Path(__file__).resolve().parent.parent / "dump" / "_backfill_snapshots"
 DEFAULT_CHANGELOG = Path(__file__).resolve().parent.parent / "docs2" / "data" / "changelog2.json"
 
@@ -191,16 +214,14 @@ def process_dump(xml_path: Path, workers: int | None = None) -> dict:
 def default_months() -> list[str]:
     """Every legacy month (queried live, merged across the live rolling
     window and Internet Archive -- see fetch_legacy.list_available_months),
-    every materialized gap month (MATERIALIZED_MONTHS, only included if
-    already reconstructed on disk -- see _ensure_materialized_month), plus
-    the 3 current-era months, oldest first -- the full available range
-    absent an explicit --months override."""
+    every materialized gap month (MATERIALIZED_MONTHS -- always included,
+    since materialization now happens on demand rather than depending on
+    pre-existing disk output, see _ensure_materialized_month), plus the 3
+    current-era months, oldest first -- the full available range absent an
+    explicit --months override."""
     legacy_months = sorted(fetch_legacy.list_available_months())
     legacy_dates = [f"{ym}-01" for ym in legacy_months]
-    materialized_dates = [
-        d for d in MATERIALIZED_MONTHS
-        if d not in legacy_dates and _materialized_xml_path(d, DEFAULT_MATERIALIZED_DUMP_ROOT) is not None
-    ]
+    materialized_dates = [d for d in MATERIALIZED_MONTHS if d not in legacy_dates]
     return sorted(set(legacy_dates) | set(materialized_dates)) + CURRENT_ERA_MONTHS
 
 
@@ -209,6 +230,7 @@ def ensure_month(
     dump_root: Path,
     legacy_dump_root: Path,
     materialized_dump_root: Path = DEFAULT_MATERIALIZED_DUMP_ROOT,
+    materialize_src_dir: Path = DEFAULT_MATERIALIZE_SRC_DIR,
 ) -> Path:
     """Fetch+decompress one month's export if not already there, returning the
     path to its uncompressed XML. Dispatches to _ensure_materialized_month
@@ -220,15 +242,7 @@ def ensure_month(
     pipeline.fetch (current era, mediawiki_content_current, dump_root/<date>/)
     based on LEGACY_CUTOVER, unchanged from before."""
     if date_str in MATERIALIZED_MONTHS:
-        xml_path = _materialized_xml_path(date_str, materialized_dump_root)
-        if xml_path is None:
-            raise RuntimeError(
-                f"no materialized snapshot found for {date_str} at "
-                f"{materialized_dump_root}/{date_str}/ -- run pipeline/materialize_snapshots.py "
-                f"against sawikisource-latest-pages-meta-history.xml.bz2 first "
-                f"(see MATERIALIZED_MONTHS in pipeline/backfill.py)"
-            )
-        return xml_path
+        return _ensure_materialized_month(date_str, materialized_dump_root, materialize_src_dir)
 
     if date_str < LEGACY_CUTOVER:
         return _ensure_legacy_month(date_str, legacy_dump_root)
@@ -267,30 +281,71 @@ def _ensure_legacy_month(date_str: str, legacy_dump_root: Path) -> Path:
     return fetch_legacy.fetch_snapshot(dump, out_dir=legacy_dump_root)
 
 
-def _materialized_xml_path(date_str: str, materialized_dump_root: Path) -> Path | None:
-    """Look for date_str's pre-existing output of pipeline/materialize_snapshots.py
-    under materialized_dump_root/<date>/ -- an uncompressed
-    sawikisource-<YYYYMMDD>-pages-articles.synth.xml (decompressing a
-    .synth.xml.bz2 in place, via fetch_legacy._decompress, if only the
-    compressed form is present). Returns None if neither exists -- this
-    module never generates the materialized dump itself, only reads it."""
+def _ensure_materialize_source(materialize_src_dir: Path) -> Path:
+    """Download sawikisource-latest-pages-meta-history.xml.bz2 to
+    materialize_src_dir once (skipped if already present) -- this is the raw
+    material every MATERIALIZED_MONTHS reconstruction is generated from, so
+    it's the one thing in the materialized era worth caching indefinitely
+    rather than deleting after use (see cleanup_raw_dump, which no longer
+    touches this file). Reuses pipeline.fetch_legacy's session/User-Agent
+    since both hit dumps.wikimedia.org under the same bot-etiquette
+    contract (maxlag / compliant UA -- see CLAUDE.md's rate-limiting notes)."""
+    materialize_src_dir.mkdir(parents=True, exist_ok=True)
+    dest = materialize_src_dir / "sawikisource-latest-pages-meta-history.xml.bz2"
+    if dest.exists():
+        return dest
+    print(f"downloading {MATERIALIZE_SOURCE_URL} (~530MB, one-time)...", file=sys.stderr)
+    tmp_dest = dest.with_suffix(dest.suffix + ".tmp")
+    with fetch_legacy.session.get(MATERIALIZE_SOURCE_URL, stream=True, timeout=120) as resp:
+        resp.raise_for_status()
+        with open(tmp_dest, "wb") as fh:
+            for chunk in resp.iter_content(chunk_size=1024 * 1024):
+                fh.write(chunk)
+    tmp_dest.rename(dest)
+    print(f"downloaded: {dest}", file=sys.stderr)
+    return dest
+
+
+def _ensure_materialized_month(
+    date_str: str, materialized_dump_root: Path, materialize_src_dir: Path
+) -> Path:
+    """Reconstruct date_str's snapshot XML on demand via
+    pipeline/materialize_snapshots.py, one month at a time -- never all of
+    MATERIALIZED_MONTHS up front, since each output runs 1-2GB and
+    cleanup_raw_dump deletes it right after its tree2.json snapshot is
+    written (see module docstring). Returns the existing output directly if
+    this date was already materialized and not yet cleaned up (e.g. a
+    resumed run)."""
     day8 = date_str.replace("-", "")
     item_dir = materialized_dump_root / date_str
-    if not item_dir.exists():
-        return None
-    xml_matches = sorted(item_dir.glob(f"sawikisource-{day8}-pages-articles.synth.xml"))
-    if xml_matches:
-        print(f"{date_str}: already materialized -> {xml_matches[0]}", file=sys.stderr)
-        return xml_matches[0]
-    bz2_matches = sorted(item_dir.glob(f"sawikisource-{day8}-pages-articles.synth.xml.bz2"))
-    if bz2_matches:
-        xml_path = fetch_legacy._decompress(bz2_matches[0])
-        print(f"{date_str}: decompressed materialized dump -> {xml_path}", file=sys.stderr)
-        return xml_path
-    return None
+    existing = sorted(item_dir.glob(f"sawikisource-{day8}-pages-articles.synth.xml")) if item_dir.exists() else []
+    if existing:
+        print(f"{date_str}: already materialized -> {existing[0]}", file=sys.stderr)
+        return existing[0]
+
+    src_bz2 = _ensure_materialize_source(materialize_src_dir)
+    item_dir.mkdir(parents=True, exist_ok=True)
+    print(f"{date_str}: materializing from {src_bz2}...", file=sys.stderr)
+    subprocess.run(
+        [
+            sys.executable, str(Path(__file__).resolve().parent / "materialize_snapshots.py"),
+            str(src_bz2), "--dates", date_str, "--outdir", str(item_dir),
+        ],
+        check=True,
+    )
+    xml_path = item_dir / f"sawikisource-{day8}-pages-articles.synth.xml"
+    if not xml_path.exists():
+        raise RuntimeError(f"materialize_snapshots.py did not produce {xml_path}")
+    print(f"{date_str}: materialized -> {xml_path}", file=sys.stderr)
+    return xml_path
 
 
-def cleanup_raw_dump(date_str: str, dump_root: Path, legacy_dump_root: Path) -> None:
+def cleanup_raw_dump(
+    date_str: str,
+    dump_root: Path,
+    legacy_dump_root: Path,
+    materialized_dump_root: Path = DEFAULT_MATERIALIZED_DUMP_ROOT,
+) -> None:
     """Delete the raw dump (.xml.bz2 + decompressed .xml, and their parent
     dated directory) for one month, once its snapshot is confirmed written --
     the snapshot is all that pipeline.compare2 or a resumed backfill run ever
@@ -300,13 +355,16 @@ def cleanup_raw_dump(date_str: str, dump_root: Path, legacy_dump_root: Path) -> 
     dump used by routine `make process`) -- only the dated subdirectories
     this module itself creates via ensure_month.
 
-    Deliberately never touches MATERIALIZED_MONTHS: unlike legacy (Internet
-    Archive, stable) or current-era (re-fetchable from mediawiki_content_current)
-    months, a deleted materialized dump isn't guaranteed reproducible later --
-    it depends on the user's own copy of sawikisource-latest-pages-meta-history.xml.bz2,
-    which Wikimedia itself only retains as a rolling "latest", not an archived
-    series. Left for the user to clean up by hand if desired."""
+    Applies to MATERIALIZED_MONTHS too: a materialized month's XML is
+    cheaply regenerable on demand from the cached meta-history dump (see
+    _ensure_materialize_source), so there's no reason to keep it around
+    after its snapshot exists -- unlike the cached meta-history .bz2 itself,
+    which this function never touches."""
     if date_str in MATERIALIZED_MONTHS:
+        d = materialized_dump_root / date_str
+        if d.is_dir():
+            shutil.rmtree(d)
+            print(f"{date_str}: deleted materialized dump -> {d}", file=sys.stderr)
         return
     if date_str < LEGACY_CUTOVER:
         ym = date_str[:7]
@@ -356,16 +414,19 @@ def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--months", nargs="+", default=None,
                      help="months to backfill, oldest first, as YYYY-MM-01 (default: full available "
-                          "range -- every Internet Archive month, every already-reconstructed "
-                          "materialized gap month, plus the 3 current-era months, queried live)")
+                          "range -- every Internet Archive month, every materialized gap month "
+                          "(reconstructed on demand), plus the 3 current-era months, queried live)")
     ap.add_argument("--dump-root", type=Path, default=DEFAULT_DUMP_ROOT,
                      help="directory under which each current-era month gets its own dump/<date>/ subdir")
     ap.add_argument("--legacy-dump-root", type=Path, default=DEFAULT_LEGACY_DUMP_ROOT,
                      help="directory under which each legacy-era (Internet Archive) month gets its own subdir")
     ap.add_argument("--materialized-dump-root", type=Path, default=DEFAULT_MATERIALIZED_DUMP_ROOT,
-                     help="directory to read pre-existing pipeline/materialize_snapshots.py output from, "
-                          "for MATERIALIZED_MONTHS (the Internet-Archive/live-window gap) -- this module "
-                          "only reads from here, never generates it")
+                     help="directory where each MATERIALIZED_MONTHS date (the Internet-Archive/live-window "
+                          "gap) gets its own subdir, generated on demand one month at a time and deleted "
+                          "again once its snapshot is written (see _ensure_materialized_month)")
+    ap.add_argument("--materialize-src-dir", type=Path, default=DEFAULT_MATERIALIZE_SRC_DIR,
+                     help="directory to cache the ~530MB sawikisource-latest-pages-meta-history.xml.bz2 "
+                          "in, auto-downloaded once on first need and reused for every materialized month")
     ap.add_argument("--snapshot-dir", type=Path, default=DEFAULT_SNAPSHOT_DIR,
                      help="where to write per-month tree2.json-shaped snapshots (gitignored, throwaway)")
     ap.add_argument("--changelog", type=Path, default=DEFAULT_CHANGELOG,
@@ -379,15 +440,25 @@ def main() -> None:
 
     months = args.months if args.months is not None else default_months()
 
-    snapshots = []
-    for date_str in months:
+    # Fetch/snapshot newest-first, regardless of the order months was given
+    # in -- e.g. `--months OLDER NEWER` must not process OLDER before NEWER.
+    # This matters because ensure_month/ensure_snapshot are the only steps
+    # that do real work (network fetch, dump parsing, content-size
+    # computation); the pairwise comparison below is comparatively instant
+    # once every snapshot already exists, so it's fine to do in whatever
+    # order months was given, and preserving that original order is what
+    # existing_transitions/changelog entries below expect.
+    snapshots_by_date = {}
+    for date_str in sorted(months, reverse=True):
         get_xml_path = lambda d=date_str: ensure_month(
-            d, args.dump_root, args.legacy_dump_root, args.materialized_dump_root
+            d, args.dump_root, args.legacy_dump_root, args.materialized_dump_root, args.materialize_src_dir
         )
         snapshot_path = ensure_snapshot(date_str, get_xml_path, args.snapshot_dir, args.workers)
-        snapshots.append((date_str, snapshot_path))
+        snapshots_by_date[date_str] = snapshot_path
         if not args.keep_raw_dumps:
-            cleanup_raw_dump(date_str, args.dump_root, args.legacy_dump_root)
+            cleanup_raw_dump(date_str, args.dump_root, args.legacy_dump_root, args.materialized_dump_root)
+
+    snapshots = [(date_str, snapshots_by_date[date_str]) for date_str in months]
 
     if args.changelog.exists():
         log = json.loads(args.changelog.read_text())

@@ -4,15 +4,16 @@
 # (2026-05-01) and working backward through every available legacy month
 # (pipeline.fetch_legacy -- merged live rolling window + Internet Archive,
 # see that module's docstring) down to the oldest (2011-09-01, as of this
-# writing), splicing in any already-reconstructed materialized months (the
-# Internet-Archive/live-window gap, 2022-06 through 2025-10 -- see
-# pipeline.backfill's MATERIALIZED_MONTHS and pipeline/materialize_snapshots.py)
-# wherever they exist on disk. Each step is a separate `python -m
-# pipeline.backfill --months OLDER NEWER` invocation, so progress/output is
-# visible per-step and a failure on one month doesn't lose earlier progress
-# (already-appended changelog entries and already-fetched dumps are
-# skipped/reused on rerun -- see ensure_month/ensure_snapshot in
-# pipeline/backfill.py).
+# writing), splicing in every materialized month (the Internet-Archive/
+# live-window gap, 2022-06 through 2025-10 -- see pipeline.backfill's
+# MATERIALIZED_MONTHS). Each is reconstructed on demand, one at a time, the
+# moment its step runs (see pipeline.backfill._ensure_materialized_month) --
+# nothing needs to be pre-generated before running this script. Each step is
+# a separate `python -m pipeline.backfill --months OLDER NEWER` invocation,
+# so progress/output is visible per-step and a failure on one month doesn't
+# lose earlier progress (already-appended changelog entries and
+# already-fetched/materialized dumps are skipped/reused on rerun -- see
+# ensure_month/ensure_snapshot in pipeline/backfill.py).
 #
 # Usage: bash pipeline/run_backfill_sequence.sh [--workers N]
 
@@ -47,16 +48,15 @@ if [[ -z "$LEGACY_MONTHS" ]]; then
 fi
 
 # Materialized months (the Internet-Archive/live-window gap, see
-# pipeline.backfill's MATERIALIZED_MONTHS) -- only those already
-# reconstructed on disk via pipeline/materialize_snapshots.py, same guard
-# pipeline.backfill.default_months() itself applies, so this sequence never
-# includes a month that would just error out in ensure_month.
-echo "checking for materialized months..."
+# pipeline.backfill's MATERIALIZED_MONTHS) -- all of them, unconditionally;
+# each is reconstructed on demand by ensure_month/_ensure_materialized_month
+# when its step actually runs, so there's no disk-existence check to apply
+# here anymore.
+echo "listing materialized months..."
 MATERIALIZED_MONTHS=$(python3 -c "
-from pipeline.backfill import MATERIALIZED_MONTHS, DEFAULT_MATERIALIZED_DUMP_ROOT, _materialized_xml_path
+from pipeline.backfill import MATERIALIZED_MONTHS
 for d in MATERIALIZED_MONTHS:
-    if _materialized_xml_path(d, DEFAULT_MATERIALIZED_DUMP_ROOT) is not None:
-        print(d)
+    print(d)
 " 2>/dev/null)
 
 MONTHS=$(printf '%s\n%s\n' "$LEGACY_MONTHS" "$MATERIALIZED_MONTHS" | grep -v '^$' | sort -u)

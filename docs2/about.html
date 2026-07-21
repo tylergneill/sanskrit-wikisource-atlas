@@ -41,26 +41,21 @@
       <div class="block">
         <h2 style="margin-top:0;">About</h2>
         <p>
-          A more accessible browsing interface for the Sanskrit text collection at
-          <a href="https://sa.wikisource.org/" target="_blank">sa.wikisource.org</a>.
-          Data snapshot refreshed automatically on a monthly basis.
+          This mirror offers a better way to explore the Sanskrit e-text content at
+          <a href="https://sa.wikisource.org/" target="_blank">sa.wikisource.org</a>,
+          with transliteration support, dynamic display of categories
+          (see <a href="https://sa.wikisource.org/wiki/वर्गः:वर्गसर्वस्वम्" target="_blank">"वर्गसर्वस्वम्"</a>),
+          and clear size and date information.
+          The data snapshot is refreshed semi-automatically on a monthly basis.
         </p>
         <p>
-          Part of the <a href="https://kalpataru-grove.info" target="_blank" >Kalpataru Grove</a> ecosystem.
+          code: <span id="appVersion"></span>,
+          <a href="https://github.com/tylergneill/sanskrit-wikisource-mirror" target="_blank">on GitHub</a>
         </p>
         <p>
-          <a href="https://sa.wikisource.org/wiki/वर्गः:वर्गसर्वस्वम्" target="_blank">Category Source: वर्गः:वर्गसर्वस्वम्</a>
-        </p>
-        <p>
-          <a href="https://github.com/tylergneill/sanskrit-wikisource-mirror" target="_blank">Code on GitHub</a>
-        </p>
-        <p class="small">
-          <span id="appVersion"></span>
-        </p>
-        <p class="small">
           data last <a href="https://dumps.wikimedia.org/other/mediawiki_content_current/sawikisource/" target="_blank" rel="noopener">sourced</a>: <span id="contentDate"></span>
         </p>
-        <p class="small">
+        <p>
           <span id="pipelineRun"></span>
         </p>
       </div>
@@ -71,82 +66,132 @@
         <h3>A Graph of Pages</h3>
         <p>
           Wikisource's most basic ontological unit is the page.
-          Pages can freely link to each other, creating a directed graph.
-          "Subpage" is not a distinct type, but when one page links to a number of others, as in a table of contents,
-          then we can think of the linking page as the parent and the linked "subpages" as the children.
-          These connections are all made manually.
+          Pages can freely link to each other, creating a directed graph, with no inherent hierarchy.
+          In order for one page to link to others, as in a table of contents,
+          all connections must be made manually.
+          There is no distinct "subpage" node or relation type.
         </p>
 
         <h3>Breadcrumbs</h3>
         <p>
-          In order for subpages to automatically link back to their parent pages,
-          their names must be prefixed with the parent page's exact name and a slash.
-          E.g., "अग्निपुराणम्/अध्यायः १".
-          Wikisource automatically parses such child-page names and inserts a link to the parent page at the top,
-          so-called "breadcrumbs."
+          The way to make a page that is conceptually a "child" or "subpage" 
+          automatically link back to its "parent" page
+          is to carefully construct its name so that it is the parent's name, then a slash,
+          then the unique child page name.
+          For example, Wikisource will automatically parse the page name "अग्निपुराणम्/अध्यायः १"
+          and place at the top of that page a link to the related page "अग्निपुराणम्".
+          These auto-generated links are called "breadcrumbs."
         </p>
 
-        <h3>Categories</h3>
+        <h3>Categories: Another Graph</h3>
         <p>
-          The next basic ontological unit is the category. Pages can be labeled with any number of categories.
-          Categories also relate to each other, creating their own directed graph.
-          When set up correctly, the category graph forms a simple hierarchical tree, with a single root and nothing left out.
-          However, since categorization is done manually, this is not guaranteed.
+          The next basic ontological unit is the Category.
+          Pages can be labeled with any number of Categories.
+          For each Category, Wikisource creates a display page that shows all associated items.
+        </p>
+        <p>  
+          Categories of course also relate to each other, creating their own directed graph.
+          By convention, this graph should be constructed as a simple tree,
+          with a single root, exactly one parent per node, and nothing left out.
+          However, since categorization is done manually, this is not guaranteed,
+          and one category may have multiple parents, and there can even be cycles.
         </p>
 
         <h3>Namespaces</h3>
         <p>
           Distinct ontological types exist in different "namespaces".
-          Regular pages are in namespace 0 (technically called "Main"), and categories constitute namespace 14.
+          For example, regular pages are in namespace 0 (technically called "Main"),
+          and categories constitute namespace 14.
           This makes it easy to use the computational backend (API) to request all items of a given type.
         </p>
 
         <h3>OCR "Proofreading" Pipeline Types</h3>
         <p>
-          Everything above assumes manual creation of pages and population of content.
-          However, Wikisource also contains a "Proofreading" workflow which supports OCRing books.
-          The central item holding the image file (type "Index," namespace 106)
-          uses the image file's metadata to automatically create a proofreading progress table,
-          with one link per page and color-coding to show whether that page has been proofread.
-          Individual page items (type "Page," namespace 104) are created one at a time
-          the first time someone clicks on one of those links and saves it.
-          These pages assist proofreading by OCRing the page content (with Tesseract)
-          and offering a side-by-side image display and editing window.
-          Proofreading progress is then incremented manually, moving the color-coding from red to yellow to green.
+          Filling in the text content of a Mainspace page is often done manually.
+          Another options provided by Wikisource is the "Proofreading," OCR-based workflow.
+          An image file is uploaded and stored as part of a central "Index" item (namespace 106).
+          Based on the file metadata, Wikisource then creates a table with links for each page.
         </p>
+
         <p>
-          These "Pages" (namespace 104) are ontologically distinct from mainspace pages (namespace 0).
+          The first time a user clicks one of those links and saves the resulting page draft,
+          Wikisource creates a "Page" item (namespace 104) inherently linked to the Index
+          and OCRs the page with Tesseract.
+          Users can then use the side-by-side image-and-text viewer to iteratively proofread.
+          When satisfied with a given page, they manually increment the color-coded progress indicator
+          (red -> yellow -> green).
+        </p>
+        
+        <p>
+          By convention, Index items can be labeled with categories, but Pages should not be.
+          This is because all items with a given category label will show up equally when viewing the category
+
+          When trying to view category contents, you don't 
+          lest the display of category contents be bloated with thousands of individual Pages.
         </p>
 
         <h3>Transclusion</h3>
         <p>
-          Content of a given item can be injected into the content of another.
-          This is especially relevant for symbolically linking to proofreading-flow "Pages" from a user-facing mainspace page.
-          In that way, as an individual proofreading-flow "Page" is updated, the mainspace page automatically updates,
-          and the mainspace page can be made to include (or "transclude") only relevant pages,
-          skipping unwanted scan pages (e.g., front matter, index).
+          Content of one item can be virtually injected into the content of another
+          by a process known as "transclusion," similar to symbolic links.
+          In particular, a user-facing Mainspace page can transclude relevant ranges of proofreading "Pages."
+          Proofreading can continue gradually, and the Mainspace page will update automatically.
         </p>
 
         <p>
           However, nothing guarantees that transclusion is used in this way.
-          Instead, an editor may occasionally copy-paste Page text into Main.
-          This will look identical to readers unless they inspect the wiki code,
-          but it breaks the link back to the source scan, so later proofreading corrections will no longer propagate.
-        </p>
-
-        <p>
-          Finally, these proofreading-flow items (Index and Page) can be given categories just like anything else.
-          To avoid bloated display of category contents,
-          the ideal convention is to categorize only the proofreading Index
-          and/or the Mainspace page that transcludes the content, not the individual proofreading Page.
+          Instead, an editor may well copy-paste Page text into a Mainspace page,
+          in which case proofreading corrections will no longer propagate.
+          Only by reading the source code can readers know the difference.
         </p>
 
       </details>
 
       <details class="block collapsible">
-        <summary><h2>Notes on How this Mirror Represents Wikisource Structure</h2></summary>
+        <summary><h2>Strategies for Representing Sanskrit Wikisource Data</h2f></summary>
 
-        <h3>Representing Deviations from the Category Tree</h3>
+        <p>
+          After fetching the full export,
+          all items are explored in the namespaces Main, Category, Index, and Page.
+          On Mainspace pages, breadcrumbs are mined to establish parent/child relationships.
+          These backconnections allow rolling child subpages up for more concise display.
+        </p>
+
+        <p>
+          Category parent/child relationships are read from Category pages,
+          and children of the Category वर्गसर्वस्वम्/ग्रन्थाः 
+
+          and top-levelthe central community rooted at is displayed  ,  displayed 
+          and disconnected category clusters or singletons are placed into an artificial category
+          Since not everything is reachable from the root 
+          
+        <h3>असंबद्धवर्गीकृतम् (insufficiently categorized content)</h3>
+        <p>
+          Some content is unreachable from the root category — either because it carries no category
+          tag at all, or because every tag it carries points to a category that is itself orphaned from
+          the root (for example, a full parvan-category hierarchy that exists on the live wiki but is
+          never linked in from anywhere reachable). Both cases are swept into one bucket labeled
+          असंबद्धवर्गीकृतम् — deliberately not "अवर्गीकृतम्" (uncategorized), since the second case genuinely
+          does carry a category tag, just not one that connects anywhere. This bucket is fully browsable
+          as its own set of subtrees and loose items, but is excluded from the main tree's own headline
+          size/count totals.
+        </p>
+
+
+          Multiply-filed categories are shown at every location they're filed,
+          cross-linked, with rollups deduplicated so shared content is never double-counted.
+           are listed separately rather than forced into it.
+        </p>
+        <p>
+          Category membership does not bubble up: a category tag on a deeply nested subpage does not
+          cause its ancestor works to inherit that category. One narrow exception exists — if every
+          subpage under a work shares a category the work itself lacks, that category is inferred onto
+          the work and visibly marked as inferred; this is a display-only convenience and never edits
+          the live wiki.
+        </p>
+
+
+
         <p>
           Categories link to their own parent category the same way any page links to a category —
           there's no technical enforcement of a single connected structure. In practice this means
@@ -176,57 +221,6 @@
           It also transliterates from Devanagari to IAST in order to enable more meaningful comparison across collections,
           whose sizes are more usually given in terms of IAST content.
           Content transliterated as IAST is approximately 60% the filesize of its Devanagari equivalent.
-        </p>
-      </details>
-
-      <details class="block collapsible">
-        <summary><h2>How the Data Pipeline Works</h2></summary>
-
-        <h3>Data acquisition</h3>
-        <p>
-          Content comes from Wikimedia's official monthly Content File Export for sa.wikisource.org
-          (<code>mediawiki_content_current</code>), not the live API and not the deprecated legacy XML dumps.
-          A single downloaded file covers every namespace the pipeline needs — Main, Category, Index, Page,
-          Template, and Module — verified against Wikimedia's published SHA256 checksums before use.
-          This is a full-refresh model, not incremental: the whole site is rebuilt fresh from each month's
-          snapshot rather than tracking day-to-day edits.
-        </p>
-
-        <h3>Main-namespace tree</h3>
-        <p>
-          Parent/child relationships among mainspace pages come entirely from breadcrumb parsing:
-          splitting a title on its last slash (e.g. "कार्यम्/भागः १" → parent "कार्यम्").
-          Unlike the category graph below, this is a genuine tree — every title has exactly one parent,
-          so no deduplication is needed when rolling up size or latest-change stats.
-        </p>
-
-        <h3>Category graph and multi-parenting</h3>
-        <p>
-          Category edges come from each category page's own <code>[[Category:Parent]]</code> tag —
-          a manually-maintained graph, not guaranteed to form a clean tree.
-          A category can have more than one parent, and not everything is reachable from the root
-          category, वर्गसर्वस्वम्. Multiply-filed categories are shown at every location they're filed,
-          cross-linked, with rollups deduplicated so shared content is never double-counted.
-          Disconnected clusters that never reach the root are listed separately rather than forced into it.
-        </p>
-        <p>
-          Category membership does not bubble up: a category tag on a deeply nested subpage does not
-          cause its ancestor works to inherit that category. One narrow exception exists — if every
-          subpage under a work shares a category the work itself lacks, that category is inferred onto
-          the work and visibly marked as inferred; this is a display-only convenience and never edits
-          the live wiki.
-        </p>
-
-        <h3>असंबद्धवर्गीकृतम् (insufficiently categorized content)</h3>
-        <p>
-          Some content is unreachable from the root category — either because it carries no category
-          tag at all, or because every tag it carries points to a category that is itself orphaned from
-          the root (for example, a full parvan-category hierarchy that exists on the live wiki but is
-          never linked in from anywhere reachable). Both cases are swept into one bucket labeled
-          असंबद्धवर्गीकृतम् — deliberately not "अवर्गीकृतम्" (uncategorized), since the second case genuinely
-          does carry a category tag, just not one that connects anywhere. This bucket is fully browsable
-          as its own set of subtrees and loose items, but is excluded from the main tree's own headline
-          size/count totals.
         </p>
 
         <h3>Transclusion and untranscluded OCR content</h3>
@@ -291,7 +285,7 @@
           const value = line.slice(eqIdx + 1).trim().replace(/^['"]|['"]$/g, "");
           if (key === "__code_version__") {
             const el = document.getElementById("appVersion");
-            if (el) el.textContent = `code version: v${value}`;
+            if (el) el.textContent = `v${value}`;
           } else if (key === "__data_version__") {
             const el = document.getElementById("pipelineRun");
             if (el) el.textContent = `data pipeline last run: ${value}`;

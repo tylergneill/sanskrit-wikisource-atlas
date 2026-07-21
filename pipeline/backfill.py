@@ -32,11 +32,17 @@ For each month, ensure_month resolves an exact date to an era: legacy months
 (< LEGACY_CUTOVER) go through pipeline.fetch_legacy (which itself picks
 live-rolling-window vs. Internet Archive per month); current-era months go
 through pipeline.fetch against mediawiki_content_current, unchanged from
-before. Each snapshot lands in its own dump/<date>/ or dump/_legacy/<date>/
+before. Each raw dump lands in its own dump/<date>/ or dump/_legacy/<date>/
 directory, never touching the live dump/*.xml used for routine `make
 process` runs. Each month is processed into a throwaway tree2.json-shaped
 snapshot, and pipeline.compare2 runs pairwise across consecutive months,
 appending each diff to docs2/data/changelog2.json.
+
+Once a month's snapshot is written, its raw dump directory is deleted
+immediately (cleanup_raw_dump) -- the multi-GB .xml/.bz2 export is never
+read again afterward, only the snapshot is (by pipeline.compare2, or by a
+resumed run's ensure_snapshot existence check). Pass --keep-raw-dumps to
+disable this and keep raw dumps around for inspection.
 
 Deliberately does NOT write docs2/data/tree2.json or docs2/VERSION -- those
 reflect the live, current-month pipeline state, not a historical replay.
@@ -64,8 +70,10 @@ from __future__ import annotations
 
 import argparse
 import json
+import shutil
 import sys
 from pathlib import Path
+from typing import Callable
 
 from pipeline import fetch as fetch_mod
 from pipeline import fetch_legacy
@@ -185,7 +193,39 @@ def _ensure_legacy_month(date_str: str, legacy_dump_root: Path) -> Path:
     return fetch_legacy.fetch_snapshot(dump, out_dir=legacy_dump_root)
 
 
-def ensure_snapshot(date_str: str, xml_path: Path, snapshot_dir: Path, workers: int | None) -> Path:
+def cleanup_raw_dump(date_str: str, dump_root: Path, legacy_dump_root: Path) -> None:
+    """Delete the raw dump (.xml.bz2 + decompressed .xml, and their parent
+    dated directory) for one month, once its snapshot is confirmed written --
+    the snapshot is all that pipeline.compare2 or a resumed backfill run ever
+    reads afterward (see ensure_snapshot's existence check), so keeping the
+    multi-GB raw export around after that point is pure disk waste. Never
+    touches dump_root's own top-level loose files (the live current-month
+    dump used by routine `make process`) -- only the dated subdirectories
+    this module itself creates via ensure_month."""
+    if date_str < LEGACY_CUTOVER:
+        ym = date_str[:7]
+        for d in sorted(legacy_dump_root.glob(f"{ym}-*")):
+            if d.is_dir():
+                shutil.rmtree(d)
+                print(f"{date_str}: deleted raw dump -> {d}", file=sys.stderr)
+    else:
+        d = dump_root / date_str
+        if d.is_dir():
+            shutil.rmtree(d)
+            print(f"{date_str}: deleted raw dump -> {d}", file=sys.stderr)
+
+
+def ensure_snapshot(
+    date_str: str,
+    get_xml_path: Callable[[], Path],
+    snapshot_dir: Path,
+    workers: int | None,
+) -> Path:
+    """get_xml_path is called (triggering ensure_month's fetch/decompress)
+    only if a snapshot doesn't already exist and can't be reused from the
+    live tree either -- so an already-completed month's raw dump, which
+    cleanup_raw_dump deletes right after its snapshot is written, is never
+    re-fetched on a resumed run just to be thrown away again."""
     snapshot_path = snapshot_dir / f"tree2-{date_str}.json"
     if snapshot_path.exists():
         print(f"{date_str}: snapshot already built -> {snapshot_path}", file=sys.stderr)
@@ -196,6 +236,7 @@ def ensure_snapshot(date_str: str, xml_path: Path, snapshot_dir: Path, workers: 
         snapshot_dir.mkdir(parents=True, exist_ok=True)
         snapshot_path.write_text(LIVE_TREE2_JSON.read_text(encoding="utf-8"), encoding="utf-8")
         return snapshot_path
+    xml_path = get_xml_path()
     tree = process_dump(xml_path, workers=workers)
     snapshot_dir.mkdir(parents=True, exist_ok=True)
     with open(snapshot_path, "w", encoding="utf-8") as f:
@@ -220,15 +261,21 @@ def main() -> None:
     ap.add_argument("--changelog", type=Path, default=DEFAULT_CHANGELOG,
                      help="changelog2.json to append pairwise diffs to")
     ap.add_argument("--workers", type=int, default=None, help="worker processes for content-size computation")
+    ap.add_argument("--keep-raw-dumps", action="store_true",
+                     help="don't delete each month's raw dump (.xml/.bz2) after its snapshot is written -- "
+                          "by default, raw dumps are deleted immediately since the snapshot is all that's "
+                          "ever needed afterward (see cleanup_raw_dump)")
     args = ap.parse_args()
 
     months = args.months if args.months is not None else default_months()
 
     snapshots = []
     for date_str in months:
-        xml_path = ensure_month(date_str, args.dump_root, args.legacy_dump_root)
-        snapshot_path = ensure_snapshot(date_str, xml_path, args.snapshot_dir, args.workers)
+        get_xml_path = lambda d=date_str: ensure_month(d, args.dump_root, args.legacy_dump_root)
+        snapshot_path = ensure_snapshot(date_str, get_xml_path, args.snapshot_dir, args.workers)
         snapshots.append((date_str, snapshot_path))
+        if not args.keep_raw_dumps:
+            cleanup_raw_dump(date_str, args.dump_root, args.legacy_dump_root)
 
     if args.changelog.exists():
         log = json.loads(args.changelog.read_text())

@@ -61,25 +61,27 @@
       </div>
 
       <details class="block collapsible">
-        <summary><h2>A Practical Intro to Wikisource Structure</h2></summary>
+        <summary><h2>Practical Intro to Wikisource Structure</h2></summary>
 
-        <h3>A Graph of Pages</h3>
+        <h3>Graph of Equal Pages</h3>
         <p>
           Wikisource's most basic ontological unit is the page.
           Pages can freely link to each other, creating a directed graph, with no inherent hierarchy.
-          In order for one page to link to others, as in a table of contents,
+          In order to make one page link to multiple others, as in a table of contents,
           all connections must be made manually.
-          There is no distinct "subpage" node or relation type.
+          Nothing automatically creates such lists,
+          and there is no distinct "subpage" node or relation type.
         </p>
 
         <h3>Breadcrumbs</h3>
         <p>
-          The way to make a page that is conceptually a "child" or "subpage" 
-          automatically link back to its "parent" page
-          is to carefully construct its name so that it is the parent's name, then a slash,
+          Pages that are conceptually a "child" or "subpage" can be made to
+          automatically link back to the relevant "parent" page,
+          namely by carefully constructing the child page name
+          so that it consists of the parent's name, then a slash,
           then the unique child page name.
           For example, Wikisource will automatically parse the page name "अग्निपुराणम्/अध्यायः १"
-          and place at the top of that page a link to the related page "अग्निपुराणम्".
+          and place at the top of that page a link to the related page "अग्निपुराणम्."
           These auto-generated links are called "breadcrumbs."
         </p>
 
@@ -94,179 +96,149 @@
           By convention, this graph should be constructed as a simple tree,
           with a single root, exactly one parent per node, and nothing left out.
           However, since categorization is done manually, this is not guaranteed,
-          and one category may have multiple parents, and there can even be cycles.
+          and one Category may have multiple parents, and there can even be cycles.
         </p>
 
         <h3>Namespaces</h3>
         <p>
-          Distinct ontological types exist in different "namespaces".
-          For example, regular pages are in namespace 0 (technically called "Main"),
-          and categories constitute namespace 14.
-          This makes it easy to use the computational backend (API) to request all items of a given type.
+          Distinct ontological types exist in different "namespaces."
+          For example, regular content pages are in namespace 0 (technically called "Main"),
+          and Categories constitute namespace 14.
+          This makes it easy to use computational methods to obtain all items of a given type.
         </p>
 
         <h3>OCR "Proofreading" Pipeline Types</h3>
         <p>
           Filling in the text content of a Mainspace page is often done manually.
-          Another options provided by Wikisource is the "Proofreading," OCR-based workflow.
-          An image file is uploaded and stored as part of a central "Index" item (namespace 106).
-          Based on the file metadata, Wikisource then creates a table with links for each page.
+          Another option provided by Wikisource is the "Proofreading" workflow which is based on OCR.
+          A user uploads an image file, which gets stored as part of a central "Index" item (namespace 106).
+          Based on file metadata, Wikisource then creates a table with links for each page.
         </p>
 
         <p>
           The first time a user clicks one of those links and saves the resulting page draft,
-          Wikisource creates a "Page" item (namespace 104) inherently linked to the Index
+          Wikisource creates a "Page" item (namespace 104), inherently linked to the Index,
           and OCRs the page with Tesseract.
-          Users can then use the side-by-side image-and-text viewer to iteratively proofread.
-          When satisfied with a given page, they manually increment the color-coded progress indicator
+          Users then use the side-by-side image-and-text viewer to iteratively proofread,
+          and when satisfied with a given page, they manually increment the color-coded progress indicator
           (red -> yellow -> green).
         </p>
         
         <p>
-          By convention, Index items can be labeled with categories, but Pages should not be.
-          This is because all items with a given category label will show up equally when viewing the category
-
-          When trying to view category contents, you don't 
-          lest the display of category contents be bloated with thousands of individual Pages.
+          By convention, Index items can be labeled with Categories, but Pages should not be.
+          This is because all items labeled with a given Category show up equally when viewing that Category.
+          Since Pages are so numerous (hundreds per book), if they all show up here, it's a mess.
         </p>
 
         <h3>Transclusion</h3>
         <p>
           Content of one item can be virtually injected into the content of another
           by a process known as "transclusion," similar to symbolic links.
-          In particular, a user-facing Mainspace page can transclude relevant ranges of proofreading "Pages."
-          Proofreading can continue gradually, and the Mainspace page will update automatically.
+          Most notably, a user-facing Mainspace page can transclude relevant ranges of proofreading "Pages."
+          Proofreading can then continue gradually, and the Mainspace page will update automatically.
+        </p>
+
+        <p>
+          When OCR content has <em>not</em> been transcluded,
+          the mirror flags this fact with an "OCR only" label,
+          which may not be true if the editor copy-pasted.
+          Where any range <em>has</em> been transcluded,
+          the mirror flags this with a "(OCR source)" link to the respective Index.
         </p>
 
         <p>
           However, nothing guarantees that transclusion is used in this way.
-          Instead, an editor may well copy-paste Page text into a Mainspace page,
+          Instead, an editor may well copy-paste OCR-workflow Page content into a Mainspace item,
           in which case proofreading corrections will no longer propagate.
           Only by reading the source code can readers know the difference.
         </p>
 
+
       </details>
 
       <details class="block collapsible">
-        <summary><h2>Strategies for Representing Sanskrit Wikisource Data</h2f></summary>
+        <summary><h2>Obtaining and Representing Sanskrit Wikisource Data</h2></summary>
+
+        <h3>Snapshots</h3>
+        <p>
+          (TBD)
+        </p>
+
+        <h3>Basic Processing</h3>
+        <p>
+          After fetching full data for a given point in time,
+          all items are explored in the Main, Category, Index, and Page namespaces.
+        </p>
 
         <p>
-          After fetching the full export,
-          all items are explored in the namespaces Main, Category, Index, and Page.
           On Mainspace pages, breadcrumbs are mined to establish parent/child relationships.
-          These backconnections allow rolling child subpages up for more concise display.
+          These back-connections allow rolling child subpages up for more concise display.
         </p>
 
         <p>
           Category parent/child relationships are read from Category pages,
-          and children of the Category वर्गसर्वस्वम्/ग्रन्थाः 
-
-          and top-levelthe central community rooted at is displayed  ,  displayed 
-          and disconnected category clusters or singletons are placed into an artificial category
-          Since not everything is reachable from the root 
-          
-        <h3>असंबद्धवर्गीकृतम् (insufficiently categorized content)</h3>
-        <p>
-          Some content is unreachable from the root category — either because it carries no category
-          tag at all, or because every tag it carries points to a category that is itself orphaned from
-          the root (for example, a full parvan-category hierarchy that exists on the live wiki but is
-          never linked in from anywhere reachable). Both cases are swept into one bucket labeled
-          असंबद्धवर्गीकृतम् — deliberately not "अवर्गीकृतम्" (uncategorized), since the second case genuinely
-          does carry a category tag, just not one that connects anywhere. This bucket is fully browsable
-          as its own set of subtrees and loose items, but is excluded from the main tree's own headline
-          size/count totals.
+          and the mirror's top-level category display is created from
+          children of the Category वर्गसर्वस्वम्/ग्रन्थाः (plus the miscategorized वर्गसर्वस्वम्/धर्मशास्त्रम्).
+          Other children of वर्गसर्वस्वम् (e.g., ग्रन्थकर्तारः) are omitted from consideration.
         </p>
 
-
-          Multiply-filed categories are shown at every location they're filed,
-          cross-linked, with rollups deduplicated so shared content is never double-counted.
-           are listed separately rather than forced into it.
-        </p>
         <p>
-          Category membership does not bubble up: a category tag on a deeply nested subpage does not
-          cause its ancestor works to inherit that category. One narrow exception exists — if every
-          subpage under a work shares a category the work itself lacks, that category is inferred onto
-          the work and visibly marked as inferred; this is a display-only convenience and never edits
-          the live wiki.
+          Any Categories not a part of the ग्रन्थाः (+ धर्मशास्त्रम्) central community are
+          are placed into an artificial category called असंबद्धवर्गीकृतम् ("improperly categorized"),
+          which can gradually serve to improve the Category structure of sa.wikisource itself.
         </p>
 
-
-
         <p>
-          Categories link to their own parent category the same way any page links to a category —
-          there's no technical enforcement of a single connected structure. In practice this means
-          some categories are orphaned, small clusters can sit disconnected from the main hierarchy,
-          and a category can legitimately have more than one parent.
-        </p>
-        <p>
-          To help visualize this, this mirror places all orphaned communities and individual items
-          under the artificial label "asaṃbaddhavargīkṛta."
-          Furthermore, when a category is filed under two parents, the mirror shows it at both locations, cross-linked,
-          and it is careful not to double-count contents for the sake of filesize or page counts.
-          When individual Mainspace or proofreading Index items are categorized in ways that do not sit comfortably at a single place in the tree
-          — which is fully expected and proper! —
-          a magnifying glass icon helps the user visualize the item in its multiple locations by populating the search bar.
+          Finally, Category membership does not automatically "bubble up": a label on a deeply nested subpage does not
+          cause grandparent pages to inherit that Category.
+          However, if every subpage is found to share a Category that the parent itself lacks,
+          then the Category is indeed inferred onto the parent and visibly marked as such.
         </p>
 
-        <h3>How byte counts are calculated</h3>
+        <h3>Cross-tree Connections</h3>
         <p>
-          The size Wikisource itself reports for a page is just its stored wikitext — markup, templates,
-          and category tags included, and for a page that transcludes another page's content, the
-          transcluding page's own size is tiny regardless of how much text actually displays. Getting a
-          true sense of "how much real text is here" requires parsing the wikitext and stripping all of
-          that overhead out, which is what this mirror's own size figures are built from, rather than
-          repeating Wikisource's raw byte counts as-is.
-        </p>
-        <p>
-          It also transliterates from Devanagari to IAST in order to enable more meaningful comparison across collections,
-          whose sizes are more usually given in terms of IAST content.
-          Content transliterated as IAST is approximately 60% the filesize of its Devanagari equivalent.
+          If a Category (wrongly!) has multiple parents,
+          it will show up in both places in the mirror's tree display with notes to that effect.
         </p>
 
-        <h3>Transclusion and untranscluded OCR content</h3>
         <p>
-          Many works begin life as a scanned, OCR'd Index item (proofreading namespace) before an editor
-          assembles a finished mainspace page that transcludes the proofread pages. The pipeline parses
-          mainspace wikitext for transclusion tags: if a mainspace page transcludes any content from a
-          given Index item, that Index item is considered sufficiently complete and only the mainspace
-          version is shown. If an Index item is never transcluded anywhere, it's surfaced directly in the
-          category tree instead, explicitly marked as untranscluded/raw OCR content, using its own
-          category tags. This transcluded/untranscluded distinction is deliberately kept separate from
-          proofreading-quality (color-coded) status — a fully proofread work can still be untranscluded
-          if no one has assembled the mainspace page yet.
-        </p>
-        <p>
-          Rather than listing an untranscluded Index item's individual scanned-page children one by one,
-          the pipeline reads them once to compute a single rolled-up size and latest-change stat, attached
-          to the Index item itself — the same kind of rollup a finished mainspace work gets from its own
-          subpages, so untranscluded works don't misleadingly appear near-empty.
+          On the other hand, multiple Categories are entirely appropriate for text items, both Main and Index.
+          In this case, the search bar's ability to filter the tree is utilized
+          to visually clarify the item's multiple locations within the tree.
         </p>
 
-        <h3>Size computation</h3>
         <p>
-          Rather than estimating content size with heuristics, the pipeline fully parses each page's
-          wikitext, expands template calls for real (substituting parameters and recursively re-parsing,
-          rather than merely describing that a template was called), evaluates Lua-based (Scribunto)
-          modules where they materially affect visible text, and then runs actual transliteration to
-          produce true byte counts — rather than an estimated Devanagari→IAST expansion factor.
+          Given that the mirror seeks to summarize both Categories and text items in terms of their effective size (IAST content) and page counts,
+          their occurrence in multiple places of the tree threatens to result in double-counting.
+          Special care is taken to ensure that these stats are accurate at any given level.
+          For example, काश्यपसंहिता is under both धर्मशास्त्रम्/काश्यपरचनाः and वेदाः/उपवेदाः/आयुर्वेदः/काश्यपरचनाः,
+          so its numbers count toward both धर्मशास्त्रम् and वेदाः, but the top-level All aggregation knows to only count it once.
         </p>
 
-        <h3>Pipeline stages</h3>
+        <h3>Calculating Size</h3>
         <p>
-          The pipeline runs in three decoupled stages, driven monthly by a GitHub Action: fetch
-          (locate, download, and verify the latest dump), build (parse the dump once into per-namespace
-          records, construct the mainspace tree and category graph, detect transclusion, compute sizes
-          and rollups), and publish (materialize the result into this site's data format). Keeping fetch
-          separate from build/publish means the tree-building and size-computation logic can be iterated
-          on locally against an already-downloaded, cached dump without re-fetching it each time.
+          The size Wikisource itself reports for a page reflects stored "wikitext,"
+          including markup, templates, and Category tags.
+          Importantly, transcluded content is NOT counted.
+          In order to obtain a meaningful sense of "how much real text is here",
+          this mirror parses the wikitext, strips out overhead, populates transcluded content,
+          and transliterates from Devanāgarī to IAST.
+          IAST is smaller on disk (approximately 60%) and more common for cross-collection comparison.
         </p>
+
       </details>
 
       <details class="block collapsible">
-        <summary><h2>Data Changelog</h2></summary>
+        <summary><h2>Data Stats and Changelog</h2></summary>
         <p class="small">
-          Based on Wikimedia's Content File Export format for 2026-05-01 onward.
+          Monthly deltas based on a patchwork of sources:
+          <ul>
+            <li class="small">2011-09 → 2022-05 convenient full dumps stored on Internet Archive</li>
+            <li class="small">2022-06 → 2025-10 synthetic dumps materialized from daily revision data stored on Wikimedia</li>
+            <li class="small">2025-11 → present convenient full dumps stored on Wikimedia</li>
+          </ul>
         </p>
+
         <div id="changelog2">Loading…</div>
       </details>
     </section>

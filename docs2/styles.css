@@ -272,6 +272,7 @@ a.topbar-link:hover { text-decoration: underline; }
 .content .block.collapsible > summary::before{
   content: "";
   display: inline-block;
+  flex-shrink: 0;
   width: 0.6em;
   height: 0.6em;
   margin-right: 10px;

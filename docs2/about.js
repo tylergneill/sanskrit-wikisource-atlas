@@ -3,6 +3,7 @@ const CHANGELOG_URL = "./data/changelog2.json";
 const state = {
   scheme: "iast", // devanagari | iast | hk | itrans | slp1 | iso
   log: null,
+  granularity: 12, // months per group: 1 = monthly, 3 = quarterly, 12 = yearly
 };
 
 function translitText(s) {
@@ -73,6 +74,113 @@ function fmtSizeDelta(oldBytes, newBytes) {
   const pct = ((newBytes - oldBytes) / oldBytes) * 100;
   const arrow = pct >= 0 ? "↑" : "↓";
   return ` (${oldStr} → ${newStr}, ${arrow} ${Math.abs(pct).toFixed(0)}%)`;
+}
+
+// Combine N consecutive monthly changelog entries (oldest-first, chained --
+// each entry's old_date equals the previous entry's date) into one synthetic
+// entry spanning the whole group. Sizes/counts reduce trivially to the
+// group's first "old" and last "new". Item-level added/removed/changed lists
+// need real net-effect tracking across the group, not concatenation: e.g. an
+// item added in month 2 and removed in month 5 nets to neither an add nor a
+// remove over the full span, and an item added then later edited should
+// still show as "added" (with its final size/date), not also as "changed".
+// Replaying each month's added/removed/changed events in order against a
+// per-item running state is the only way to get this exactly right from the
+// monthly records alone (they don't carry a full item roster per month).
+function reduceGroup(entries) {
+  if (entries.length === 1) return entries[0];
+
+  const state = new Map(); // id -> {status: 'added'|'removed'|'present', bytes, date}
+
+  for (const entry of entries) {
+    for (const item of entry.items_added || []) {
+      state.set(item.id, { status: "added", bytes: item.new_bytes, date: item.date });
+    }
+    for (const item of entry.items_removed || []) {
+      if (state.has(item.id) && state.get(item.id).status === "added") {
+        // Added then removed within the same group: nets to no-op.
+        state.delete(item.id);
+      } else {
+        state.set(item.id, { status: "removed", bytes: item.old_bytes });
+      }
+    }
+    for (const item of entry.items_with_changed_timestamp || []) {
+      const prev = state.get(item.id);
+      if (prev && prev.status === "added") {
+        // Still a net-new item over the whole group -- keep it "added" but
+        // roll its bytes/date forward to this later edit.
+        state.set(item.id, { status: "added", bytes: item.new_bytes, date: item.new });
+      } else {
+        state.set(item.id, {
+          status: "changed",
+          old: prev && prev.status === "changed" ? prev.old : item.old,
+          new: item.new,
+          old_bytes: prev && prev.status === "changed" ? prev.old_bytes : item.old_bytes,
+          new_bytes: item.new_bytes,
+        });
+      }
+    }
+  }
+
+  const items_added = [];
+  const items_removed = [];
+  const items_with_changed_timestamp = [];
+  for (const [id, v] of state) {
+    if (v.status === "added") items_added.push({ id, date: v.date, new_bytes: v.bytes });
+    else if (v.status === "removed") items_removed.push({ id, old_bytes: v.bytes });
+    else if (v.status === "changed") {
+      items_with_changed_timestamp.push({ id, old: v.old, new: v.new, old_bytes: v.old_bytes, new_bytes: v.new_bytes });
+    }
+  }
+  items_added.sort((a, b) => a.id.localeCompare(b.id));
+  items_removed.sort((a, b) => a.id.localeCompare(b.id));
+  items_with_changed_timestamp.sort((a, b) => a.id.localeCompare(b.id));
+
+  const first = entries[0];
+  const last = entries[entries.length - 1];
+  const oldCount = first.old?.count ?? 0;
+  const newCount = last.new?.count ?? 0;
+  const deltaCount = newCount - oldCount;
+
+  const sizes = {};
+  for (const key of ["raw_bytes", "content_bytes", "transliterated_bytes"]) {
+    const oldV = first.sizes?.[key]?.old ?? 0;
+    const newV = last.sizes?.[key]?.new ?? 0;
+    const deltaV = newV - oldV;
+    sizes[key] = { old: oldV, new: newV, delta: deltaV, delta_pct: oldV === 0 ? null : (100 * deltaV) / oldV };
+  }
+
+  return {
+    id: last.id,
+    date: last.date,
+    old_date: first.old_date,
+    old: first.old,
+    new: last.new,
+    sizes,
+    delta: { count: deltaCount, count_pct: oldCount === 0 ? null : (100 * deltaCount) / oldCount },
+    items_added,
+    items_removed,
+    items_with_changed_timestamp,
+    items_added_count: items_added.length,
+    items_removed_count: items_removed.length,
+    items_changed_count: items_with_changed_timestamp.length,
+    items_added_pct: oldCount === 0 ? null : (100 * items_added.length) / oldCount,
+    items_removed_pct: oldCount === 0 ? null : (100 * items_removed.length) / oldCount,
+  };
+}
+
+// Group the oldest-first monthly log into chunks of `size` months, most
+// recent chunk first (i.e. grouping counts back from "now"), so a leftover
+// partial chunk falls at the oldest end where history runs out rather than
+// silently merging into the most recent (and most relevant) group.
+function groupEntries(log, size) {
+  if (size <= 1) return [...log];
+  const groups = [];
+  for (let end = log.length; end > 0; end -= size) {
+    const start = Math.max(0, end - size);
+    groups.push(reduceGroup(log.slice(start, end)));
+  }
+  return groups.reverse(); // oldest-first, matching the ungrouped log's order
 }
 
 function renderEntry(entry) {
@@ -156,8 +264,9 @@ function renderChangelog() {
   const container = document.getElementById("changelog2");
   if (!container || !state.log) return;
   container.textContent = "";
+  const grouped = groupEntries(state.log, state.granularity);
   // Newest first
-  for (const entry of [...state.log].reverse()) {
+  for (const entry of [...grouped].reverse()) {
     container.appendChild(renderEntry(entry));
   }
 }
@@ -363,10 +472,12 @@ function renderChangelogCharts() {
   if (!container || !state.log) return;
   container.textContent = "";
 
-  // One point per changelog entry's "new" state, in chronological order
-  // (the log is stored oldest-first already), plus the very first entry's
-  // "old" state so the earliest data point isn't dropped from the trend.
-  const sorted = [...state.log].sort((a, b) => a.date.localeCompare(b.date));
+  // One point per group's "new" state, in chronological order (grouped
+  // entries come back oldest-first, matching the ungrouped log), plus the
+  // first group's "old" state so the earliest data point isn't dropped from
+  // the trend. Same grouping as the deltas list below, so the chart's
+  // resolution matches whatever granularity is currently selected.
+  const sorted = groupEntries(state.log, state.granularity);
   if (sorted.length === 0) {
     container.textContent = "No data yet.";
     return;
@@ -423,6 +534,16 @@ if (schemeSelect) {
   schemeSelect.addEventListener("change", (ev) => {
     state.scheme = ev.target.value;
     renderChangelog();
+  });
+}
+
+const granularitySelect = document.getElementById("changelogGranularity");
+if (granularitySelect) {
+  granularitySelect.value = String(state.granularity);
+  granularitySelect.addEventListener("change", (ev) => {
+    state.granularity = Number(ev.target.value);
+    renderChangelog();
+    renderChangelogCharts();
   });
 }
 

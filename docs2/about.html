@@ -240,13 +240,22 @@
           </ul>
         </p>
 
+        <p class="small">
+          <label class="navlabel" for="changelogGranularity">Group by:</label>
+          <select id="changelogGranularity">
+            <option value="1">Monthly</option>
+            <option value="3">Quarterly</option>
+            <option value="12" selected>Yearly</option>
+          </select>
+        </p>
+
         <details class="block collapsible" open>
           <summary><h3 style="margin:0;">Trends Over Time</h3></summary>
           <div id="changelogCharts">Loading…</div>
         </details>
 
         <details class="block collapsible" open>
-          <summary><h3 style="margin:0;">Monthly Deltas</h3></summary>
+          <summary><h3 style="margin:0;">Deltas</h3></summary>
           <div id="changelog2">Loading…</div>
         </details>
       </details>

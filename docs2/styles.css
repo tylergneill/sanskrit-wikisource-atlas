@@ -73,6 +73,15 @@ body{
 }
 a.topbar-link:hover { text-decoration: underline; }
 
+/* about.html's topbar has 3 direct children (.brand, .topnav, .about-back-link)
+   instead of index.html's 2 -- order restores the original visual arrangement
+   (title, back-link, then dropdown pushed right) on desktop; see the narrow
+   breakpoint below for the mobile swap. */
+.about-topbar{ flex-wrap: nowrap; }
+.about-topbar .brand{ order: 1; }
+.about-topbar .about-back-link{ order: 2; margin-right: auto; }
+.about-topbar .topnav{ order: 3; }
+
 .topnav{ display:flex; align-items:center; gap:10px; color: var(--muted); }
 .navlink{ color: var(--accent); text-decoration:none; }
 .navlink:hover{ text-decoration:underline; }
@@ -433,6 +442,16 @@ a[target="_blank"]::after{
 @media (max-width: 1100px){
   .topbar{ flex-wrap: wrap; height: auto; row-gap: 6px; padding: 8px 10px; }
   .brand{ flex: 1 1 100%; align-items: baseline; column-gap: 10px; }
+
+  /* about.html only: title + dropdown share row 1 (title shrinks to fit,
+     dropdown pushed to the row's far right); "Back to tree" moves to its
+     own row 2 below, left-aligned -- see the desktop-order rules above
+     .topnav for why this page's topbar has 3 direct children instead of
+     index.html's 2. */
+  .about-topbar{ flex-wrap: wrap; }
+  .about-topbar .brand{ flex: 0 1 auto; }
+  .about-topbar .topnav{ flex: 0 0 auto; margin-left: auto; order: 2; }
+  .about-topbar .about-back-link{ order: 3; flex: 1 1 100%; margin-right: 0; }
   .brand-title{ flex: 0 1 auto; overflow: hidden; text-overflow: ellipsis; font-size: 17px; }
   .topnav{ flex: 1 1 100%; display: flex; align-items: center; column-gap: 6px; flex-wrap: nowrap; }
   .search-wrap{ flex: 1 1 auto; min-width: 0; order: 1; }

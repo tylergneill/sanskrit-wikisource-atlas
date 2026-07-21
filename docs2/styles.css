@@ -258,7 +258,8 @@ a.topbar-link:hover { text-decoration: underline; }
   align-items: center;
 }
 .content .block.collapsible > summary::-webkit-details-marker{ display: none; }
-.content .block.collapsible > summary h2{ margin: 0; }
+.content .block.collapsible > summary h2,
+.content .block.collapsible > summary h3{ margin: 0; }
 .content .block.collapsible > summary::before{
   content: "";
   display: inline-block;
@@ -274,6 +275,13 @@ a.topbar-link:hover { text-decoration: underline; }
 .content .block.collapsible h3{ margin: 14px 0 4px; }
 .content .block.collapsible h3:first-of-type{ margin-top: 14px; }
 .content .block.collapsible p{ margin: 4px 0 10px; }
+
+.content .block.collapsible .block.collapsible{
+  background: none;
+  border: none;
+  padding: 10px 0 0;
+  margin-bottom: 0;
+}
 
 .sticky-header{
   position: sticky;
@@ -507,4 +515,88 @@ a[target="_blank"]::after{
   .mainpane{
     height: 100%;
   }
+}
+
+/* === Changelog trend charts === */
+.chart-card{
+  margin: 10px 0 16px;
+}
+.chart-card h4{
+  margin: 0 0 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--muted);
+}
+.chart-svg{
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+.chart-svg .chart-grid{
+  stroke: var(--border);
+  stroke-width: 1px;
+  shape-rendering: crispEdges;
+}
+.chart-svg .chart-axis-text{
+  fill: var(--muted);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+.chart-svg .chart-line{
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 2px;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+.chart-svg .chart-area{
+  fill: var(--accent);
+  opacity: 0.1;
+}
+.chart-svg .chart-dot{
+  fill: var(--accent);
+  stroke: var(--panel);
+  stroke-width: 2px;
+}
+.chart-svg .chart-crosshair{
+  stroke: var(--muted);
+  stroke-width: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+.chart-svg .chart-hover-dot{
+  fill: var(--accent);
+  stroke: var(--panel);
+  stroke-width: 2px;
+  opacity: 0;
+  pointer-events: none;
+}
+.chart-svg .chart-hit{
+  fill: transparent;
+  cursor: crosshair;
+}
+.chart-tooltip{
+  position: absolute;
+  pointer-events: none;
+  background: var(--panel2);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 6px 8px;
+  font-size: 12px;
+  color: var(--text);
+  white-space: nowrap;
+  opacity: 0;
+  transition: opacity 0.1s ease;
+  z-index: 10;
+}
+.chart-tooltip .chart-tooltip-date{
+  color: var(--muted);
+  margin-bottom: 2px;
+}
+.chart-tooltip .chart-tooltip-value{
+  font-weight: 600;
+}
+.chart-wrap{
+  position: relative;
 }

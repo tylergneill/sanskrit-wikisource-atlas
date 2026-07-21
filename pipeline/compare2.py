@@ -73,22 +73,45 @@ def pct(delta: float, base: float):
 
 
 def diff_timestamps(old_items: Dict[str, dict], new_items: Dict[str, dict]) -> list:
-    """Items present in both snapshots whose last_changed differs."""
+    """Items present in both snapshots whose last_changed differs. Carries
+    each item's transliterated_bytes (the mirror's meaningful "how much real
+    text" figure -- see about.html's "Calculating Size") old/new for display
+    as a size delta alongside the timestamp change."""
     changed = []
     for iid in sorted(set(old_items) & set(new_items)):
         old_ts = old_items[iid].get("last_changed")
         new_ts = new_items[iid].get("last_changed")
         if old_ts and new_ts and old_ts != new_ts:
-            changed.append({"id": iid, "old": old_ts, "new": new_ts})
+            changed.append({
+                "id": iid,
+                "old": old_ts,
+                "new": new_ts,
+                "old_bytes": old_items[iid].get("transliterated_bytes", 0) or 0,
+                "new_bytes": new_items[iid].get("transliterated_bytes", 0) or 0,
+            })
     return changed
 
 
 def added_removed(old_items: Dict[str, dict], new_items: Dict[str, dict]) -> Tuple[list, list]:
+    """Items only in one snapshot. Added items carry new_bytes (old is
+    implicitly 0); removed items carry old_bytes (new is implicitly 0) --
+    same transliterated_bytes figure as diff_timestamps, for a consistent
+    size-delta display across all three lists."""
     added = [
-        {"id": iid, "date": new_items[iid].get("last_changed")}
+        {
+            "id": iid,
+            "date": new_items[iid].get("last_changed"),
+            "new_bytes": new_items[iid].get("transliterated_bytes", 0) or 0,
+        }
         for iid in sorted(set(new_items) - set(old_items))
     ]
-    removed = sorted(set(old_items) - set(new_items))
+    removed = [
+        {
+            "id": iid,
+            "old_bytes": old_items[iid].get("transliterated_bytes", 0) or 0,
+        }
+        for iid in sorted(set(old_items) - set(new_items))
+    ]
     return added, removed
 
 

@@ -239,7 +239,15 @@
           </ul>
         </p>
 
-        <div id="changelog2">Loading…</div>
+        <details class="block collapsible" open>
+          <summary><h3 style="margin:0;">Trends Over Time</h3></summary>
+          <div id="changelogCharts">Loading…</div>
+        </details>
+
+        <details class="block collapsible" open>
+          <summary><h3 style="margin:0;">Monthly Deltas</h3></summary>
+          <div id="changelog2">Loading…</div>
+        </details>
       </details>
     </section>
   </main>
@@ -273,6 +281,6 @@
 
     loadVersion();
   </script>
-  <script type="module" src="./about2.js"></script>
+  <script type="module" src="./about.js"></script>
 </body>
 </html>

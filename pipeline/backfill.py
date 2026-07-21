@@ -1,18 +1,42 @@
 """Backfill historical docs2 changelog entries from older monthly dump exports.
 
-As of this writing, only 3 months of mediawiki_content_current exports are
-available online for sawikisource -- 2026-05-01, 2026-06-01, 2026-07-01.
-The format itself launched 2026-01-30 (announced on xmldatadumps-l), and the
-same 3-month window holds for unrelated wikis too (enwiki, dewiki checked
-directly) with 2026-04-01 404ing on enwiki -- consistent with active pruning
-to a rolling window, though no page documents a retention policy in writing;
-this is an inference from the observed pattern, not a cited policy. This
-script fetches
-whichever of those aren't already downloaded (each into its own dump/<date>/
-directory, never touching the live dump/*.xml used for routine `make process`
-runs), processes each into a throwaway tree2.json-shaped snapshot, and runs
-pipeline.compare2 pairwise across consecutive months, appending each diff to
-docs2/data/changelog2.json.
+Two source eras, both handled here:
+
+1. **Current era** (pipeline.fetch / mediawiki_content_current): only a
+   3-month rolling window is available online for sawikisource --
+   2026-05-01, 2026-06-01, 2026-07-01 as of this writing. The format itself
+   launched 2026-01-30 (announced on xmldatadumps-l), and the same 3-month
+   window holds for unrelated wikis too (enwiki, dewiki checked directly)
+   with 2026-04-01 404ing on enwiki -- consistent with active pruning to a
+   rolling window, though no page documents a retention policy in writing;
+   this is an inference from the observed pattern, not a cited policy.
+
+2. **Legacy era** (pipeline.fetch_legacy): the classic MediaWiki export
+   format (pages-meta-current.xml.bz2). Two sources, merged transparently by
+   fetch_legacy.list_available_months -- pipeline.backfill never needs to
+   know which one served a given month:
+   - **Live rolling window** (dumps.wikimedia.org/sawikisource/<date>/):
+     Wikimedia's own still-current copy of the legacy format. Also just a
+     rolling window (confirmed directly), but as of this writing it holds
+     2025-11-20 through 2026-07-01 -- i.e. it reaches right up to (and
+     overlaps with) mediawiki_content_current's start, which is what fills
+     what would otherwise be a ~4-year gap (2022-05 to 2026-05) between
+     Internet Archive's last snapshot and the current-era window's first.
+   - **Internet Archive** (item `sawikisource-<YYYYMMDD>`, one per
+     historical dump run): the only source with real historical depth, back
+     to 2011 -- confirmed via a spike run against 2022-01-20 that
+     pipeline.parse_dump / build_tree / transclusion / content_size all read
+     this format with zero code changes (same schema, same namespace IDs).
+
+For each month, ensure_month resolves an exact date to an era: legacy months
+(< LEGACY_CUTOVER) go through pipeline.fetch_legacy (which itself picks
+live-rolling-window vs. Internet Archive per month); current-era months go
+through pipeline.fetch against mediawiki_content_current, unchanged from
+before. Each snapshot lands in its own dump/<date>/ or dump/_legacy/<date>/
+directory, never touching the live dump/*.xml used for routine `make
+process` runs. Each month is processed into a throwaway tree2.json-shaped
+snapshot, and pipeline.compare2 runs pairwise across consecutive months,
+appending each diff to docs2/data/changelog2.json.
 
 Deliberately does NOT write docs2/data/tree2.json or docs2/VERSION -- those
 reflect the live, current-month pipeline state, not a historical replay.
@@ -21,13 +45,18 @@ This calls process.py's internals directly rather than shelling out to
 _stamp_data_version() call (see process.py:main), which would otherwise
 overwrite docs2/VERSION with backfill dates.
 
-Extending this further back would require the legacy XML dump format at a
-different dumps.wikimedia.org path -- explicitly out of scope here (see
-notes/sawikisource-scraper-spec.md's non-goals); this script only ever
-walks whatever's currently listed under mediawiki_content_current.
+With no --months given, the default is the full available range: every
+legacy month (queried live -- see default_months() -- rather than
+hardcoded, since the underlying sources' own listings are the source of
+truth for what's actually fetchable) plus the 3 current-era months.
+
+For a smart, resumable, one-month-at-a-time walk through this whole range
+(so results can be inspected incrementally rather than run in one long
+batch), use `make backfill` / pipeline/run_backfill_sequence.sh instead of
+calling this module directly with the full default range.
 
 Usage:
-    python -m pipeline.backfill
+    python -m pipeline.backfill --months 2022-04-01 2022-05-01
     python -m pipeline.backfill --snapshot-dir /tmp/snapshots
 """
 
@@ -39,14 +68,21 @@ import sys
 from pathlib import Path
 
 from pipeline import fetch as fetch_mod
+from pipeline import fetch_legacy
 from pipeline.build_tree import build_category_graph, build_main_tree, refile_category
 from pipeline.parse_dump import parse_dump
 from pipeline.process import build_tree_json, compute_all_content_sizes
 from pipeline.transclusion import build_transclusion_map
 from pipeline.compare2 import build_report, print_summary
 
-BACKFILL_MONTHS = ["2026-05-01", "2026-06-01", "2026-07-01"]
+# Below this date, months are fetched from the Internet Archive
+# (pipeline.fetch_legacy) instead of mediawiki_content_current
+# (pipeline.fetch) -- see module docstring.
+LEGACY_CUTOVER = "2026-05-01"
+
+CURRENT_ERA_MONTHS = ["2026-05-01", "2026-06-01", "2026-07-01"]
 DEFAULT_DUMP_ROOT = Path(__file__).resolve().parent.parent / "dump"
+DEFAULT_LEGACY_DUMP_ROOT = Path(__file__).resolve().parent.parent / "dump" / "_legacy"
 DEFAULT_SNAPSHOT_DIR = Path(__file__).resolve().parent.parent / "dump" / "_backfill_snapshots"
 DEFAULT_CHANGELOG = Path(__file__).resolve().parent.parent / "docs2" / "data" / "changelog2.json"
 
@@ -97,9 +133,24 @@ def process_dump(xml_path: Path, workers: int | None = None) -> dict:
     return build_tree_json(dump_index, graph, main_nodes, transclusion_map, content_index)
 
 
-def ensure_month(date_str: str, dump_root: Path) -> Path:
-    """Fetch+decompress one month's export into dump_root/<date>/ if not already
-    there, returning the path to its uncompressed XML."""
+def default_months() -> list[str]:
+    """Every legacy month (queried live, merged across the live rolling
+    window and Internet Archive -- see fetch_legacy.list_available_months)
+    plus the 3 current-era months, oldest first -- the full available range
+    absent an explicit --months override."""
+    legacy_months = sorted(fetch_legacy.list_available_months())
+    return [f"{ym}-01" for ym in legacy_months] + CURRENT_ERA_MONTHS
+
+
+def ensure_month(date_str: str, dump_root: Path, legacy_dump_root: Path) -> Path:
+    """Fetch+decompress one month's export if not already there, returning the
+    path to its uncompressed XML. Dispatches to pipeline.fetch (current era,
+    mediawiki_content_current, dump_root/<date>/) or pipeline.fetch_legacy
+    (legacy era, Internet Archive, legacy_dump_root/<date>/) based on
+    LEGACY_CUTOVER."""
+    if date_str < LEGACY_CUTOVER:
+        return _ensure_legacy_month(date_str, legacy_dump_root)
+
     out_dir = dump_root / date_str
     existing = sorted(out_dir.glob("sawikisource-*.xml")) if out_dir.exists() else []
     if existing:
@@ -110,6 +161,28 @@ def ensure_month(date_str: str, dump_root: Path) -> Path:
     if not xml_paths:
         raise RuntimeError(f"no .xml produced for {date_str}")
     return xml_paths[0]
+
+
+def _ensure_legacy_month(date_str: str, legacy_dump_root: Path) -> Path:
+    """date_str is the requested YYYY-MM-01 (the calendar month, used as this
+    entry's identity throughout backfill/changelog). The actual underlying
+    snapshot within that month can fall on any day and come from either
+    source (e.g. 2022-01-20 from Internet Archive, or 2026-04-01 from the
+    live rolling window -- see fetch_legacy.list_available_months) --
+    fetch_legacy.fetch_snapshot writes into a directory named after that real
+    day, so this looks inside legacy_dump_root/<ym>-*/ (a glob on the month
+    prefix) rather than assuming day 01."""
+    ym = date_str[:7]
+    existing = sorted(legacy_dump_root.glob(f"{ym}-*/sawikisource-*.xml"))
+    if existing:
+        print(f"{date_str}: already fetched (legacy) -> {existing[0]}", file=sys.stderr)
+        return existing[0]
+
+    by_month = fetch_legacy.list_available_months()
+    dump = by_month.get(ym)
+    if dump is None:
+        raise RuntimeError(f"no legacy snapshot found for month {ym} (date {date_str})")
+    return fetch_legacy.fetch_snapshot(dump, out_dir=legacy_dump_root)
 
 
 def ensure_snapshot(date_str: str, xml_path: Path, snapshot_dir: Path, workers: int | None) -> Path:
@@ -134,10 +207,14 @@ def ensure_snapshot(date_str: str, xml_path: Path, snapshot_dir: Path, workers: 
 
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("--months", nargs="+", default=BACKFILL_MONTHS,
-                     help=f"months to backfill, oldest first (default: {BACKFILL_MONTHS})")
+    ap.add_argument("--months", nargs="+", default=None,
+                     help="months to backfill, oldest first, as YYYY-MM-01 (default: full available "
+                          "range -- every Internet Archive month plus the 3 current-era months, "
+                          "queried live)")
     ap.add_argument("--dump-root", type=Path, default=DEFAULT_DUMP_ROOT,
-                     help="directory under which each month gets its own dump/<date>/ subdir")
+                     help="directory under which each current-era month gets its own dump/<date>/ subdir")
+    ap.add_argument("--legacy-dump-root", type=Path, default=DEFAULT_LEGACY_DUMP_ROOT,
+                     help="directory under which each legacy-era (Internet Archive) month gets its own subdir")
     ap.add_argument("--snapshot-dir", type=Path, default=DEFAULT_SNAPSHOT_DIR,
                      help="where to write per-month tree2.json-shaped snapshots (gitignored, throwaway)")
     ap.add_argument("--changelog", type=Path, default=DEFAULT_CHANGELOG,
@@ -145,29 +222,46 @@ def main() -> None:
     ap.add_argument("--workers", type=int, default=None, help="worker processes for content-size computation")
     args = ap.parse_args()
 
+    months = args.months if args.months is not None else default_months()
+
     snapshots = []
-    for date_str in args.months:
-        xml_path = ensure_month(date_str, args.dump_root)
+    for date_str in months:
+        xml_path = ensure_month(date_str, args.dump_root, args.legacy_dump_root)
         snapshot_path = ensure_snapshot(date_str, xml_path, args.snapshot_dir, args.workers)
         snapshots.append((date_str, snapshot_path))
 
+    if args.changelog.exists():
+        log = json.loads(args.changelog.read_text())
+    else:
+        log = []
+    existing_transitions = {(e.get("old_date"), e.get("date")) for e in log}
+
     for (old_date, old_snap), (new_date, new_snap) in zip(snapshots, snapshots[1:]):
+        old_iso, new_iso = f"{old_date}T00:00:00Z", f"{new_date}T00:00:00Z"
+        if (old_iso, new_iso) in existing_transitions:
+            print(f"\n=== {old_date} -> {new_date}: already in changelog, skipping ===", file=sys.stderr)
+            continue
+
         print(f"\n=== comparing {old_date} -> {new_date} ===", file=sys.stderr)
         report = build_report(old_snap, new_snap)
         print_summary(report)
 
-        if args.changelog.exists():
-            log = json.loads(args.changelog.read_text())
-        else:
-            log = []
         next_id = max((e.get("id", 0) for e in log), default=0) + 1
         entry = {
             "id": next_id,
-            "date": f"{new_date}T00:00:00Z",
-            "old_date": f"{old_date}T00:00:00Z",
+            "date": new_iso,
+            "old_date": old_iso,
             **report,
         }
         log.append(entry)
+        existing_transitions.add((old_iso, new_iso))
+        # Sort by date on every write (not just append) -- entries are
+        # computed/appended in whatever order --months was given, and a
+        # backfill run mixing legacy and current-era months would otherwise
+        # leave the file (and about2.js's newest-first reversal of it) out
+        # of chronological order. `id` stays a stable append-order identifier,
+        # untouched by this re-sort.
+        log.sort(key=lambda e: e["date"])
         args.changelog.parent.mkdir(parents=True, exist_ok=True)
         args.changelog.write_text(json.dumps(log, indent=2, ensure_ascii=False) + "\n")
         print(f"appended changelog entry #{next_id}", file=sys.stderr)

@@ -1,4 +1,4 @@
-.PHONY: scrape refresh-dump refresh-dump-force process serve serve2 ngrok
+.PHONY: scrape refresh-dump refresh-dump-force process serve serve2 ngrok backfill
 
 # Regenerate docs/data/tree.json (v1 frontend) via the live MediaWiki API.
 scrape:
@@ -19,6 +19,14 @@ refresh-dump-force:
 # Build docs2/data/tree2.json (v2 frontend) from the downloaded dump.
 process:
 	python -m pipeline.process --out docs2/data/tree2.json
+
+# Walk backward through every available historical month (Internet Archive
+# legacy dumps, then the live rolling window), one pairwise comparison at a
+# time, appending each to docs2/data/changelog2.json. Safe to interrupt and
+# rerun -- already-fetched dumps, already-built snapshots, and already-logged
+# changelog transitions are all skipped, not redone.
+backfill:
+	bash pipeline/run_backfill_sequence.sh --workers 8
 
 # Serve the v1 frontend (docs/) locally.
 serve:

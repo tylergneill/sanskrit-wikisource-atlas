@@ -182,6 +182,17 @@ def _live_content_version() -> str | None:
     return None
 
 
+class RootCategoryMissing(Exception):
+    """Raised by process_dump when the mirror's organizing root category
+    (वर्गसर्वस्वम्) isn't present in a dump at all -- not a parse error, but a
+    real historical fact about sa.wikisource: this whole mirror's tree model
+    depends on that category existing, and it didn't yet in the site's
+    earliest days (confirmed on the 2011-10-13 Internet Archive dump: only 3
+    categories existed on the entire site at that point, none of them
+    वर्गसर्वस्वम्). Callers should treat this as "too early to build a
+    snapshot for," skipping the month rather than crashing the whole run."""
+
+
 def process_dump(xml_path: Path, workers: int | None = None) -> dict:
     """Same sequence as process.py's main(), minus writing docs2/tree2.json
     or stamping docs2/VERSION -- returns the tree dict in memory instead."""
@@ -195,7 +206,10 @@ def process_dump(xml_path: Path, workers: int | None = None) -> dict:
     print("building category graph...", file=sys.stderr)
     graph = build_category_graph(dump_index.pages_by_ns[14], cat_ns_name)
     if graph.root_title not in graph.nodes:
-        raise RuntimeError(f"root category '{graph.root_title}' not found in {xml_path}")
+        raise RootCategoryMissing(
+            f"root category '{graph.root_title}' not found in {xml_path} -- "
+            f"too early in sa.wikisource's history for this mirror's tree model"
+        )
 
     refile_category(graph, "धर्मशास्त्रम्", new_parent_title="ग्रन्थाः", old_parent_title=graph.root_title)
 
@@ -453,12 +467,22 @@ def main() -> None:
         get_xml_path = lambda d=date_str: ensure_month(
             d, args.dump_root, args.legacy_dump_root, args.materialized_dump_root, args.materialize_src_dir
         )
-        snapshot_path = ensure_snapshot(date_str, get_xml_path, args.snapshot_dir, args.workers)
+        try:
+            snapshot_path = ensure_snapshot(date_str, get_xml_path, args.snapshot_dir, args.workers)
+        except RootCategoryMissing as e:
+            # Too early in sa.wikisource's history for this mirror's tree
+            # model (see RootCategoryMissing) -- skip this month rather than
+            # aborting the whole run; any comparison pairs involving it are
+            # dropped below.
+            print(f"{date_str}: {e} -- skipping this month", file=sys.stderr)
+            if not args.keep_raw_dumps:
+                cleanup_raw_dump(date_str, args.dump_root, args.legacy_dump_root, args.materialized_dump_root)
+            continue
         snapshots_by_date[date_str] = snapshot_path
         if not args.keep_raw_dumps:
             cleanup_raw_dump(date_str, args.dump_root, args.legacy_dump_root, args.materialized_dump_root)
 
-    snapshots = [(date_str, snapshots_by_date[date_str]) for date_str in months]
+    snapshots = [(date_str, snapshots_by_date[date_str]) for date_str in months if date_str in snapshots_by_date]
 
     if args.changelog.exists():
         log = json.loads(args.changelog.read_text())

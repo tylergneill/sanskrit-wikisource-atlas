@@ -63,11 +63,18 @@ class DumpIndex:
     def category_ns_id(self) -> int:
         return self._find_ns_id("वर्गः", fallback=14)
 
-    def index_ns_id(self) -> int:
-        return self._find_ns_id("अनुक्रमणिका", fallback=106)
+    def index_ns_id(self) -> int | None:
+        # Unlike category_ns_id/template_ns_id (core MediaWiki namespaces
+        # present since forever), Index (106) is the ProofreadPage extension
+        # -- genuinely absent from early sawikisource dumps (e.g. 2011-10),
+        # since the extension wasn't enabled yet. Returns None rather than
+        # raising in that case; callers must treat None as "no such
+        # namespace, zero records" rather than an error.
+        return self._find_ns_id_optional("अनुक्रमणिका", fallback=106)
 
-    def page_ns_id(self) -> int:
-        return self._find_ns_id("पृष्ठम्", fallback=104)
+    def page_ns_id(self) -> int | None:
+        # Same ProofreadPage-extension caveat as index_ns_id (Page, 104).
+        return self._find_ns_id_optional("पृष्ठम्", fallback=104)
 
     def template_ns_id(self) -> int:
         return self._find_ns_id("फलकम्", fallback=10)
@@ -90,6 +97,24 @@ class DumpIndex:
             )
             return fallback
         raise ValueError(f"could not resolve namespace '{localized_name}' and fallback id {fallback} absent from siteinfo")
+
+    def _find_ns_id_optional(self, localized_name: str, fallback: int) -> int | None:
+        for ns_id, name in self.namespaces.items():
+            if name == localized_name:
+                return ns_id
+        if fallback in self.namespaces:
+            print(
+                f"warning: namespace '{localized_name}' not found by name, "
+                f"falling back to id {fallback}",
+                file=sys.stderr,
+            )
+            return fallback
+        print(
+            f"note: namespace '{localized_name}' (fallback id {fallback}) not present in this "
+            f"dump's siteinfo -- treating as genuinely absent (0 records), not an error",
+            file=sys.stderr,
+        )
+        return None
 
 
 def _localname(tag: str) -> str:
@@ -149,11 +174,13 @@ def parse_dump(xml_path: Path, namespaces_of_interest: set[int] | None = None) -
             dump_index = DumpIndex(site_name=site_name or "", namespaces=namespaces)
             if namespaces_of_interest is None:
                 namespaces_of_interest = {
-                    dump_index.category_ns_id(),
-                    dump_index.index_ns_id(),
-                    dump_index.template_ns_id(),
-                    dump_index.page_ns_id(),
-                    0,  # Main
+                    ns_id for ns_id in (
+                        dump_index.category_ns_id(),
+                        dump_index.index_ns_id(),
+                        dump_index.template_ns_id(),
+                        dump_index.page_ns_id(),
+                        0,  # Main
+                    ) if ns_id is not None
                 }
             for ns_id in namespaces_of_interest:
                 dump_index.pages_by_ns.setdefault(ns_id, [])
@@ -250,7 +277,9 @@ def main() -> None:
     dump_index = parse_dump(xml_path)
     print(f"site: {dump_index.site_name}", file=sys.stderr)
     print(f"category ns: {dump_index.category_ns_id()} ({dump_index.namespaces[dump_index.category_ns_id()]})", file=sys.stderr)
-    print(f"index ns: {dump_index.index_ns_id()} ({dump_index.namespaces[dump_index.index_ns_id()]})", file=sys.stderr)
+    index_ns_id = dump_index.index_ns_id()
+    index_ns_label = dump_index.namespaces[index_ns_id] if index_ns_id is not None else "absent from this dump"
+    print(f"index ns: {index_ns_id} ({index_ns_label})", file=sys.stderr)
     for ns_id, records in dump_index.pages_by_ns.items():
         print(f"  ns {ns_id}: {len(records)} pages", file=sys.stderr)
 

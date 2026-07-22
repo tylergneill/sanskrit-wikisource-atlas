@@ -156,8 +156,12 @@ def compute_page_ns_rollup(
     dropped from display anyway, so there's no reason to pay for its
     (often large) template-expansion + transliteration cost here.
     """
-    page_ns_name = dump_index.namespaces[dump_index.page_ns_id()]
-    all_page_records = dump_index.pages_by_ns.get(dump_index.page_ns_id(), [])
+    page_ns_id = dump_index.page_ns_id()
+    # Page (104) is the ProofreadPage extension -- absent from early dumps
+    # (e.g. 2011-10, before the extension was enabled on sawikisource). No
+    # namespace means no scanned-leaf records to roll up, not an error.
+    page_ns_name = dump_index.namespaces[page_ns_id] if page_ns_id is not None else ""
+    all_page_records = dump_index.pages_by_ns.get(page_ns_id, []) if page_ns_id is not None else []
 
     relevant_records = [
         rec for rec in all_page_records
@@ -203,7 +207,11 @@ def compute_all_content_sizes(
     )
     main_categories = {rec.title: direct_categories(rec, cat_ns_name) for rec in main_records}
 
-    index_records = dump_index.pages_by_ns[dump_index.index_ns_id()]
+    index_ns_id = dump_index.index_ns_id()
+    # Index (106) is the ProofreadPage extension -- absent from early dumps
+    # (e.g. 2011-10, before the extension was enabled on sawikisource). No
+    # namespace means no Index items, not an error.
+    index_records = dump_index.pages_by_ns.get(index_ns_id, []) if index_ns_id is not None else []
     # keyed by bare title (namespace prefix stripped) below, but the pool
     # itself keys by record.title (the full "अनुक्रमणिका:..." title) --
     # remap after the fact.
@@ -352,7 +360,11 @@ def build_tree_json(
     transclusion_map: dict[str, set[str]],
     content_index: ContentIndex,
 ) -> dict:
-    index_ns_name = dump_index.namespaces[dump_index.index_ns_id()]
+    index_ns_id = dump_index.index_ns_id()
+    # Same ProofreadPage-extension caveat as above: only used to build
+    # index_url() links, and only ever dereferenced against real Index
+    # items, which won't exist if the namespace itself doesn't.
+    index_ns_name = dump_index.namespaces[index_ns_id] if index_ns_id is not None else ""
     category_ns_name = dump_index.namespaces[dump_index.category_ns_id()]
     pages_by_cat, index_items_by_cat = build_category_membership_maps(content_index)
 

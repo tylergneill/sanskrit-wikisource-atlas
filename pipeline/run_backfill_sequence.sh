@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Runs pipeline.backfill one month-pair at a time, starting from the newest
-# current-era month already anchored in docs2/data/changelog2.json
+# current-era month already anchored in docs/data/changelog.json
 # (2026-05-01) and working backward through every available legacy month
 # (pipeline.fetch_legacy -- merged live rolling window + Internet Archive,
 # see that module's docstring) down to the oldest (2011-09-01, as of this

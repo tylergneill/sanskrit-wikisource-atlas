@@ -1,17 +1,15 @@
-"""Compare two docs2 tree2.json snapshots' root.stats, plus item-level detail.
+"""Compare two docs/data/tree.json snapshots' root.stats, plus item-level detail.
 
-v2 equivalent of the top-level compare.py, adapted to pipeline/process.py's
-richer schema: stats are {raw_bytes, content_bytes, transliterated_bytes,
-count, last_changed}, and content nodes are "page" (with nested "subpages")
-and "index-item", not v1's flat "page". A page/index-item can legitimately
-be a real, fully-populated node under more than one category (unlike v1,
-where a second filing was always a pointer) -- so walking dedupes by id,
-first-occurrence-wins, matching how process.py's recompute_stats_dedup
-already treats root.stats itself.
+Adapted to pipeline/process.py's schema: stats are {raw_bytes, content_bytes,
+transliterated_bytes, count, last_changed}, and content nodes are "page"
+(with nested "subpages") and "index-item". A page/index-item can legitimately
+be a real, fully-populated node under more than one category -- so walking
+dedupes by id, first-occurrence-wins, matching how process.py's
+recompute_stats_dedup already treats root.stats itself.
 
 Usage:
-    python -m pipeline.compare2 OLD.json NEW.json
-    python -m pipeline.compare2 OLD.json NEW.json --append --label "..." --notes "..."
+    python -m pipeline.compare OLD.json NEW.json
+    python -m pipeline.compare OLD.json NEW.json --append --label "..." --notes "..."
 """
 
 import argparse
@@ -26,7 +24,7 @@ ORPHAN_BUCKET_TITLE = "असम्बद्धवर्गीकृतम्"
 
 
 def collect_items(root: dict, include_orphan_bucket: bool = False) -> Dict[str, dict]:
-    """Walk a tree2.json root, return {item_id: stats} for every page/index-item,
+    """Walk a tree.json root, return {item_id: stats} for every page/index-item,
     deduped by first occurrence (a page/index-item's stats are identical at
     every category it's genuinely filed under, so first-seen is as good as any).
 
@@ -185,11 +183,11 @@ def print_summary(report: dict) -> None:
 
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("old", type=Path, help="older tree2.json snapshot")
-    ap.add_argument("new", type=Path, help="newer tree2.json snapshot")
+    ap.add_argument("old", type=Path, help="older tree.json snapshot")
+    ap.add_argument("new", type=Path, help="newer tree.json snapshot")
     ap.add_argument("--append", action="store_true", help="append this comparison as an entry to the changelog")
-    ap.add_argument("--changelog", type=Path, default=Path("docs2/data/changelog2.json"),
-                     help="changelog path (default: docs2/data/changelog2.json)")
+    ap.add_argument("--changelog", type=Path, default=Path("docs/data/changelog.json"),
+                     help="changelog path (default: docs/data/changelog.json)")
     ap.add_argument("--label", default="", help="short human label for this comparison")
     ap.add_argument("--notes", default="", help="free-text note describing what this comparison represents")
     args = ap.parse_args()

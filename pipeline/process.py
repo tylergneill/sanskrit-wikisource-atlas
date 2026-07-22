@@ -29,7 +29,7 @@ the tree (a page tagged with >1 category directly -- same multi-filing
 concept as category-pointer, just for pages instead of categories).
   { id, type: "page-pointer", title, url, points_to: <id> }
   No stats/subpages of its own; resolve via points_to to the occurrence that
-  has them (mirrors category-pointer's resolution, see docs2/app.js's
+  has them (mirrors category-pointer's resolution, see docs/app.js's
   resolveContent).
 
 IndexItemNode (Index-namespace item with ZERO transclusion anywhere in
@@ -595,8 +595,8 @@ def build_tree_json(
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("xml_path", type=Path, nargs="?", help="path to the uncompressed dump XML")
-    parser.add_argument("--out", type=Path, default=Path("docs2/data/tree2.json"),
-                         help="output path (default: docs2/data/tree2.json, the v2 frontend's data dir)")
+    parser.add_argument("--out", type=Path, default=Path("docs/data/tree.json"),
+                         help="output path (default: docs/data/tree.json, the frontend's data dir)")
     parser.add_argument("--no-transliterate", action="store_true",
                          help="skip skrutable transliteration (faster, for quick iteration)")
     parser.add_argument("--workers", type=int, default=None,
@@ -667,13 +667,11 @@ def _stamp_data_version(dump_date: str) -> None:
     """Record today's date as __data_version__ (pipeline-run date) and the
     Wikimedia dump export's own date (parsed from the source XML filename,
     e.g. sawikisource-2026-07-01-....xml -> "2026-07-01") as
-    __content_version__ in docs2/VERSION, alongside __code_version__ (bumped
+    __content_version__ in docs/VERSION, alongside __code_version__ (bumped
     manually/separately). __content_version__ is deliberately just the
     dump's snapshot date -- not a rollup over page-edit timestamps, which
-    the main panel already surfaces per-item on its own. Mirrors scrape.py's
-    _stamp_data_version() for the legacy docs/ pipeline, which does not
-    track __content_version__."""
-    version_path = Path(__file__).resolve().parent.parent / "docs2" / "VERSION"
+    the main panel already surfaces per-item on its own."""
+    version_path = Path(__file__).resolve().parent.parent / "docs" / "VERSION"
     today = time.strftime("%Y-%m-%d", time.gmtime())
     lines = version_path.read_text(encoding="utf-8").splitlines() if version_path.exists() else ['__code_version__ = "0.1.0"']
     lines = [

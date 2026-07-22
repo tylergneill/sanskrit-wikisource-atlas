@@ -24,10 +24,10 @@ import time
 from skrutable.transliteration import Transliterator
 
 # Terminal-output-only: transliterates progress-line detail text (e.g. page
-# titles) from Devanagari to IAST for readability while watching a run, same
-# spirit as scrape.py's to_iast(). Never touches any persisted data -- title
-# fields in tree2.json stay raw Devanagari per CLAUDE.md; the frontend does
-# its own client-side transliteration on render.
+# titles) from Devanagari to IAST for readability while watching a run.
+# Never touches any persisted data -- title fields in tree.json stay raw
+# Devanagari per CLAUDE.md; the frontend does its own client-side
+# transliteration on render.
 _transliterator = Transliterator(from_scheme="DEV", to_scheme="IAST")
 
 

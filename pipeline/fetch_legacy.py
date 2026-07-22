@@ -3,7 +3,7 @@ Fetch stage (legacy): locate, download, and verify historical sawikisource
 dumps in the classic MediaWiki export format (pages-meta-current.xml.bz2),
 for backfilling the changelog further back than the 3-month rolling window
 `pipeline/fetch.py` / mediawiki_content_current provides (see
-docs2/about.html's changelog note and pipeline/backfill.py).
+docs/about.html's changelog note and pipeline/backfill.py).
 
 Two sources, both in the same classic format (same schema
 `pipeline/parse_dump.py` already reads, confirmed against a live 2022-01-20

@@ -3,7 +3,7 @@ materializing one or more months for which a real, full-dump-derived
 snapshot already exists on disk (e.g. 2022-05-01 from Internet Archive,
 2025-11-01 from the live rolling window -- the two boundary months flanking
 MATERIALIZED_MONTHS), then diffing materialized-vs-real via
-pipeline.compare2.build_report. Confirmed on 2026-07-21: both boundary
+pipeline.compare.build_report. Confirmed on 2026-07-21: both boundary
 months came within ~0.5-0.6% on every count/size metric, well within the
 known deviations documented in materialize_snapshots.py's docstring (pages
 deleted/renamed after the meta-history dump was taken, revision-cutoff
@@ -30,7 +30,7 @@ from pipeline.backfill import (
     _ensure_materialized_month,
     process_dump,
 )
-from pipeline.compare2 import build_report, print_summary
+from pipeline.compare import build_report, print_summary
 
 DEFAULT_VALIDATION_DIR = Path(__file__).resolve().parent.parent / "dump" / "_materialize_validation"
 
@@ -39,9 +39,9 @@ def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--dates", required=True,
                      help="comma-separated YYYY-MM-01 dates to validate, each of which must already "
-                          "have a real snapshot at --snapshot-dir/tree2-<date>.json to diff against")
+                          "have a real snapshot at --snapshot-dir/tree-<date>.json to diff against")
     ap.add_argument("--snapshot-dir", type=Path, default=DEFAULT_SNAPSHOT_DIR,
-                     help="where real (non-materialized) tree2-<date>.json snapshots already live")
+                     help="where real (non-materialized) tree-<date>.json snapshots already live")
     ap.add_argument("--validation-dir", type=Path, default=DEFAULT_VALIDATION_DIR,
                      help="scratch directory for materialized XML, processed snapshots, and reports "
                           "(gitignored; not cleaned up automatically, since these runs are infrequent "
@@ -59,7 +59,7 @@ def main() -> None:
     # with, or gets cleaned up by, a real backfill run using the same date.
     for date_str in dates:
         print(f"\n=== {date_str} ===")
-        materialized_path = args.validation_dir / f"tree2-{date_str}.materialized.json"
+        materialized_path = args.validation_dir / f"tree-{date_str}.materialized.json"
         if materialized_path.exists():
             print(f"reusing already-processed {materialized_path}")
         else:
@@ -69,7 +69,7 @@ def main() -> None:
             materialized_path.write_text(json.dumps(tree_json), encoding="utf-8")
             print(f"wrote {materialized_path}")
 
-        real_path = args.snapshot_dir / f"tree2-{date_str}.json"
+        real_path = args.snapshot_dir / f"tree-{date_str}.json"
         if not real_path.exists():
             print(f"!! no real snapshot found at {real_path} -- skipping comparison", file=sys.stderr)
             continue

@@ -1,4 +1,4 @@
-"""Backfill historical docs2 changelog entries from older monthly dump exports.
+"""Backfill historical changelog entries from older monthly dump exports.
 
 Three source eras, all handled here:
 
@@ -58,12 +58,12 @@ through pipeline.fetch against mediawiki_content_current, unchanged from
 before. Each raw dump lands in its own dump/<date>/, dump/_legacy/<date>/, or
 dump/_materialized/<date>/ directory, never touching the live dump/*.xml
 used for routine `make process` runs. Each month is processed into a
-throwaway tree2.json-shaped snapshot, and pipeline.compare2 runs pairwise
-across consecutive months, appending each diff to docs2/data/changelog2.json.
+throwaway tree.json-shaped snapshot, and pipeline.compare runs pairwise
+across consecutive months, appending each diff to docs/data/changelog.json.
 
 Once a month's snapshot is written, its raw dump directory is deleted
 immediately (cleanup_raw_dump) -- the multi-GB .xml/.bz2 export is never
-read again afterward, only the snapshot is (by pipeline.compare2, or by a
+read again afterward, only the snapshot is (by pipeline.compare, or by a
 resumed run's ensure_snapshot existence check). Pass --keep-raw-dumps to
 disable this and keep raw dumps around for inspection. This now includes
 materialized-era months too: unlike the raw meta-history dump they're
@@ -72,12 +72,12 @@ expensive part), a materialized month's XML is cheap to regenerate on
 demand from that local cache, so there's no reason to keep it around after
 its snapshot exists.
 
-Deliberately does NOT write docs2/data/tree2.json or docs2/VERSION -- those
+Deliberately does NOT write docs/data/tree.json or docs/VERSION -- those
 reflect the live, current-month pipeline state, not a historical replay.
 This calls process.py's internals directly rather than shelling out to
 `python -m pipeline.process`, specifically to skip its unconditional
 _stamp_data_version() call (see process.py:main), which would otherwise
-overwrite docs2/VERSION with backfill dates.
+overwrite docs/VERSION with backfill dates.
 
 With no --months given, the default is the full available range: every
 legacy month (queried live -- see default_months() -- rather than
@@ -120,7 +120,7 @@ from pipeline.build_tree import build_category_graph, build_main_tree, refile_ca
 from pipeline.parse_dump import parse_dump
 from pipeline.process import build_tree_json, compute_all_content_sizes
 from pipeline.transclusion import build_transclusion_map
-from pipeline.compare2 import build_report, print_summary
+from pipeline.compare import build_report, print_summary
 
 # Below this date, months are fetched from the Internet Archive
 # (pipeline.fetch_legacy) instead of mediawiki_content_current
@@ -162,15 +162,15 @@ DEFAULT_LEGACY_DUMP_ROOT = Path(__file__).resolve().parent.parent / "dump" / "_l
 DEFAULT_MATERIALIZED_DUMP_ROOT = Path(__file__).resolve().parent.parent / "dump" / "_materialized"
 DEFAULT_MATERIALIZE_SRC_DIR = Path(__file__).resolve().parent.parent / "dump" / "_materialize_src"
 DEFAULT_SNAPSHOT_DIR = Path(__file__).resolve().parent.parent / "dump" / "_backfill_snapshots"
-DEFAULT_CHANGELOG = Path(__file__).resolve().parent.parent / "docs2" / "data" / "changelog2.json"
+DEFAULT_CHANGELOG = Path(__file__).resolve().parent.parent / "docs" / "data" / "changelog.json"
 
-# The current live docs2/data/tree2.json already IS this month's processed
-# snapshot (see docs2/VERSION's __content_version__) -- reuse it rather than
+# The current live docs/data/tree.json already IS this month's processed
+# snapshot (see docs/VERSION's __content_version__) -- reuse it rather than
 # re-fetching/re-processing a month we already have, as long as its
 # __content_version__ actually matches. Falls back to a normal fetch+process
 # if VERSION is missing/stale/doesn't match.
-LIVE_TREE2_JSON = Path(__file__).resolve().parent.parent / "docs2" / "data" / "tree2.json"
-LIVE_VERSION_FILE = Path(__file__).resolve().parent.parent / "docs2" / "VERSION"
+LIVE_TREE_JSON = Path(__file__).resolve().parent.parent / "docs" / "data" / "tree.json"
+LIVE_VERSION_FILE = Path(__file__).resolve().parent.parent / "docs" / "VERSION"
 
 
 def _live_content_version() -> str | None:
@@ -194,8 +194,8 @@ class RootCategoryMissing(Exception):
 
 
 def process_dump(xml_path: Path, workers: int | None = None) -> dict:
-    """Same sequence as process.py's main(), minus writing docs2/tree2.json
-    or stamping docs2/VERSION -- returns the tree dict in memory instead."""
+    """Same sequence as process.py's main(), minus writing docs/tree.json
+    or stamping docs/VERSION -- returns the tree dict in memory instead."""
     print(f"parsing {xml_path}", file=sys.stderr)
     dump_index = parse_dump(xml_path)
     cat_ns_name = dump_index.namespaces[dump_index.category_ns_id()]
@@ -326,7 +326,7 @@ def _ensure_materialized_month(
     """Reconstruct date_str's snapshot XML on demand via
     pipeline/materialize_snapshots.py, one month at a time -- never all of
     MATERIALIZED_MONTHS up front, since each output runs 1-2GB and
-    cleanup_raw_dump deletes it right after its tree2.json snapshot is
+    cleanup_raw_dump deletes it right after its tree.json snapshot is
     written (see module docstring). Returns the existing output directly if
     this date was already materialized and not yet cleaned up (e.g. a
     resumed run)."""
@@ -362,7 +362,7 @@ def cleanup_raw_dump(
 ) -> None:
     """Delete the raw dump (.xml.bz2 + decompressed .xml, and their parent
     dated directory) for one month, once its snapshot is confirmed written --
-    the snapshot is all that pipeline.compare2 or a resumed backfill run ever
+    the snapshot is all that pipeline.compare or a resumed backfill run ever
     reads afterward (see ensure_snapshot's existence check), so keeping the
     multi-GB raw export around after that point is pure disk waste. Never
     touches dump_root's own top-level loose files (the live current-month
@@ -404,15 +404,15 @@ def ensure_snapshot(
     live tree either -- so an already-completed month's raw dump, which
     cleanup_raw_dump deletes right after its snapshot is written, is never
     re-fetched on a resumed run just to be thrown away again."""
-    snapshot_path = snapshot_dir / f"tree2-{date_str}.json"
+    snapshot_path = snapshot_dir / f"tree-{date_str}.json"
     if snapshot_path.exists():
         print(f"{date_str}: snapshot already built -> {snapshot_path}", file=sys.stderr)
         return snapshot_path
-    if date_str == _live_content_version() and LIVE_TREE2_JSON.exists():
-        print(f"{date_str}: matches live docs2/data/tree2.json's __content_version__, reusing it "
+    if date_str == _live_content_version() and LIVE_TREE_JSON.exists():
+        print(f"{date_str}: matches live docs/data/tree.json's __content_version__, reusing it "
               f"instead of reprocessing", file=sys.stderr)
         snapshot_dir.mkdir(parents=True, exist_ok=True)
-        snapshot_path.write_text(LIVE_TREE2_JSON.read_text(encoding="utf-8"), encoding="utf-8")
+        snapshot_path.write_text(LIVE_TREE_JSON.read_text(encoding="utf-8"), encoding="utf-8")
         return snapshot_path
     xml_path = get_xml_path()
     tree = process_dump(xml_path, workers=workers)
@@ -442,9 +442,9 @@ def main() -> None:
                      help="directory to cache the ~530MB sawikisource-latest-pages-meta-history.xml.bz2 "
                           "in, auto-downloaded once on first need and reused for every materialized month")
     ap.add_argument("--snapshot-dir", type=Path, default=DEFAULT_SNAPSHOT_DIR,
-                     help="where to write per-month tree2.json-shaped snapshots (gitignored, throwaway)")
+                     help="where to write per-month tree.json-shaped snapshots (gitignored, throwaway)")
     ap.add_argument("--changelog", type=Path, default=DEFAULT_CHANGELOG,
-                     help="changelog2.json to append pairwise diffs to")
+                     help="changelog.json to append pairwise diffs to")
     ap.add_argument("--workers", type=int, default=None, help="worker processes for content-size computation")
     ap.add_argument("--keep-raw-dumps", action="store_true",
                      help="don't delete each month's raw dump (.xml/.bz2) after its snapshot is written -- "
@@ -512,7 +512,7 @@ def main() -> None:
         # Sort by date on every write (not just append) -- entries are
         # computed/appended in whatever order --months was given, and a
         # backfill run mixing legacy and current-era months would otherwise
-        # leave the file (and about2.js's newest-first reversal of it) out
+        # leave the file (and about.js's newest-first reversal of it) out
         # of chronological order. `id` stays a stable append-order identifier,
         # untouched by this re-sort.
         log.sort(key=lambda e: e["date"])

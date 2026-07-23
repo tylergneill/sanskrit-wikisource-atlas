@@ -22,7 +22,14 @@ PageNode (Main-namespace page, filed into this category via its own direct
 [[वर्गः:...]] tag):
   { id, type: "page", title, url, stats, subpages: [PageNode] }
   subpages come from the Main-namespace tree (build_tree.MainPageNode),
-  nested the same way the old schema nested them.
+  nested the same way the old schema nested them. A breadcrumb-subpage
+  (title split on "/") normally only appears nested inside its parent's
+  PageNode, but if it carries its own direct category tag NOT also carried
+  by its immediate parent, it additionally gets its own full, independently
+  reachable PageNode under that category too -- same "no pointer/skip logic,
+  dedup happens in stats rollup" treatment build_category already gives
+  multi-tagged top-level pages (see build_category's page_jsons loop and
+  notes/wikisource-editing-plan.md, "Silent subpage category divergence").
 
 Node (page-pointer): a second+ filing of a page already emitted elsewhere in
 the tree (a page tagged with >1 category directly -- same multi-filing
@@ -272,8 +279,16 @@ def build_page_node(
     content_index: ContentIndex,
 ) -> tuple[dict, dict]:
     """Returns (json_node, own_stats) where own_stats covers this page alone
-    (not its subpages) -- callers roll subpage stats up separately, same
-    own-vs-rollup split the old schema used."""
+    (not its subpages). `stats` on the returned node is set to own_stats too,
+    NOT a subpage-inclusive rollup -- a subpage can now also be independently
+    filed under a category tag of its own (see build_category's page_jsons
+    loop, "Silent subpage category divergence"), so a single rolled total
+    computed here would double-count that subpage wherever both its nested
+    and independently-filed occurrences are reachable from a common
+    ancestor. recompute_stats_dedup (below) walks `subpages` itself, dedups
+    every page id (at any depth) against every OTHER occurrence anywhere in
+    the tree, and overwrites `stats` with the real rolled total -- same
+    bottom-up, dedup-by-id treatment categories already get."""
     size = content_index.main_sizes.get(main_node.title)
     last_changed = main_node.record.timestamp
     own_stats = _stats_dict(
@@ -285,21 +300,19 @@ def build_page_node(
     )
 
     subpage_jsons = []
-    rolled = dict(own_stats)
     for child in main_node.children:
-        child_json, child_rolled = build_page_node(child, owning_cat_id, content_index)
+        child_json, _ = build_page_node(child, owning_cat_id, content_index)
         subpage_jsons.append(child_json)
-        rolled = _merge_stats(rolled, child_rolled)
 
     node = {
         "id": f"page:{main_node.title}",
         "type": "page",
         "title": main_node.title,
         "url": page_url(main_node.title),
-        "stats": rolled,
+        "stats": own_stats,
         "subpages": subpage_jsons,
     }
-    return node, rolled
+    return node, own_stats
 
 
 def build_index_item_node(bare_title: str, content_index: ContentIndex, index_ns_name: str) -> dict:
@@ -402,11 +415,26 @@ def build_tree_json(
         # Index-item ids reachable from a node, so a page counted here and
         # again at a sibling category is still only counted once wherever
         # their paths converge.
+        #
+        # A breadcrumb-subpage (main_node.parent_title is not None) is
+        # normally only reachable by nesting inside its parent's own page
+        # node (see build_page_node's recursion below), not filed here
+        # directly -- its own direct tags are otherwise silently dropped for
+        # filing purposes (see notes/wikisource-editing-plan.md, "Silent
+        # subpage category divergence"). Surface it here too, exactly like a
+        # top-level multi-tagged page, but only for tags its immediate
+        # parent doesn't already carry -- a tag the parent also carries adds
+        # no new discoverability, since browsing the parent's node already
+        # surfaces this subpage via its nested `subpages` list.
         page_jsons = []
         for page_title in sorted(pages_by_cat.get(title, [])):
             main_node = main_nodes.get(page_title)
-            if main_node is None or main_node.parent_title is not None:
-                continue  # not a Main record, or it's itself a subpage of another page (nested there instead)
+            if main_node is None:
+                continue  # not a Main record
+            if main_node.parent_title is not None:
+                parent_tags = content_index.main_categories.get(main_node.parent_title, set())
+                if title in parent_tags:
+                    continue  # already discoverable via the parent's own filing under this category
             page_json, _ = build_page_node(main_node, node_id, content_index)
             page_jsons.append(page_json)
 
@@ -522,6 +550,49 @@ def build_tree_json(
 
     memo: dict[str, tuple[dict, dict, dict]] = {}
 
+    def rewrite_page_subtree(node: dict) -> None:
+        """Write each already-memoized node's correct stats into THIS
+        occurrence's own dict object, recursing through `subpages` -- used on
+        a cache hit (see recompute_page_dedup) where an entire duplicate
+        subtree (e.g. a top-level page independently filed under 2+
+        categories, each a fresh build_page_node() call -- see
+        build_category's page_jsons loop) needs its stats fields corrected
+        without redoing the O(n) computation, which the memo already has."""
+        node["stats"] = memo[node["id"]][0]
+        for sp in node.get("subpages", []):
+            rewrite_page_subtree(sp)
+
+    def recompute_page_dedup(node: dict) -> tuple[dict, dict]:
+        """Returns (stats, page_stats_by_id) for the distinct set of page ids
+        reachable from page node `node` -- itself plus every subpage, at any
+        depth. A subpage can be reached two ways: nested here, or as its own
+        independently-filed occurrence elsewhere in the tree (see
+        build_category's page_jsons loop) -- memoized by id (shared with
+        recompute_stats_dedup's memo) so the O(n) computation only happens
+        once per id; every later occurrence (a physically different dict
+        object, since build_page_node builds a fresh subtree per call) still
+        needs its own stats fields corrected via rewrite_page_subtree, since
+        skipping the computation must not mean skipping the write-back."""
+        node_id = node["id"]
+        if node_id in memo:
+            stats, page_stats, _ = memo[node_id]
+            rewrite_page_subtree(node)
+            return stats, page_stats
+
+        page_stats: dict[str, dict] = {node_id: node["stats"]}
+        for sp in node.get("subpages", []):
+            _, sp_page_stats = recompute_page_dedup(sp)
+            for pid, s in sp_page_stats.items():
+                page_stats.setdefault(pid, s)
+
+        stats = _empty_stats()
+        for s in page_stats.values():
+            stats = _merge_stats(stats, s)
+
+        node["stats"] = stats
+        memo[node_id] = (stats, page_stats, {})
+        return stats, page_stats
+
     def recompute_stats_dedup(node: dict) -> tuple[dict, dict, dict]:
         """Returns (stats, page_stats_by_id, index_stats_by_id) for the distinct
         set of page/Index-item ids reachable from `node`, each mapped to its own
@@ -537,7 +608,11 @@ def build_tree_json(
             memo[node_id] = result
             return result
 
-        page_stats: dict[str, dict] = {p["id"]: p["stats"] for p in node.get("pages", [])}
+        page_stats: dict[str, dict] = {}
+        for p in node.get("pages", []):
+            _, p_page_stats = recompute_page_dedup(p)
+            for pid, s in p_page_stats.items():
+                page_stats.setdefault(pid, s)
         index_stats: dict[str, dict] = {it["id"]: it["stats"] for it in node.get("index_items", [])}
 
         for child in node.get("children", []):

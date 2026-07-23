@@ -36,21 +36,42 @@ class MainPageNode:
     children: list["MainPageNode"] = field(default_factory=list)
 
 
+def _resolve_redirect(title: str, records_by_title: dict[str, PageRecord]) -> str:
+    """Follows a chain of #REDIRECT pages to its final non-redirect target
+    title -- e.g. "रामायणम्" (a redirect) -> "वाल्मीकिरामायणम्" (the real
+    page), so a breadcrumb like "रामायणम्/बालकाण्डम्" nests under the page
+    readers actually land on, not under an invisible redirect stub that
+    never itself gets filed/displayed (see notes/wikisource-editing-plan.md
+    -- redirect-as-subpage-parent). Stops early (returns the title as-is)
+    on a cycle or a target that isn't itself a known Main-namespace record,
+    since there's nothing real to resolve to."""
+    seen = set()
+    current = title
+    while current in records_by_title and records_by_title[current].redirect_target is not None:
+        if current in seen:
+            return title  # cycle -- bail out to the original, unresolved title
+        seen.add(current)
+        current = records_by_title[current].redirect_target
+    return current
+
+
 def build_main_tree(records: list[PageRecord]) -> dict[str, MainPageNode]:
     """Returns a title -> MainPageNode map covering every Main-namespace page
     (redirects included, as leaf nodes -- callers filter/dereference as needed).
     Parent/child edges are purely a title-string convention: a node's parent
-    is "everything before the last '/'" in its own title, IF that exact title
-    exists as another page in this same namespace -- a "/" with no matching
-    parent title present (e.g. an orphaned or malformed subpage title) is
-    left as its own top-level node, not synthesized into a parent that
-    doesn't exist as real content.
+    is "everything before the last '/'" in its own title, resolved through
+    any redirect chain (see _resolve_redirect) to the real page that title
+    ultimately points to, IF that resolved title exists as another page in
+    this same namespace -- a "/" with no matching parent title present (e.g.
+    an orphaned or malformed subpage title) is left as its own top-level
+    node, not synthesized into a parent that doesn't exist as real content.
     """
+    records_by_title = {rec.title: rec for rec in records}
     nodes: dict[str, MainPageNode] = {}
     for rec in records:
         parent_title = None
         if "/" in rec.title:
-            parent_title = rec.title.rsplit("/", 1)[0]
+            parent_title = _resolve_redirect(rec.title.rsplit("/", 1)[0], records_by_title)
         nodes[rec.title] = MainPageNode(record=rec, title=rec.title, parent_title=parent_title)
 
     for node in nodes.values():

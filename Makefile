@@ -12,9 +12,10 @@ refresh-dump:
 refresh-dump-force:
 	python -m pipeline.fetch --force
 
-# Build docs/data/tree.json from the downloaded dump.
+# Build docs/data/tree.json from the downloaded dump. Override worker count
+# with e.g. `make process WORKERS=4` (default: os.cpu_count()).
 process:
-	python -m pipeline.process --out docs/data/tree.json
+	python -m pipeline.process --out docs/data/tree.json $(if $(WORKERS),--workers $(WORKERS))
 
 # Report likely breadcrumb/category structural problems on the live wiki for
 # manual review -- never mutates the dump or docs/data/tree.json. See

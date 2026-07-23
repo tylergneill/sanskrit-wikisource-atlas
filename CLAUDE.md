@@ -31,7 +31,7 @@ make refresh-dump         # download/verify/decompress the current monthly dump 
 make refresh-dump-force   # same, but force re-download/re-verify/re-decompress
 make process               # build docs/data/tree.json from the downloaded dump
 make backfill               # walk the full historical range, append to docs/data/changelog.json
-make serve                 # serve docs/ locally on port 8001
+make serve                 # serve docs/ locally on port 8000
 make ngrok                 # expose the local server via a public ngrok tunnel (for mobile testing)
 ```
 
@@ -71,12 +71,13 @@ Node (index-item-pointer): a second+ filing of an Index item already
 emitted elsewhere in the tree. Same shape/resolution as page-pointer.
   { id, type: "index-item-pointer", title, url, points_to: <id> }
 
-stats: { raw_bytes, content_bytes, transliterated_bytes, count, last_changed }
+stats: { raw_bytes, content_bytes, transliterated_bytes, count, text_count, last_changed }
 ```
 
 - `title` fields are raw Devanagari (the `वर्गः:`/`अनुक्रमणिका:` namespace prefix is stripped); the frontend transliterates on render, never the pipeline.
 - `stats.raw_bytes` is raw MediaWiki wikitext size — dominated by markup/template/category-tag overhead on short pages, not a meaningful "how much content" number on its own. `stats.content_bytes` is real, locally-computed content size after markup stripping and template expansion. `stats.transliterated_bytes` is the IAST byte count of that same content — the frontend's headline "effective size" figure, since IAST is smaller on disk (~60%) and more common for cross-collection comparison.
-- `count` = number of distinct Main pages + Index items reachable from a node. Dedup is enforced at build time: the first depth-first occurrence of a category/page/Index-item builds real content and folds its stats into every ancestor's rollup; every later occurrence anywhere else in the tree is emitted as a `-pointer` node instead and skipped when summing ancestor stats — so an item reachable via two paths is counted exactly once, at whichever ancestor its two paths first converge (not only at root).
+- `count` = number of distinct Main pages + Index items reachable from a node, including every subpage individually. Dedup is enforced at build time: the first depth-first occurrence of a category/page/Index-item builds real content and folds its stats into every ancestor's rollup; every later occurrence anywhere else in the tree is emitted as a `-pointer` node instead and skipped when summing ancestor stats — so an item reachable via two paths is counted exactly once, at whichever ancestor its two paths first converge (not only at root).
+- `text_count` = number of distinct top-level *texts* reachable from a node — a Main page with no `/`-parent (breadcrumb subpages don't count separately even when independently filed under their own category tag, see "Silent subpage category divergence" below), or an Index item (always top-level). This is what the frontend sidebar shows as the browsable text count, since `count`'s per-subpage granularity overcounts what a reader would call one text.
 - The pipeline hardcodes an exclusion list of Wikisource maintenance/junk categories (e.g. `निष्कासनाय`, `अनिर्दिष्टानि पुटानि`) in `parse_dump.py`'s `EXCLUDED_CATEGORIES` — add new junk categories there, not in the frontend.
 
 ### Multi-parented categories (`category-pointer`) and multi-filed pages (`page-pointer`)
@@ -93,7 +94,7 @@ Any Main page or untranscluded Index item unreachable from the root category (`�
 
 ## Historical backfill and the changelog (`pipeline/backfill.py`)
 
-`docs/data/changelog.json` is an append-only array of pairwise month-to-month comparisons (`pipeline/compare.py`'s `build_report()`), each carrying old/new size and count totals plus item-level added/removed/changed-timestamp lists. The About page (`docs/about.html`/`about.js`) renders this as a browsable history plus trend charts, with a "Group by: Monthly/Quarterly/Yearly" control that nets adjacent months together client-side (see `about.js`'s `groupEntries`/`reduceGroup`) — no separate precomputed granularity in the JSON itself.
+`docs/data/changelog.json` is an append-only array of pairwise month-to-month comparisons (`pipeline/compare.py`'s `build_report()`), each carrying old/new size and count totals plus item-level added/removed/changed-timestamp lists. The About page (`docs/about.html`/`about.js`) renders this as a browsable history plus trend charts, with a "Granularity: Month/Quarter/Year" control that nets adjacent months together client-side (see `about.js`'s `groupEntries`/`reduceGroup`) — no separate precomputed granularity in the JSON itself.
 
 Building this history requires three different source eras, all handled by `pipeline/backfill.py`:
 

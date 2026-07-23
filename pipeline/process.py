@@ -249,12 +249,13 @@ def compute_all_content_sizes(
     )
 
 
-def _stats_dict(raw: int, content: int, translit: int, count: int, last_changed: str) -> dict:
+def _stats_dict(raw: int, content: int, translit: int, count: int, last_changed: str, text_count: int = 0) -> dict:
     return {
         "raw_bytes": raw,
         "content_bytes": content,
         "transliterated_bytes": translit,
         "count": count,
+        "text_count": text_count,
         "last_changed": last_changed,
     }
 
@@ -270,6 +271,7 @@ def _merge_stats(a: dict, b: dict) -> dict:
         a["transliterated_bytes"] + b["transliterated_bytes"],
         a["count"] + b["count"],
         max(a["last_changed"], b["last_changed"]) if a["last_changed"] or b["last_changed"] else "",
+        a.get("text_count", 0) + b.get("text_count", 0),
     )
 
 
@@ -297,6 +299,12 @@ def build_page_node(
         size.transliterated_bytes if size else 0,
         1,
         last_changed,
+        # A subpage (breadcrumb title, e.g. "टीका/१") isn't its own separate
+        # "text" for browsing purposes -- it's part of its top-level parent's
+        # work, even when it also gets independently filed here under its own
+        # category tag (see "Silent subpage category divergence" above). Only
+        # a true top-level title (no "/" parent) counts toward text_count.
+        text_count=1 if main_node.parent_title is None else 0,
     )
 
     subpage_jsons = []
@@ -324,6 +332,7 @@ def build_index_item_node(bare_title: str, content_index: ContentIndex, index_ns
         size.transliterated_bytes if size else 0,
         1,
         rec_timestamp,
+        text_count=1,
     )
     # The Index page's own wikitext is just proofreading-status scaffolding
     # (near-zero content by design) -- the real scanned/proofread text lives

@@ -9,6 +9,7 @@
   --row-hover: rgba(255,255,255,0.04);
   --row-selected: rgba(102,163,255,0.18);
   --row-shared-highlight: rgba(255,196,102,0.18);
+  --row-shared-highlight-strong: rgba(255,196,102,0.4);
 }
 
 :root[data-theme="light"]{
@@ -22,6 +23,7 @@
   --row-hover: rgba(0,0,0,0.04);
   --row-selected: rgba(36,100,199,0.14);
   --row-shared-highlight: rgba(199,130,36,0.16);
+  --row-shared-highlight-strong: rgba(199,130,36,0.4);
 }
 
 * { box-sizing: border-box; }
@@ -112,7 +114,7 @@ a.topbar-link:hover { text-decoration: underline; }
   background: var(--panel2);
   color: var(--text);
   border: 1px solid var(--border);
-  padding: 4px 8px 4px 28px;
+  padding: 4px 8px 4px 84px;
   border-radius: 6px;
   width: 320px;
   font-family: inherit;
@@ -123,6 +125,44 @@ a.topbar-link:hover { text-decoration: underline; }
 }
 .search-wrap:focus-within .search-wrap-icon{
   opacity: 0.8;
+}
+.exactToggle{
+  position: absolute;
+  left: 27px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 7px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  font-size: 11px;
+  color: var(--muted);
+  cursor: pointer;
+  user-select: none;
+  white-space: nowrap;
+  background: var(--panel2);
+}
+.exactToggle:hover{
+  border-color: var(--accent);
+}
+.exactToggle:has(input:checked){
+  color: var(--bg);
+  background: var(--accent);
+  border-color: var(--accent);
+}
+/* Visually hidden but still focusable/keyboard-toggleable -- the pill itself
+   (the <label>) is the whole visible control, not a checkbox-plus-text. */
+.exactToggle input{
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0,0,0,0);
+  white-space: nowrap;
+  border: 0;
 }
 
 .theme-toggle{
@@ -349,15 +389,53 @@ a[target="_blank"]::after{
   display: flex;
   align-items: center;
   gap: 4px;
+  border-radius: 6px;
 }
+.pageRow.shared-highlight{ background: var(--row-shared-highlight); }
 .pageRowMain{
   min-width: 0;
+  /* The link text/meta reads as sitting slightly below the magnifying-glass
+     icon's true visual center (font line-box asymmetry) -- nudge it and the
+     disclosure triangle (below) up together to line up with the icon. */
+  transform: translateY(-1px);
+}
+.subpageToggleGroup{
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 0;
+  cursor: pointer;
 }
 .subpageToggle{
   flex: 0 0 auto;
-  width: 20px;
-  height: 20px;
-  font-size: 1.2rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  transform: translateY(1px);
+}
+/* Filled-triangle SVG mask (rather than the Unicode ▸/▾ glyphs, which
+   carry a lot of built-in whitespace inside their own em-box at any
+   font-size) -- fills its box tightly, so a bigger visible glyph doesn't
+   also mean a bigger (row-height-inflating) box. Points right by default,
+   rotates to point down when expanded -- one shape, no separate asset. */
+.triangleIcon{
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  background-color: currentColor;
+  opacity: 0.7;
+  transition: transform 0.1s ease;
+  -webkit-mask-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 10 10' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M2.5 1 L8 5 L2.5 9 Z'/%3E%3C/svg%3E");
+  mask-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 10 10' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M2.5 1 L8 5 L2.5 9 Z'/%3E%3C/svg%3E");
+  -webkit-mask-size: contain;
+  mask-size: contain;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+}
+.triangleIcon.expanded{
+  transform: rotate(90deg);
 }
 
 .small{ font-size: 14px; color: var(--muted); }
@@ -412,18 +490,23 @@ a[target="_blank"]::after{
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 16px;
-  height: 16px;
-  margin-left: 6px;
+  flex: 0 0 auto;
+  width: 22px;
+  height: 22px;
   padding: 0;
   color: inherit;
   opacity: 0.5;
   background: none;
   border: none;
+  border-radius: 6px;
   cursor: pointer;
 }
 .multiCatBtn:hover{
   opacity: 1;
+}
+.pageRow.shared-highlight .multiCatBtn{
+  opacity: 1;
+  background: var(--row-shared-highlight-strong);
 }
 .searchIcon{
   display: inline-block;

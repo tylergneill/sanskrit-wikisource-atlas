@@ -11,10 +11,17 @@ const state = {
   multiCatTitles: new Set(),// page/index-item titles that appear under >1 category (see build_category_membership_maps
                              // in pipeline/process.py -- each such category independently shows the full real item, so
                              // this is purely a UI hint, not a dedup mechanism) -- powers the "also filed under..." button
+  multiCatLocations: new Map(), // page/index-item title -> [{path, stats}] over every occurrence, for the hover tooltip/highlight
   selectedCatId: null,
   scheme: "iast",           // devanagari | iast | hk | itrans | slp1
   expanded: new Set(),      // node ids expanded in sidebar
   searchQuery: "",
+  searchExact: false,       // when true, search matches a node's whole (transliterated, lowercased) title
+                             // exactly instead of substring-matching searchQuery -- user-toggleable via the
+                             // "exact" checkbox, and set automatically by the multi-category magnifying-glass
+                             // button, since a short/common title (e.g. "योगवासिष्ठः") can otherwise
+                             // substring-match thousands of unrelated titles, defeating the button's purpose
+                             // of finding its own handful of sibling occurrences.
   expandedPageLists: new Set(), // category ids whose page/index-item list has been expanded past the cap
   expandedSubpages: new Set(),  // page ids whose nested subpages sub-list is expanded (collapsed by default)
 };
@@ -31,7 +38,24 @@ const PAGE_LIST_CAP = 300;
 const MIN_SEARCH_QUERY_LENGTH = 3;
 
 function isSearchActive() {
+  if (state.searchExact) return state.searchQuery.length > 0;
   return state.searchQuery.length >= MIN_SEARCH_QUERY_LENGTH;
+}
+
+// Navigates to a category by id, exiting search mode first. While search is
+// active, renderMain shows the full filtered tree from root regardless of
+// state.selectedCatId (see its isSearchActive() branch), so setting
+// selectedCatId alone would otherwise produce no visible change -- every
+// sidebar/breadcrumb/"see also" navigation click needs to clear search too
+// for the click to do anything the user can see.
+function selectCategory(catId) {
+  state.selectedCatId = catId;
+  state.searchQuery = "";
+  state.searchExact = false;
+  const input = document.getElementById("searchInput");
+  if (input) input.value = "";
+  const exactToggle = document.getElementById("searchExactToggle");
+  if (exactToggle) exactToggle.checked = false;
 }
 
 // --- utils
@@ -221,7 +245,7 @@ function formatStats(stats, { includeDate } = {}) {
   const size = formatBytes(contentSizeBytes(stats));
   if (!size) return "";
   const parts = [size];
-  if (stats.count != null) parts.push(`${stats.count} ${stats.count === 1 ? "p" : "pp"}`);
+  if (stats.text_count != null) parts.push(`${stats.text_count} ${stats.text_count === 1 ? "text" : "texts"}`);
   if (includeDate) {
     const date = formatDate(stats.last_changed);
     if (date) parts.push(date);
@@ -250,7 +274,7 @@ function renderSidebarTree() {
       if (isExpandAllGesture(ev)) {
         setExpandedDeep(root, true);
       }
-      state.selectedCatId = null;
+      selectCategory(null);
       renderSidebarTree();
       renderMain();
       closeSidebarIfMobile();
@@ -328,7 +352,7 @@ function renderSidebarNode(catNode, depth) {
     dataset: groupKey ? { sharedGroup: groupKey } : {},
     title: rowTitle,
     onclick: () => {
-      state.selectedCatId = catNode.id;
+      selectCategory(catNode.id);
       renderSidebarTree();
       renderMain();
       closeSidebarIfMobile();
@@ -358,7 +382,7 @@ function renderMain() {
   const root = state.data.root;
 
   if (isSearchActive()) {
-    const filtered = filterTree(root, state.searchQuery);
+    const filtered = filterTree(root, currentSearchMatcher());
     if (filtered) {
       host.appendChild(renderCategoryBlock(filtered, { includeLeaves: true, depth: 0, isRoot: true, isSearch: true }));
     } else {
@@ -397,7 +421,7 @@ function renderMain() {
         el("span", {
           class: "panelTitleLink",
           onclick: () => {
-            state.selectedCatId = anc.id;
+            selectCategory(anc.id);
             renderSidebarTree();
             renderMain();
           },
@@ -452,7 +476,7 @@ function renderRootOverview(root) {
       class: "block panelTitle",
       style: "cursor:pointer;",
       onclick: () => {
-        state.selectedCatId = ch.id;
+        selectCategory(ch.id);
         renderSidebarTree();
         renderMain();
       },
@@ -475,11 +499,18 @@ function renderRootOverview(root) {
 // header, no per-node stats block, just a plain indented <ul> -- reads as "parts
 // of this page" (structural, from the page-title graph itself) rather than "a
 // subcategory" (an editorial grouping).
-function renderPageLi(p) {
+function renderPageLi(p, ownPath) {
   const hasSubpages = (p.subpages || []).length > 0;
+  // p.id alone is NOT unique per rendered occurrence -- pipeline/process.py's
+  // build_page_node derives it purely from title, so the same top-level page
+  // independently filed under two categories (see "Silent subpage category
+  // divergence") gets the same id both places. Key expand state by id PLUS
+  // the enclosing category path so expanding one occurrence's subpage list
+  // doesn't also expand every other occurrence of the same page elsewhere.
+  const expandKey = (ownPath || []).join("␟") + "␟" + p.id;
   // In search mode, a matched nested subpage must stay visible even if the user
   // never manually expanded its parent -- force-expand rather than hide the hit.
-  const isExpanded = state.expandedSubpages.has(p.id) || (isSearchActive() && hasSubpages);
+  const isExpanded = state.expandedSubpages.has(expandKey) || (isSearchActive() && hasSubpages);
 
   const a = el("a", { href: p.url, target: "_blank", rel: "noreferrer" }, displayTitle(p.title, p.id));
 
@@ -493,28 +524,32 @@ function renderPageLi(p) {
   if (date) metaParts.push(date);
   const meta = metaParts.length ? ` (${metaParts.join(", ")})` : "";
 
+  const toggleSubpages = (ev) => {
+    ev.preventDefault();
+    if (isExpanded) state.expandedSubpages.delete(expandKey);
+    else state.expandedSubpages.add(expandKey);
+    renderMain();
+  };
+
+  // The "(+ N pp)" count and the triangle are one combined disclosure control --
+  // grouped together (tight gap, shared click target) rather than the count
+  // living inside pageRowMain and the triangle sitting separately at the row's
+  // end, so clicking the count itself also expands/collapses the subpage list.
   const toggle = hasSubpages
-    ? el("span", {
-        class: "toggleArrow subpageToggle",
-        onclick: (ev) => {
-          ev.preventDefault();
-          if (isExpanded) state.expandedSubpages.delete(p.id);
-          else state.expandedSubpages.add(p.id);
-          renderMain();
-        },
-      }, isExpanded ? "▾" : "▸")
+    ? el("span", { class: "subpageToggleGroup", onclick: toggleSubpages },
+        el("span", { class: "small", style: "opacity:0.6;" }, `(+ ${p.subpages.length} pp)`),
+        el("span", { class: "toggleArrow subpageToggle" },
+          el("span", { class: "triangleIcon" + (isExpanded ? " expanded" : "") })),
+      )
     : null;
 
-  const row = el("div", { class: "pageRow" },
+  const row = el("div", { class: "pageRow", ...multiCatRowProps(p.title, ownPath) },
     el("span", { class: "pageRowMain" },
       a,
       meta ? el("span", { class: "small" }, meta) : null,
-      hasSubpages
-        ? el("span", { class: "small", style: "margin-left:6px; opacity:0.6;" }, `(+ ${p.subpages.length} pp)`)
-        : null,
-      renderMultiCatButton(p.title),
     ),
     toggle,
+    renderMultiCatButton(p.title),
   );
 
   const li = el("li", {}, row);
@@ -522,7 +557,7 @@ function renderPageLi(p) {
   if (hasSubpages && isExpanded) {
     const subUl = el("ul", { class: "subpageList" });
     for (const sp of p.subpages) {
-      subUl.appendChild(renderPageLi(sp));
+      subUl.appendChild(renderPageLi(sp, ownPath));
     }
     li.appendChild(subUl);
   }
@@ -544,7 +579,7 @@ function renderPageLi(p) {
 // पृष्ठम्:Title/N rollup (see build_index_item_node/compute_page_ns_rollup),
 // so the byte size shown is the real scanned/proofread content size, not
 // just the Index page's own near-empty proofreading-status scaffolding.
-function renderIndexItemLi(item) {
+function renderIndexItemLi(item, ownPath) {
   const a = el("a", { href: item.url, target: "_blank", rel: "noreferrer" }, displayTitle(item.title, item.id));
 
   const metaParts = [];
@@ -555,7 +590,7 @@ function renderIndexItemLi(item) {
   const meta = metaParts.length ? ` (${metaParts.join(", ")})` : "";
 
   return el("li", {},
-    el("span", { class: "pageRow" },
+    el("span", { class: "pageRow", ...multiCatRowProps(item.title, ownPath) },
       el("span", { class: "indexBadge", title: "Scanned/OCR source, not yet a finished mainspace text" }, "OCR only"),
       a,
       meta ? el("span", { class: "small" }, meta) : null,
@@ -564,24 +599,60 @@ function renderIndexItemLi(item) {
   );
 }
 
+// Extra props to spread onto a page/index-item row (alongside its existing
+// class) when its title is filed under more than one category directly (see
+// state.multiCatTitles) -- hover-highlights every occurrence of this same
+// title elsewhere in the currently-rendered view, mirroring how a shared
+// category's occurrences highlight each other (see renderSidebarNode's
+// groupKey/setSharedGroupHighlight). Titles, not ids, are the group key here
+// since duplicate pages/index-items don't share an id the way category-
+// pointers point back to one canonical id -- see collectMultiCatLocations.
+function multiCatRowProps(title, ownPath) {
+  if (!state.multiCatTitles.has(title)) return {};
+  const ownKey = (ownPath || []).join("␟");
+  const others = (state.multiCatLocations.get(title) || [])
+    .filter((o) => o.path.join("␟") !== ownKey);
+  const otherLocations = others
+    .map((o) => o.path.map((t) => translitTextUncached(t)).join(" > "))
+    .filter(Boolean);
+  const rowTitle = otherLocations.length
+    ? `Also filed under: ${otherLocations.join("; ")}\nClick the search icon to find them`
+    : "Filed under more than one category -- click the search icon to find them";
+  return {
+    dataset: { sharedGroup: `title:${title}` },
+    title: rowTitle,
+    onmouseenter: () => setSharedGroupHighlight(`title:${title}`, true),
+    onmouseleave: () => setSharedGroupHighlight(`title:${title}`, false),
+  };
+}
+
 // Small icon button shown only on a page/index-item row whose title is filed
-// under more than one category directly (see state.multiCatTitles). Clicking it
-// populates the search box with the item's exact title -- reusing search (rather
-// than a bespoke "see also" cross-reference UI) is a deliberately lightweight way
-// to show every category location at once, since each now renders the item in
+// under more than one category directly. Clicking it populates the search box
+// with the item's title and turns on exact mode (state.searchExact, also
+// user-toggleable via the "exact" checkbox) -- reusing search (rather than a
+// bespoke "see also" cross-reference UI) is a deliberately lightweight way to
+// show every category location at once, since each now renders the item in
 // full with its own real stats (see pipeline/process.py's build_category).
+// Exact mode matters because a short/common title can otherwise substring-
+// match thousands of unrelated titles. No tooltip of its own -- the
+// enclosing row's title (see multiCatRowProps) already explains it, and a
+// second tooltip on the button would just fight the first one for the
+// mouse's attention.
 function renderMultiCatButton(title) {
   if (!state.multiCatTitles.has(title)) return null;
   return el("button", {
     class: "multiCatBtn",
     type: "button",
-    title: "Filed under more than one category -- click to search and see all locations",
     onclick: (ev) => {
       ev.preventDefault();
       ev.stopPropagation();
+      const displayed = displayTitle(title);
       const input = document.getElementById("searchInput");
-      input.value = displayTitle(title);
-      state.searchQuery = displayTitle(title).toLowerCase();
+      input.value = displayed;
+      state.searchQuery = displayed.toLowerCase();
+      state.searchExact = true;
+      const exactToggle = document.getElementById("searchExactToggle");
+      if (exactToggle) exactToggle.checked = true;
       renderSidebarTree();
       renderMain();
     },
@@ -604,7 +675,7 @@ function renderSeeAlso(catNode) {
         href: "#",
         onclick: (ev) => {
           ev.preventDefault();
-          state.selectedCatId = sid;
+          selectCategory(sid);
           renderSidebarTree();
           renderMain();
         },
@@ -652,7 +723,7 @@ function renderCategoryBlock(catNode, { includeLeaves, depth, isRoot, isSearch }
     el("span", {
       class: "panelTitleLink",
       onclick: () => {
-        state.selectedCatId = catNode.id;
+        selectCategory(catNode.id);
         renderSidebarTree();
         renderMain();
       },
@@ -678,13 +749,15 @@ function renderCategoryBlock(catNode, { includeLeaves, depth, isRoot, isSearch }
     const leafPages = content.pages || [];
     const indexItems = content.index_items || [];
 
+    const ownPath = [...(state.parentPath.get(catNode.id) || []), catNode.title];
+
     if (leafPages.length) {
       const isExpanded = state.expandedPageLists.has(catNode.id + ":pages");
       const capped = !isExpanded && leafPages.length > PAGE_LIST_CAP;
       const shown = capped ? leafPages.slice(0, PAGE_LIST_CAP) : leafPages;
 
       const ul = el("ul", {});
-      for (const p of shown) ul.appendChild(renderPageLi(p));
+      for (const p of shown) ul.appendChild(renderPageLi(p, ownPath));
 
       const showAllBtn = capped
         ? el("button", {
@@ -707,7 +780,7 @@ function renderCategoryBlock(catNode, { includeLeaves, depth, isRoot, isSearch }
       const shown = capped ? indexItems.slice(0, PAGE_LIST_CAP) : indexItems;
 
       const ul = el("ul", {});
-      for (const item of shown) ul.appendChild(renderIndexItemLi(item));
+      for (const item of shown) ul.appendChild(renderIndexItemLi(item, ownPath));
 
       const showAllBtn = capped
         ? el("button", {
@@ -731,27 +804,37 @@ function renderCategoryBlock(catNode, { includeLeaves, depth, isRoot, isSearch }
 // --- wiring
 
 // Walks every page/index-item title in the tree (including nested subpages) and
-// records which ones appear more than once -- i.e. filed under >1 category
-// directly, per pipeline/process.py's build_category_membership_maps. Powers
-// renderMultiCatButton; a plain occurrence count is enough since the pipeline no
-// longer emits pointer nodes for pages/index-items (each category shows the full
-// real item -- see pipeline/process.py's recompute_stats_dedup for how ancestor
-// rollups still avoid double-counting without needing pointers at this level).
-function collectMultiCatTitles(node, counts) {
+// records every occurrence's stats plus the category path it's filed under --
+// i.e. filed under >1 category directly, per pipeline/process.py's
+// build_category_membership_maps. Powers renderMultiCatButton's hover highlight
+// and tooltip, mirroring renderSeeAlso's treatment of shared categories -- the
+// pipeline no longer emits pointer nodes for pages/index-items (each category
+// shows the full real item -- see pipeline/process.py's recompute_stats_dedup
+// for how ancestor rollups still avoid double-counting without needing
+// pointers at this level), so titles (not ids) are the only thing tying
+// occurrences of the same item together on the frontend.
+function collectMultiCatLocations(node, locations, ancestorPath) {
+  const isActualRoot = ancestorPath.length === 0 && node === state.data.root;
+  const ownPath = isActualRoot ? ancestorPath : [...ancestorPath, node.title];
   for (const p of (node.pages || [])) {
-    counts.set(p.title, (counts.get(p.title) || 0) + 1);
-    collectSubpageTitles(p, counts);
+    if (!locations.has(p.title)) locations.set(p.title, []);
+    locations.get(p.title).push({ path: ownPath, stats: p.stats });
+    collectSubpageLocations(p, locations, ownPath);
   }
   for (const it of (node.index_items || [])) {
-    counts.set(it.title, (counts.get(it.title) || 0) + 1);
+    if (!locations.has(it.title)) locations.set(it.title, []);
+    locations.get(it.title).push({ path: ownPath, stats: it.stats });
   }
-  for (const ch of (node.children || [])) collectMultiCatTitles(ch, counts);
+  for (const ch of (node.children || [])) {
+    collectMultiCatLocations(ch, locations, ownPath);
+  }
 }
 
-function collectSubpageTitles(p, counts) {
+function collectSubpageLocations(p, locations, catPath) {
   for (const sp of (p.subpages || [])) {
-    counts.set(sp.title, (counts.get(sp.title) || 0) + 1);
-    collectSubpageTitles(sp, counts);
+    if (!locations.has(sp.title)) locations.set(sp.title, []);
+    locations.get(sp.title).push({ path: catPath, stats: sp.stats });
+    collectSubpageLocations(sp, locations, catPath);
   }
 }
 
@@ -797,9 +880,10 @@ async function loadData() {
     }
   }
 
-  const titleCounts = new Map();
-  collectMultiCatTitles(state.data.root, titleCounts);
-  state.multiCatTitles = new Set([...titleCounts].filter(([, n]) => n > 1).map(([t]) => t));
+  const locations = new Map(); // page/index-item title -> [{path, stats}] over every occurrence
+  collectMultiCatLocations(state.data.root, locations, []);
+  state.multiCatLocations = locations;
+  state.multiCatTitles = new Set([...locations].filter(([, occ]) => occ.length > 1).map(([t]) => t));
 
   state.selectedCatId = state.data.root.id;
   state.expanded.add(state.data.root.id);
@@ -1022,6 +1106,11 @@ function initUI() {
     renderMain();
   });
 
+  document.getElementById("searchExactToggle").addEventListener("change", (ev) => {
+    state.searchExact = ev.target.checked;
+    renderMain();
+  });
+
   updateThemeToggleLabel();
   document.getElementById("themeToggle").addEventListener("click", () => {
     const current = document.documentElement.getAttribute("data-theme") || "dark";
@@ -1032,35 +1121,51 @@ function initUI() {
   });
 }
 
+// Builds the match predicate for the current search mode: either substring
+// matching against the transliterated/lowercased query (normal typed search),
+// or, when the "exact" checkbox (state.searchExact) is on, matching the
+// node's whole transliterated/lowercased title exactly instead. A common/
+// short title (e.g. "योगवासिष्ठः") can otherwise substring-match thousands
+// of unrelated titles -- exact mode is what makes the multi-category
+// magnifying-glass button's "find my sibling occurrences" click useful, but
+// it's also independently toggleable so the user can reach for it whenever.
+function currentSearchMatcher() {
+  const query = state.searchQuery;
+  if (state.searchExact) {
+    return (node) => indexedTitle(node) === query;
+  }
+  return (node) => indexedTitle(node).includes(query);
+}
+
 // Checks a Main-namespace page (or subpage) against the query, recursively
 // including its nested subpages -- a subpage whose own title matches (even if
 // its parent's doesn't) still needs to surface in search.
-function filterPage(p, query) {
+function filterPage(p, matches) {
   const matchingSubpages = (p.subpages || [])
-    .map(sp => filterPage(sp, query))
+    .map(sp => filterPage(sp, matches))
     .filter(Boolean);
-  const selfMatch = indexedTitle(p).includes(query);
+  const selfMatch = matches(p);
   if (selfMatch || matchingSubpages.length > 0) {
     return { ...p, subpages: matchingSubpages };
   }
   return null;
 }
 
-function filterIndexItem(item, query) {
-  return indexedTitle(item).includes(query) ? item : null;
+function filterIndexItem(item, matches) {
+  return matches(item) ? item : null;
 }
 
-function filterTree(node, query) {
-  const matchingPages = (node.pages || []).map(p => filterPage(p, query)).filter(Boolean);
-  const matchingIndexItems = (node.index_items || []).map(i => filterIndexItem(i, query)).filter(Boolean);
+function filterTree(node, matches) {
+  const matchingPages = (node.pages || []).map(p => filterPage(p, matches)).filter(Boolean);
+  const matchingIndexItems = (node.index_items || []).map(i => filterIndexItem(i, matches)).filter(Boolean);
 
   const matchingChildren = [];
   for (const ch of (node.children || [])) {
-    const filteredCh = filterTree(ch, query);
+    const filteredCh = filterTree(ch, matches);
     if (filteredCh) matchingChildren.push(filteredCh);
   }
 
-  const selfMatch = indexedTitle(node).includes(query);
+  const selfMatch = matches(node);
 
   if (selfMatch || matchingPages.length > 0 || matchingIndexItems.length > 0 || matchingChildren.length > 0) {
     return {

@@ -3,6 +3,9 @@ const DATA_URL = "./data/tree.json";
 const state = {
   data: null,
   byId: new Map(),          // id -> node, built at load time (needed to resolve category-pointer nodes)
+  allTitledNodes: [],       // flat [{id, title}] over every titled node, built once at load time (see collectTitledNodes)
+  translitCache: new Map(), // scheme -> Map(id -> transliterated title), filled in lazily per scheme on first use (see ensureSchemeCached)
+  searchIndex: new Map(),   // scheme -> Map(id -> lowercased transliterated title), same laziness as translitCache (see indexedTitle)
   siblingIds: new Map(),    // id -> [other occurrence ids of the same shared category] (both directions)
   parentPath: new Map(),    // id -> array of ancestor titles (root excluded), for "see also X > Y" hints
   multiCatTitles: new Set(),// page/index-item titles that appear under >1 category (see build_category_membership_maps
@@ -21,6 +24,16 @@ const state = {
 // page/index-item list past this length renders capped with a "show all" button.
 const PAGE_LIST_CAP = 300;
 
+// Searching is a full tree walk (~38k titled nodes) plus a full re-render of every
+// match, uncapped -- a 1-2 character query is both too broad to be useful (matches
+// a huge fraction of the corpus) and the most expensive case to render. Below this
+// length, search is simply inactive (same as an empty query).
+const MIN_SEARCH_QUERY_LENGTH = 3;
+
+function isSearchActive() {
+  return state.searchQuery.length >= MIN_SEARCH_QUERY_LENGTH;
+}
+
 // --- utils
 
 function isExpandAllGesture(ev) {
@@ -29,7 +42,65 @@ function isExpandAllGesture(ev) {
   return !!(ev.altKey || ev.shiftKey || ev.ctrlKey || ev.metaKey);
 }
 
-function translitText(s) {
+// Flat [{id, title}] over every titled node (categories/pointers, pages, subpages,
+// index items) -- built once at load time, no transliteration involved. This is the
+// source list that ensureSchemeCached()/indexedTitle() lazily transliterate against
+// per scheme.
+function collectTitledNodes(root) {
+  const nodes = [];
+  const add = (n) => { if (n.id) nodes.push({ id: n.id, title: n.title }); };
+
+  const walkPage = (p) => {
+    add(p);
+    for (const sp of (p.subpages || [])) walkPage(sp);
+  };
+
+  const walkCategory = (node) => {
+    add(node);
+    for (const p of (node.pages || [])) walkPage(p);
+    for (const it of (node.index_items || [])) add(it);
+    for (const ch of (node.children || [])) walkCategory(ch);
+  };
+
+  walkCategory(root);
+  return nodes;
+}
+
+// Transliterates every title into `scheme` exactly once, the first time that scheme
+// is actually needed (initial load only warms the frontend's default scheme -- see
+// loadData), and caches the result forever in state.translitCache. Devanagari needs
+// no transliteration call at all, since it's the data's native storage script.
+function ensureSchemeCached(scheme) {
+  if (state.translitCache.has(scheme)) return state.translitCache.get(scheme);
+  const map = new Map();
+  for (const { id, title } of state.allTitledNodes) {
+    if (scheme === "devanagari") {
+      map.set(id, title);
+      continue;
+    }
+    try {
+      map.set(id, window.Sanscript.t(title, "devanagari", scheme));
+    } catch {
+      map.set(id, title);
+    }
+  }
+  state.translitCache.set(scheme, map);
+  return map;
+}
+
+// Per-node display title in the current scheme, drawn from the lazy per-scheme
+// cache -- never calls Sanscript.t directly outside of ensureSchemeCached.
+function displayTitle(raw, id) {
+  if (!id) {
+    // Rare fallback: a caller has a raw title string but no node id (e.g. an
+    // ancestor title captured before this function existed) -- transliterate
+    // directly rather than skipping display, but don't cache under a fake key.
+    return translitTextUncached(raw);
+  }
+  return ensureSchemeCached(state.scheme).get(id) ?? raw;
+}
+
+function translitTextUncached(s) {
   if (!s) return s;
   if (state.scheme === "devanagari") return s;
   try {
@@ -39,8 +110,22 @@ function translitText(s) {
   }
 }
 
-function displayTitle(raw) {
-  return translitText(raw);
+// Lowercased version of the per-scheme cache, built lazily alongside it (once per
+// scheme, first time that scheme is searched in) -- this is what filterTree/
+// filterPage/filterIndexItem match against instead of re-transliterating live.
+function indexedTitleById(id) {
+  const scheme = state.scheme;
+  if (!state.searchIndex.has(scheme)) state.searchIndex.set(scheme, new Map());
+  const cache = state.searchIndex.get(scheme);
+  if (cache.has(id)) return cache.get(id);
+  const translit = ensureSchemeCached(scheme).get(id) || "";
+  const lowered = translit.toLowerCase();
+  cache.set(id, lowered);
+  return lowered;
+}
+
+function indexedTitle(node) {
+  return indexedTitleById(node.id);
 }
 
 const CAT_TYPES = new Set(["category", "category-pointer"]);
@@ -231,9 +316,9 @@ function renderSidebarNode(catNode, depth) {
   // Group key for hover highlighting -- same value for every occurrence in the group.
   const groupKey = isPointer ? catNode.points_to : (isShared ? catNode.id : null);
   const siblingLocations = siblings
-    .map((sid) => (state.parentPath.get(sid) || []).map(displayTitle).join(" > "))
+    .map((sid) => (state.parentPath.get(sid) || []).map((t) => translitTextUncached(t)).join(" > "))
     .filter(Boolean);
-  const nameAndStats = statsText ? `${displayTitle(catNode.title)} ${statsText}` : displayTitle(catNode.title);
+  const nameAndStats = statsText ? `${displayTitle(catNode.title, catNode.id)} ${statsText}` : displayTitle(catNode.title, catNode.id);
   const rowTitle = siblingLocations.length
     ? `Also filed under: ${siblingLocations.join("; ")}\n${nameAndStats}`
     : nameAndStats;
@@ -252,7 +337,7 @@ function renderSidebarNode(catNode, depth) {
     onmouseleave: () => setSharedGroupHighlight(groupKey, false),
   },
     toggleArrow,
-    el("span", { class: depth === 0 ? "title topLevel" : "title" }, displayTitle(catNode.title)),
+    el("span", { class: depth === 0 ? "title topLevel" : "title" }, displayTitle(catNode.title, catNode.id)),
     statsText ? el("span", { class: depth === 0 ? "small topLevel" : "small", style: "margin-left:auto; padding-left:10px; opacity:0.7;" }, statsText) : null
   );
 
@@ -272,7 +357,7 @@ function renderMain() {
 
   const root = state.data.root;
 
-  if (state.searchQuery) {
+  if (isSearchActive()) {
     const filtered = filterTree(root, state.searchQuery);
     if (filtered) {
       host.appendChild(renderCategoryBlock(filtered, { includeLeaves: true, depth: 0, isRoot: true, isSearch: true }));
@@ -280,6 +365,8 @@ function renderMain() {
       host.innerHTML = "<div class='block'>No results found.</div>";
     }
   } else {
+    // Below MIN_SEARCH_QUERY_LENGTH, treated identically to an empty query -- the
+    // normal focused view stays put rather than showing a half-active search state.
     // focused: render the selected node's own subtree in full, but wrapped in sticky
     // "breadcrumb" headers for its ancestors, so super-category context stays visible
     // while scrolling, instead of being discarded just because a deeper category was
@@ -314,7 +401,7 @@ function renderMain() {
             renderSidebarTree();
             renderMain();
           },
-        }, displayTitle(anc.title)),
+        }, displayTitle(anc.title, anc.id)),
         (() => {
           const s = formatStats(anc.stats, { includeDate: true });
           return s ? el("span", { class: "small", style: "font-weight:normal; margin-left:8px;" }, s) : null;
@@ -370,7 +457,7 @@ function renderRootOverview(root) {
         renderMain();
       },
     },
-      displayTitle(ch.title),
+      displayTitle(ch.title, ch.id),
       statsText ? el("span", { class: "small", style: "font-weight:normal; margin-left:8px;" }, statsText) : null,
       (content.children || []).length
         ? el("span", { class: "small", style: "font-weight:normal; margin-left:8px; opacity:0.6;" }, `${content.children.length} subcategories`)
@@ -392,9 +479,9 @@ function renderPageLi(p) {
   const hasSubpages = (p.subpages || []).length > 0;
   // In search mode, a matched nested subpage must stay visible even if the user
   // never manually expanded its parent -- force-expand rather than hide the hit.
-  const isExpanded = state.expandedSubpages.has(p.id) || (state.searchQuery && hasSubpages);
+  const isExpanded = state.expandedSubpages.has(p.id) || (isSearchActive() && hasSubpages);
 
-  const a = el("a", { href: p.url, target: "_blank", rel: "noreferrer" }, displayTitle(p.title));
+  const a = el("a", { href: p.url, target: "_blank", rel: "noreferrer" }, displayTitle(p.title, p.id));
 
   // p.stats is already a full rollup (this page's own size/date plus every
   // descendant subpage's, see publish.py's build_page_node) -- shown as-is,
@@ -458,7 +545,7 @@ function renderPageLi(p) {
 // so the byte size shown is the real scanned/proofread content size, not
 // just the Index page's own near-empty proofreading-status scaffolding.
 function renderIndexItemLi(item) {
-  const a = el("a", { href: item.url, target: "_blank", rel: "noreferrer" }, displayTitle(item.title));
+  const a = el("a", { href: item.url, target: "_blank", rel: "noreferrer" }, displayTitle(item.title, item.id));
 
   const metaParts = [];
   const size = contentSizeBytes(item.stats);
@@ -512,7 +599,7 @@ function renderSeeAlso(catNode) {
   return el("span", { class: "small", style: "font-weight:normal; margin-left:8px; opacity:0.75;" },
     "see also: ",
     ...siblings.flatMap((sid, i) => {
-      const loc = (state.parentPath.get(sid) || []).map(displayTitle).join(" > ") || displayTitle(catNode.title);
+      const loc = (state.parentPath.get(sid) || []).map((t) => translitTextUncached(t)).join(" > ") || displayTitle(catNode.title, catNode.id);
       const link = el("a", {
         href: "#",
         onclick: (ev) => {
@@ -569,7 +656,7 @@ function renderCategoryBlock(catNode, { includeLeaves, depth, isRoot, isSearch }
         renderSidebarTree();
         renderMain();
       },
-    }, displayTitle(catNode.title)),
+    }, displayTitle(catNode.title, catNode.id)),
     statsText ? el("span", { class: "small", style: "font-weight:normal; margin-left:8px;" }, statsText) : null,
     catLink,
     seeAlso
@@ -686,6 +773,13 @@ async function loadData() {
   state.byId = new Map();
   state.parentPath = new Map();
   indexById(state.data.root, state.byId, state.parentPath);
+  state.allTitledNodes = collectTitledNodes(state.data.root);
+  state.translitCache = new Map();
+  state.searchIndex = new Map();
+  // Warm only the frontend's default/initial scheme up front. Every other scheme
+  // (including devanagari, the data's native script) is transliterated lazily, the
+  // first time the user actually switches to it -- see ensureSchemeCached.
+  ensureSchemeCached(state.scheme);
 
   // Group every occurrence of a shared category (content-holder + all its
   // category-pointers) so each can look up its sibling(s), in either direction.
@@ -945,7 +1039,7 @@ function filterPage(p, query) {
   const matchingSubpages = (p.subpages || [])
     .map(sp => filterPage(sp, query))
     .filter(Boolean);
-  const selfMatch = displayTitle(p.title).toLowerCase().includes(query);
+  const selfMatch = indexedTitle(p).includes(query);
   if (selfMatch || matchingSubpages.length > 0) {
     return { ...p, subpages: matchingSubpages };
   }
@@ -953,7 +1047,7 @@ function filterPage(p, query) {
 }
 
 function filterIndexItem(item, query) {
-  return displayTitle(item.title).toLowerCase().includes(query) ? item : null;
+  return indexedTitle(item).includes(query) ? item : null;
 }
 
 function filterTree(node, query) {
@@ -966,8 +1060,7 @@ function filterTree(node, query) {
     if (filteredCh) matchingChildren.push(filteredCh);
   }
 
-  const selfTitle = displayTitle(node.title).toLowerCase();
-  const selfMatch = selfTitle.includes(query);
+  const selfMatch = indexedTitle(node).includes(query);
 
   if (selfMatch || matchingPages.length > 0 || matchingIndexItems.length > 0 || matchingChildren.length > 0) {
     return {

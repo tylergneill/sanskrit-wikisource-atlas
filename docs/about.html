@@ -162,10 +162,23 @@
 
         <h3>Snapshots</h3>
         <p>
-          (TBD)
+          The main page of this mirror is regularly updated to reflect the latest monthly snapshot drawn from
+          Wikimedia's own "Content File Export" dump for sa.wikisource.org.
+        </p>
+        <p>
+          By contrast, the historical changelog on this page patches together three different source eras
+          to cover as much of the wiki's history as possible:
+          <ul>
+            <li class="small">2011-09 → 2022-05: convenient full dumps stored on Internet Archive</li>
+            <li class="small">2022-06 → 2025-10: synthetic dumps materialized from daily revision data stored on Wikimedia</li>
+            <li class="small">2025-11 → present: convenient full dumps stored on Wikimedia</li>
+          </ul>
+          For the materialized-era gap, no ready-made dump exists for those months at all — instead, a
+          snapshot is reconstructed on demand from the full revision history: for a given cutoff date,
+          each page's state is taken as its newest revision at or before that date.
         </p>
 
-        <h3>Basic Processing</h3>
+        <h3>Pages, Texts, and Categories</h3>
         <p>
           After fetching full data for a given point in time,
           all items are explored in the Main, Category, Index, and Page namespaces.
@@ -173,7 +186,12 @@
 
         <p>
           On Mainspace pages, breadcrumbs are mined to establish parent/child relationships.
-          These back-connections allow rolling child subpages up for more concise display.
+          These back-connections allow rolling up child subpages for more concise display.
+          Redirects are followed for this purpose, e.g., the effective parent of <a href="https://sa.wikisource.org/wiki/रामायणम्/बालकाण्डम्" target="_blank">रामायणम्/बालकाण्डम्</a> is <a href="https://sa.wikisource.org/wiki/वाल्मीकिरामायणम्" target="_blank">वाल्मीकिरामायणम्</a>.
+        </p>
+
+        <p>
+          Whatever page collects subpages under itself but is not a subpage of anything else is counted as a "text" in this mirror.
         </p>
 
         <p>
@@ -184,36 +202,34 @@
         </p>
 
         <p>
-          Any Categories not a part of the ग्रन्थाः (+ धर्मशास्त्रम्) central community are
-          are placed into an artificial category called असंबद्धवर्गीकृतम् ("improperly categorized"),
+          Any Categories not part of the ग्रन्थाः (+ धर्मशास्त्रम्) central community are placed into an artificial category called असम्बद्धवर्गीकृतम् ("improperly categorized"),
           which can gradually serve to improve the Category structure of sa.wikisource itself.
         </p>
 
         <p>
-          Finally, Category membership does not automatically "bubble up": a label on a deeply nested subpage does not
-          cause grandparent pages to inherit that Category.
-          However, if every subpage is found to share a Category that the parent itself lacks,
-          then the Category is indeed inferred onto the parent and visibly marked as such.
+          Finally, Category membership does not automatically "bubble up": a label on a nested subpage does not
+          cause parent or grandparent pages to inherit that Category.
         </p>
 
         <h3>Cross-tree Connections</h3>
         <p>
-          If a Category (wrongly!) has multiple parents,
-          it will show up in both places in the mirror's tree display with notes to that effect.
+          If a Category (wrongly!) has multiple parents, it will show up in both places in the mirror's
+          tree display, with notes to that effect ("also filed under...") linking each occurrence to
+          the other.
         </p>
 
         <p>
           On the other hand, multiple Categories are entirely appropriate for text items, both Main and Index.
-          In this case, the search bar's ability to filter the tree is utilized
-          to visually clarify the item's multiple locations within the tree.
+          In this case, a small magnifying-glass
+          icon next to such an item lets a reader jump to a filtered view of the tree
+          showing every other place that same item appears.
         </p>
 
         <p>
-          Given that the mirror seeks to summarize both Categories and text items in terms of their effective size (IAST content) and page counts,
-          their occurrence in multiple places of the tree threatens to result in double-counting.
-          Special care is taken to ensure that these stats are accurate at any given level.
-          For example, काश्यपसंहिता is under both धर्मशास्त्रम्/काश्यपरचनाः and वेदाः/उपवेदाः/आयुर्वेदः/काश्यपरचनाः,
-          so its numbers count toward both धर्मशास्त्रम् and वेदाः, but the top-level All aggregation knows to only count it once.
+          An item filed in multiple places threatens to be double-counted in the mirror's size and
+          text-count stats. Special care avoids this: each item is credited to a category's rollup
+          exactly once, at whichever ancestor its various paths first converge. For example, काश्यपसंहिता is filed under both धर्मशास्त्रम् (> काश्यपरचनाः) and वेदाः (> उपवेदाः > आयुर्वेदः > काश्यपरचनाः), so its size and text count contribute to both धर्मशास्त्रम् and वेदाः, but the top-level "All"
+          aggregation still only counts it once.
         </p>
 
         <h3>Calculating Size</h3>
@@ -227,30 +243,41 @@
           IAST is smaller on disk (approximately 60%) and more common for cross-collection comparison.
         </p>
 
+        <h3>Discovering Opportunities for Correction</h3>
+        <p>
+          In addition to the artificial असम्बद्धवर्गीकृतम् category shown on the mirror website, the codebase also includes an audit pipeline for detecting and concisely indicating problems that should be fixed on sa.wikisource.org:
+        </p>
+
+        <ul style="list-style: disc; padding-left: 1.4em;">
+          <li>Pages that look like missed breadcrumb subpages (space-separated title instead of a "/")</li>
+          <li>Parent pages lacking a Category shared uniformly by all subpages</li>
+          <li>Categories with multiple parents</li>
+          <li>Categories never filed under any parent (orphaned)</li>
+          <li>Categories referenced but never created (red links)</li>
+          <li>Cycles in the Category graph</li>
+          <li>Page-namespace (पृष्ठम्) items wrongly carrying their own Category tag</li>
+          <li>Pages likely bulk-imported wholesale from an external digitized-text source</li>
+        </ul>
+
       </details>
 
       <details class="block collapsible">
-        <summary><h2>Data Stats and Changelog</h2></summary>
+        <summary><h2>Data Changelog</h2></summary>
         <p class="small">
-          Monthly deltas based on a patchwork of sources:
-          <ul>
-            <li class="small">2011-09 → 2022-05 convenient full dumps stored on Internet Archive</li>
-            <li class="small">2022-06 → 2025-10 synthetic dumps materialized from daily revision data stored on Wikimedia</li>
-            <li class="small">2025-11 → present convenient full dumps stored on Wikimedia</li>
-          </ul>
+          Monthly deltas, patched together across three source eras — see "Snapshots" above for detail.
         </p>
 
         <p class="small">
-          <label class="navlabel" for="changelogGranularity">Group by:</label>
+          <label class="navlabel" for="changelogGranularity">Granularity:</label>
           <select id="changelogGranularity">
-            <option value="1">Monthly</option>
-            <option value="3">Quarterly</option>
-            <option value="12" selected>Yearly</option>
+            <option value="1">Month</option>
+            <option value="3">Quarter</option>
+            <option value="12" selected>Year</option>
           </select>
         </p>
 
         <details class="block collapsible" open>
-          <summary><h3 style="margin:0;">Trends Over Time</h3></summary>
+          <summary><h3 style="margin:0;">Visual Trend</h3></summary>
           <div id="changelogCharts">Loading…</div>
         </details>
 

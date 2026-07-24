@@ -1,4 +1,4 @@
-.PHONY: refresh-dump refresh-dump-force process serve ngrok backfill audit
+.PHONY: refresh-dump refresh-dump-force process serve ngrok backfill audit audit-update-about
 
 # Resolve the latest complete monthly dump export on dumps.wikimedia.org and
 # compare it against dump/: download/verify/decompress whatever's missing or
@@ -22,6 +22,11 @@ process:
 # notes/wikisource-editing-plan.md.
 audit:
 	python -m pipeline.audit
+
+# Same as audit, but also regenerates the audit findings section of
+# docs/about.html.
+audit-update-about:
+	python -m pipeline.audit --update-about
 
 # Walk backward through every available historical month (Internet Archive
 # legacy dumps, the live rolling window, and the materialized gap neither

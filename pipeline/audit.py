@@ -30,11 +30,14 @@ Six independent checks, run over a single dump:
    category page exists, it's just never filed under anything, so nothing
    tagged into it is reachable from वर्गसर्वस्वम् either.
 
-4. Red-link categories: a category named as a parent or child via
-   [[वर्गः:X]] somewhere, where X was never itself created as a real
-   Category-namespace page (pipeline.build_tree.CategoryGraph node with
-   record=None). Not fixable by re-tagging -- the category page itself needs
-   to be created on-wiki.
+4. Red-link categories: a category named as a parent/child via [[वर्गः:X]]
+   somewhere (pipeline.build_tree.CategoryGraph node with record=None), OR
+   tagged directly onto a Main/Index-namespace page, where X was never
+   itself created as a real Category-namespace page -- see
+   notes/orphan-bucket-vs-orphaned-categories.md for why the direct-tag case
+   needs its own separate scan (it never becomes a CategoryGraph node at
+   all, so it's invisible to the graph-only check). Not fixable by
+   re-tagging -- the category page itself needs to be created on-wiki.
 
 5. Category cycles: the About page (docs/about.html, "Categories: Another
    Graph") explicitly warns categorization is manual and "there can even be
@@ -157,22 +160,45 @@ def find_root_inference_candidates(
 
 
 def find_orphaned_categories(graph: CategoryGraph) -> list[str]:
-    """Real Category-namespace pages with zero parent tags of their own
-    (excluding the root) -- thin wrapper over
+    """Real, non-redirect Category-namespace pages with zero parent tags of
+    their own (excluding the root) -- thin wrapper over
     pipeline.build_tree.orphaned_category_titles, restricted to categories
     that actually have their own page (red-link categories are reported
     separately, see find_redlink_categories, since the fix is different:
-    create the page vs. add a parent tag)."""
+    create the page vs. add a parent tag). A Category-namespace #REDIRECT
+    stub legitimately carries no [[वर्गः:...]] tag of its own -- that's not
+    a mis-filed category, it's an alias pointing at (usually) a properly
+    parented target, so it would be a false positive here."""
     return [
         t for t in orphaned_category_titles(graph)
         if graph.nodes[t].record is not None
+        and graph.nodes[t].record.redirect_target is None
     ]
 
 
-def find_redlink_categories(graph: CategoryGraph) -> list[str]:
-    """Categories named as a parent or child via [[वर्गः:X]] somewhere, where
-    X itself was never created as a real Category-namespace page."""
-    return sorted(t for t, n in graph.nodes.items() if n.record is None)
+def find_redlink_categories(
+    graph: CategoryGraph,
+    direct_cats_by_title: dict[str, set[str]] | None = None,
+) -> list[str]:
+    """Categories named as a parent/child via [[वर्गः:X]] somewhere in another
+    category's own wikitext, OR tagged directly onto a Main/Index-namespace
+    page via direct_cats_by_title, where X itself was never created as a real
+    Category-namespace page. See
+    notes/orphan-bucket-vs-orphaned-categories.md: a category tag that
+    appears ONLY on a Main/Index page (never named by another category's own
+    [[वर्गः:...]] link) never becomes a CategoryGraph node at all, so relying
+    on graph.nodes alone misses it entirely -- it's invisible to this check
+    even though it's the same underlying defect. direct_cats_by_title is
+    optional (defaults to catching only the graph-node case) so existing
+    callers/tests that only have a CategoryGraph keep working."""
+    redlinks = {t for t, n in graph.nodes.items() if n.record is None}
+    if direct_cats_by_title is not None:
+        for cats in direct_cats_by_title.values():
+            for cat in cats:
+                node = graph.nodes.get(cat)
+                if node is None or node.record is None:
+                    redlinks.add(cat)
+    return sorted(redlinks)
 
 
 def find_multi_parented_categories(graph: CategoryGraph) -> dict[str, list[str]]:
@@ -590,7 +616,7 @@ def render_audit_html(
         sub = _findings_list([_link(t) for t in titles])
         domain_items.append(_sub_bullet(html.escape(domain), len(titles), sub))
     bulk_bullet = _bullet(
-        "Pages likely bulk-imported wholesale from an external digitized-text source",
+        "Pages likely imported from other online text collections",
         len(bulk_import_candidates),
         f'          <ul style="margin-left: 1.6em; list-style: none; padding-left: 0;">\n'
         + "\n".join(f"            {item}" for item in domain_items)
@@ -598,9 +624,7 @@ def render_audit_html(
     )
     bulk_section = (
         '        <p>\n'
-        "          A separate, unrelated finding from the same audit pipeline -- not something in need of\n"
-        "          correction, just worth knowing for understanding how much of the corpus is original-to-the-wiki\n"
-        "          vs. an unreviewed import:\n"
+        "          The same audit pipeline also makes note of source links:\n"
         "        </p>\n"
         '        <ul style="list-style: none; padding-left: 0;">\n'
         f"{bulk_bullet}\n"
@@ -652,6 +676,8 @@ def main() -> None:
     main_records = dump_index.pages_by_ns[0]
     page_ns_id = dump_index.page_ns_id()
     page_records = dump_index.pages_by_ns.get(page_ns_id, []) if page_ns_id is not None else []
+    index_ns_id = dump_index.index_ns_id()
+    index_records = dump_index.pages_by_ns.get(index_ns_id, []) if index_ns_id is not None else []
 
     main_nodes = build_main_tree(main_records)
 
@@ -662,11 +688,19 @@ def main() -> None:
         rec.title: {c for c in direct_categories(rec, cat_ns_name) if not is_excluded_category(c)}
         for rec in main_records
     }
+    # Main + Index (not Page -- those are covered separately by
+    # find_tagged_page_ns_items, since a Page carrying its own tag is itself
+    # a distinct finding, not a source to trust for redlink detection here).
+    content_direct_cats_by_title = dict(direct_cats_by_title)
+    content_direct_cats_by_title.update({
+        rec.title: {c for c in direct_categories(rec, cat_ns_name) if not is_excluded_category(c)}
+        for rec in index_records
+    })
 
     breadcrumb_candidates = find_breadcrumb_gap_candidates(main_nodes)
     inference_candidates = find_root_inference_candidates(main_nodes, direct_cats_by_title)
     orphaned_categories = find_orphaned_categories(graph)
-    redlink_categories = find_redlink_categories(graph)
+    redlink_categories = find_redlink_categories(graph, content_direct_cats_by_title)
     category_cycles = find_category_cycles(graph)
     tagged_page_ns_items = find_tagged_page_ns_items(page_records, cat_ns_name)
     multi_parented_categories = find_multi_parented_categories(graph)

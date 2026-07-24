@@ -28,15 +28,54 @@ DEFAULT_DUMP_GLOB = "sawikisource-*.xml"
 # विकिस्रोतः (Wikisource-project meta pages) are top-level siblings of ग्रन्थाः
 # under root but carry no actual Sanskrit-text content -- excluded per explicit
 # user direction (this mirror favors a useful interface over slavish adherence
-# to Wikisource's own category structure).
+# to Wikisource's own category structure). Formatting templates/Index
+# Validated/Works/Works by year (English-named ProofreadPage/import
+# housekeeping categories) and टेम्पलेट लूप वाले पेज / अनुक्रमणिका - Unknown
+# progress (Hindi/Devanagari MediaWiki-software maintenance categories) are
+# the same kind of junk, just not Sanskrit-subject-classification-shaped
+# enough to have been caught by the original list.
 EXCLUDED_CATEGORIES = {
     "अवैध एचटीएमएल टैग का उपयोग कर रहे पृष्ठ",
     "अनिर्दिष्टानि पुटानि",
     "निष्कासनाय",
-    "ग्रन्थकर्तारः",
     "वर्गनिर्वहणम्",
     "विकिस्रोतः",
+    "Formatting templates",
+    "Index Validated",
+    "Works",
+    "Works by year",
+    "टेम्पलेट लूप वाले पेज",
+    "अनुक्रमणिका - Unknown progress",
+    "Candidates for speedy deletion",
+    "Delete",
+    "PD-old",
+    "अनुक्रमणिका फलकानि",
+    "असूचकांकितानि पृष्ठानि",
+    "निर्वाचितलेखाः",
+    "विकिपीडियालेखः",
 }
+
+# Substring-matched exclusion: any category whose title contains one of
+# these anywhere (not just an exact/prefix match) is treated as the same
+# kind of Wikisource-project housekeeping as the exact-match entries above.
+# विकिस्रोत catches variants like विकिस्रोतसः निर्वहणम्, विकिस्रोतःकार्यक्रमः, and
+# भारतीय-विकिस्रोतः-पाठशुद्धिस्पर्धा (the marker appears mid-title, joined by
+# hyphens) that an exact-match set would miss. ग्रन्थकर्तारः (also listed
+# exactly above, since it's excluded on its own) additionally catches its
+# alphabetical-index children (ग्रन्थकर्तारः-क, etc.). अनुसरणवर्गाः is a
+# MediaWiki tracking-category tree (पुटानुसरणवर्गाः, प्राकृतानुसरणवर्गाः, ...),
+# not real subject classification -- the substring form excludes the whole
+# subtree at once. पाठशुद्धिस्पर्धा (proofreading-contest event categories,
+# e.g. "पाठशुद्धिस्पर्धा आगस्ट् 2021") recur under several
+# hyphenated/differently-spelled event-name prefixes (भारतीय-विकिसोर्स्-...,
+# भारतीय-विकिस्रोतः-...) -- catching the shared word is more robust than
+# listing every year's event title exactly.
+EXCLUDED_CATEGORY_SUBSTRINGS = (
+    "विकिस्रोत",
+    "ग्रन्थकर्तारः",
+    "अनुसरणवर्गाः",
+    "पाठशुद्धिस्पर्धा",
+)
 
 # Matches [[वर्गः:Title]] or [[वर्गः:Title|sortkey]] category links in wikitext.
 # The namespace-local category prefix is read from siteinfo (see NamespaceMap),
@@ -254,7 +293,9 @@ def is_excluded_category(title: str) -> bool:
     bare = title.strip()
     if ":" in bare:
         bare = bare.split(":", 1)[1].strip()
-    return bare in EXCLUDED_CATEGORIES
+    if bare in EXCLUDED_CATEGORIES:
+        return True
+    return any(s in bare for s in EXCLUDED_CATEGORY_SUBSTRINGS)
 
 
 def main() -> None:

@@ -108,6 +108,8 @@ from pipeline.transclusion import (
     build_transclusion_map,
     direct_categories,
     is_transcluded,
+    resolve_transcluded_leaves,
+    transclusion_ranges,
 )
 
 Stats = dict  # {raw_bytes, content_bytes, transliterated_bytes, count, last_changed}
@@ -155,7 +157,19 @@ def _owning_index_title(page_title: str, page_ns_name: str) -> str | None:
     return bare.rsplit("/", 1)[0]
 
 
-def compute_page_ns_rollup(
+@dataclass
+class LeafSizeIndex:
+    """All पृष्ठम्:Title/N scanned-leaf content sizes, computed once and shared
+    by two consumers: the untranscluded-Index rollup (folded onto the Index
+    item's own node stats) and the transcluded-Main augmentation (folded onto
+    the Main page that publishes those leaves via <pages .../>). See
+    compute_page_ns_sizes."""
+    untranscluded_index_rollup: dict[str, Stats]  # Index bare title -> summed stats over its leaves (untranscluded items only)
+    leaves_by_index: dict[str, list[str]]  # Index bare title -> its leaf full-titles (पृष्ठम्:Title/N), transcluded indexes only
+    leaf_sizes: dict[str, ContentSizeResult]  # leaf full-title -> its content size (transcluded-index leaves only)
+
+
+def compute_page_ns_sizes(
     dump_index: DumpIndex,
     template_index: dict[str, str],
     known_titles: set[str] | None,
@@ -163,16 +177,28 @@ def compute_page_ns_rollup(
     transliterate: bool,
     workers: int | None,
     transclusion_map: dict[str, set[str]],
-) -> dict[str, Stats]:
-    """Rolls up size/date stats from पृष्ठम्:Title/N (scanned-leaf) records
-    onto their owning Index item, for untranscluded Index items only --
-    Index is the organizing principle pre-transclusion, so individual leaves
-    are never listed/browsed, only summed into one stat on the Index item
-    (see notes/sawikisource-scraper-spec.md, "Untranscluded Index items").
-    Restricting to untranscluded items keeps this cheap: a transcluded
-    Index's Page: content is superseded by real Main-namespace text and
-    dropped from display anyway, so there's no reason to pay for its
-    (often large) template-expansion + transliteration cost here.
+) -> LeafSizeIndex:
+    """Computes content size for every पृष्ठम्:Title/N (scanned-leaf) record,
+    then splits the results by whether the leaf's owning Index item is
+    transcluded into Main-namespace content:
+
+    - Untranscluded Index items are the organizing principle pre-transclusion,
+      so their leaves are never listed/browsed, only summed into one stat on
+      the Index item itself (see notes/sawikisource-scraper-spec.md,
+      "Untranscluded Index items"). Returned pre-summed in
+      untranscluded_index_rollup.
+
+    - Transcluded Index items are dropped from display in favor of the Main
+      page that publishes them -- but that Main page's own wikitext is often
+      just the <pages index="..." from=A to=B /> tag, so its content_bytes
+      reads near-zero unless the transcluded leaves' real text is folded in
+      (see notes/proofreadpage-transclusion-undercount-fix.md). Their per-leaf
+      sizes and index->leaf mapping are returned raw (leaf_sizes /
+      leaves_by_index) for process.py to slice per Main page's own range.
+
+    Sizing all leaves (not just the untranscluded ones, as before) is the cost
+    of fixing the transclusion undercount -- ~90k additional leaves on the live
+    dump. Parallelized like the Main/Index passes.
     """
     page_ns_id = dump_index.page_ns_id()
     # Page (104) is the ProofreadPage extension -- absent from early dumps
@@ -181,28 +207,37 @@ def compute_page_ns_rollup(
     page_ns_name = dump_index.namespaces[page_ns_id] if page_ns_id is not None else ""
     all_page_records = dump_index.pages_by_ns.get(page_ns_id, []) if page_ns_id is not None else []
 
-    relevant_records = [
+    owned_records = [
         rec for rec in all_page_records
-        if (owner := _owning_index_title(rec.title, page_ns_name)) is not None
-        and not is_transcluded(owner, transclusion_map)
+        if _owning_index_title(rec.title, page_ns_name) is not None
     ]
 
     sizes = compute_content_sizes_parallel(
-        relevant_records, template_index, known_titles, cat_ns_name,
+        owned_records, template_index, known_titles, cat_ns_name,
         transliterate=transliterate, workers=workers, progress_label="content size: Page (scan) leaves",
     )
 
-    rollup: dict[str, Stats] = {}
-    for rec in relevant_records:
+    untranscluded_index_rollup: dict[str, Stats] = {}
+    leaves_by_index: dict[str, list[str]] = {}
+    leaf_sizes: dict[str, ContentSizeResult] = {}
+    for rec in owned_records:
         owner = _owning_index_title(rec.title, page_ns_name)
         size = sizes[rec.title]
-        current = rollup.get(owner) or _empty_stats()
-        rollup[owner] = _merge_stats(current, _stats_dict(
-            size.raw_wikitext_bytes, size.content_bytes, size.transliterated_bytes,
-            0,  # leaves don't each count as a separate "work" -- only the Index item itself does
-            rec.timestamp,
-        ))
-    return rollup
+        if is_transcluded(owner, transclusion_map):
+            leaves_by_index.setdefault(owner, []).append(rec.title)
+            leaf_sizes[rec.title] = size
+        else:
+            current = untranscluded_index_rollup.get(owner) or _empty_stats()
+            untranscluded_index_rollup[owner] = _merge_stats(current, _stats_dict(
+                size.raw_wikitext_bytes, size.content_bytes, size.transliterated_bytes,
+                0,  # leaves don't each count as a separate "work" -- only the Index item itself does
+                rec.timestamp,
+            ))
+    return LeafSizeIndex(
+        untranscluded_index_rollup=untranscluded_index_rollup,
+        leaves_by_index=leaves_by_index,
+        leaf_sizes=leaf_sizes,
+    )
 
 
 def compute_all_content_sizes(
@@ -245,10 +280,17 @@ def compute_all_content_sizes(
     index_categories = {bare(rec.title): direct_categories(rec, cat_ns_name) for rec in index_records}
     index_timestamps = {bare(rec.title): rec.timestamp for rec in index_records}
 
-    index_page_rollup = compute_page_ns_rollup(
+    leaf_size_index = compute_page_ns_sizes(
         dump_index, template_index, known_titles, cat_ns_name,
         transliterate, workers, transclusion_map,
     )
+
+    # Fold each transcluded Main page's own <pages .../> leaf range into its
+    # content size -- a Main page built by transcluding a scan (the standard
+    # way large OCR'd works reach Mainspace) otherwise measures near-zero,
+    # since its wikitext is literally just the <pages .../> tag (see
+    # notes/proofreadpage-transclusion-undercount-fix.md).
+    _augment_main_sizes_with_transclusion(main_records, main_sizes, leaf_size_index)
 
     return ContentIndex(
         main_sizes=main_sizes,
@@ -256,8 +298,45 @@ def compute_all_content_sizes(
         index_sizes=index_sizes,
         index_categories=index_categories,
         index_timestamps=index_timestamps,
-        index_page_rollup=index_page_rollup,
+        index_page_rollup=leaf_size_index.untranscluded_index_rollup,
     )
+
+
+def _augment_main_sizes_with_transclusion(
+    main_records: list[PageRecord],
+    main_sizes: dict[str, ContentSizeResult],
+    leaf_size_index: LeafSizeIndex,
+) -> None:
+    """Adds the real content of each Main page's transcluded scan leaves into
+    its own ContentSizeResult, in place. For every <pages index="X" from=A
+    to=B /> tag the page carries, the matching X/N leaves (A<=N<=B) have their
+    raw/content/transliterated bytes summed onto the Main page's own size --
+    which for a pure-transclusion page (its wikitext is just the tag) is nearly
+    all of the page's real byte count.
+
+    Each Main page's own from=/to= range is sliced out of the shared Index's
+    leaves, so sibling pages transcluding different sub-ranges of one Index
+    each get only their slice, never the Index's full content
+    (notes/proofreadpage-transclusion-undercount-fix.md, gotcha 4)."""
+    if not leaf_size_index.leaves_by_index:
+        return  # no transcluded scans in this dump (e.g. pre-ProofreadPage era)
+    for rec in main_records:
+        ranges = transclusion_ranges(rec.text)
+        if not ranges:
+            continue
+        leaf_titles = resolve_transcluded_leaves(ranges, leaf_size_index.leaves_by_index)
+        if not leaf_titles:
+            continue
+        size = main_sizes.get(rec.title)
+        if size is None:
+            continue
+        for leaf_title in leaf_titles:
+            leaf = leaf_size_index.leaf_sizes.get(leaf_title)
+            if leaf is None:
+                continue
+            size.raw_wikitext_bytes += leaf.raw_wikitext_bytes
+            size.content_bytes += leaf.content_bytes
+            size.transliterated_bytes += leaf.transliterated_bytes
 
 
 def _stats_dict(raw: int, content: int, translit: int, count: int, last_changed: str, text_count: int = 0) -> dict:

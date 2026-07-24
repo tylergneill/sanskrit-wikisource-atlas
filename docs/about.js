@@ -142,6 +142,14 @@ function reduceGroup(entries) {
   const newCount = last.new?.count ?? 0;
   const deltaCount = newCount - oldCount;
 
+  // text_count is missing entirely on older changelog entries (added after
+  // the fact) -- track presence with null rather than defaulting to 0, so
+  // a group spanning the gap reports "n/a" instead of a misleading delta.
+  const oldTextCount = first.old?.text_count;
+  const newTextCount = last.new?.text_count;
+  const hasTextCount = oldTextCount != null && newTextCount != null;
+  const deltaTextCount = hasTextCount ? newTextCount - oldTextCount : null;
+
   const sizes = {};
   for (const key of ["raw_bytes", "content_bytes", "transliterated_bytes"]) {
     const oldV = first.sizes?.[key]?.old ?? 0;
@@ -157,7 +165,12 @@ function reduceGroup(entries) {
     old: first.old,
     new: last.new,
     sizes,
-    delta: { count: deltaCount, count_pct: oldCount === 0 ? null : (100 * deltaCount) / oldCount },
+    delta: {
+      count: deltaCount,
+      count_pct: oldCount === 0 ? null : (100 * deltaCount) / oldCount,
+      text_count: deltaTextCount,
+      text_count_pct: !hasTextCount || oldTextCount === 0 ? null : (100 * deltaTextCount) / oldTextCount,
+    },
     items_added,
     items_removed,
     items_with_changed_timestamp,
@@ -191,19 +204,32 @@ function renderEntry(entry) {
   const newDate = fmtDate(entry.date);
 
   const header = document.createElement("div");
+  header.style.margin = "0 0 4px";
   header.innerHTML = `<strong>${newDate}</strong> (since ${oldDate})`;
   div.appendChild(header);
 
-  const stats = document.createElement("p");
-  stats.innerHTML = `<strong>${entry.new?.count?.toLocaleString() ?? "n/a"} items</strong>${fmtChange(entry.delta?.count_pct, entry.old?.count?.toLocaleString() ?? "n/a")}`;
-  div.appendChild(stats);
-
   const translitSize = entry.sizes?.transliterated_bytes || {};
   const translitLine = document.createElement("p");
-  translitLine.style.color = "var(--muted)";
-  translitLine.style.fontSize = "0.9em";
-  translitLine.innerHTML = `<strong>${fmtBytes(translitSize.new)}</strong> extracted+transliterated size${fmtChange(translitSize.delta_pct, fmtBytes(translitSize.old))}`;
+  translitLine.style.margin = "0 0 4px";
+  translitLine.innerHTML = `<strong>${fmtBytes(translitSize.new)}</strong> ${fmtChange(translitSize.delta_pct, fmtBytes(translitSize.old))}`;
   div.appendChild(translitLine);
+
+  const stats = document.createElement("p");
+  stats.style.margin = "0 0 4px";
+  const textCount = entry.new?.text_count;
+  if (textCount != null) {
+    stats.innerHTML = `<strong>${textCount.toLocaleString()} texts</strong>${fmtChange(entry.delta?.text_count_pct, entry.old?.text_count?.toLocaleString() ?? "n/a")}`;
+  } else {
+    stats.innerHTML = `<strong>n/a texts</strong> (not tracked for this period)`;
+  }
+  div.appendChild(stats);
+
+  const pageStats = document.createElement("p");
+  pageStats.style.margin = "0 0 4px";
+  pageStats.style.color = "var(--muted)";
+  pageStats.style.fontSize = "0.9em";
+  pageStats.innerHTML = `<strong>${entry.new?.count?.toLocaleString() ?? "n/a"} pages</strong>${fmtChange(entry.delta?.count_pct, entry.old?.count?.toLocaleString() ?? "n/a")}`;
+  div.appendChild(pageStats);
 
   const added = entry.items_added_count ?? 0;
   const removed = entry.items_removed_count ?? 0;
@@ -217,7 +243,7 @@ function renderEntry(entry) {
     summary.style.fontSize = "0.9em";
     summary.className = "changelog-summary";
     summary.style.display = "flex";
-    summary.innerHTML = `<span>${added} added, ${removed} removed, ${changed} updated — <span style="color:var(--accent)">show detail</span></span>`;
+    summary.innerHTML = `<span>${added} pages added, ${removed} removed, ${changed} updated — <span style="color:var(--accent)">show detail</span></span>`;
     details.appendChild(summary);
 
     const buildList = (title, items, render) => {
@@ -253,7 +279,7 @@ function renderEntry(entry) {
     const counts = document.createElement("p");
     counts.style.color = "var(--muted)";
     counts.style.fontSize = "0.9em";
-    counts.textContent = "no items added, removed, or updated";
+    counts.textContent = "no pages added, removed, or updated";
     div.appendChild(counts);
   }
 
@@ -483,10 +509,16 @@ function renderChangelogCharts() {
     return;
   }
   const points = [
-    { date: sorted[0].old_date, count: sorted[0].old?.count ?? 0, bytes: sorted[0].sizes?.transliterated_bytes?.old ?? 0 },
+    {
+      date: sorted[0].old_date,
+      count: sorted[0].old?.count ?? 0,
+      textCount: sorted[0].old?.text_count ?? null,
+      bytes: sorted[0].sizes?.transliterated_bytes?.old ?? 0,
+    },
     ...sorted.map((e) => ({
       date: e.date,
       count: e.new?.count ?? 0,
+      textCount: e.new?.text_count ?? null,
       bytes: e.sizes?.transliterated_bytes?.new ?? 0,
     })),
   ];
@@ -497,10 +529,24 @@ function renderChangelogCharts() {
     fmtValue: fmtBytes,
     fmtAxis: fmtAxisBytes,
   });
+
+  // text_count is absent on snapshots from before that stat existed --
+  // only chart the trailing run of points that actually have it, rather
+  // than plotting a misleading 0 for the untracked era.
+  const textPoints = points.filter((p) => p.textCount != null);
+  if (textPoints.length > 1) {
+    renderTrendChart(container, textPoints, {
+      title: "Text Count",
+      getValue: (p) => p.textCount,
+      fmtValue: (n) => `${n.toLocaleString()} texts`,
+      fmtAxis: fmtAxisCount,
+    });
+  }
+
   renderTrendChart(container, points, {
-    title: "Item Count",
+    title: "Page Count",
     getValue: (p) => p.count,
-    fmtValue: (n) => `${n.toLocaleString()} items`,
+    fmtValue: (n) => `${n.toLocaleString()} pages`,
     fmtAxis: fmtAxisCount,
   });
 }

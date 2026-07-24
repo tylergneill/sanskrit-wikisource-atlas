@@ -130,6 +130,10 @@ def build_report(old_path: Path, new_path: Path) -> dict:
     new_count = new_stats.get("count", 0) or 0
     delta_count = new_count - old_count
 
+    old_text_count = old_stats.get("text_count", 0) or 0
+    new_text_count = new_stats.get("text_count", 0) or 0
+    delta_text_count = new_text_count - old_text_count
+
     size_report = {}
     for key in STAT_KEYS:
         old_v = old_stats.get(key, 0) or 0
@@ -139,13 +143,17 @@ def build_report(old_path: Path, new_path: Path) -> dict:
 
     return {
         "old": {**{k: old_stats.get(k) for k in STAT_KEYS}, "count": old_stats.get("count"),
+                 "text_count": old_stats.get("text_count"),
                  "last_changed": old_stats.get("last_changed")},
         "new": {**{k: new_stats.get(k) for k in STAT_KEYS}, "count": new_stats.get("count"),
+                 "text_count": new_stats.get("text_count"),
                  "last_changed": new_stats.get("last_changed")},
         "sizes": size_report,
         "delta": {
             "count": delta_count,
             "count_pct": pct(delta_count, old_count),
+            "text_count": delta_text_count,
+            "text_count_pct": pct(delta_text_count, old_text_count),
         },
         "items_added": added,
         "items_removed": removed,
@@ -164,13 +172,17 @@ def print_summary(report: dict) -> None:
     def fmt_pct(v):
         return "n/a" if v is None else f"{v:+.1f}%"
 
-    print(f"old: count={o['count']!r} last_changed={o['last_changed']!r}")
-    print(f"new: count={n['count']!r} last_changed={n['last_changed']!r}")
+    print(f"old: count={o['count']!r} text_count={o['text_count']!r} last_changed={o['last_changed']!r}")
+    print(f"new: count={n['count']!r} text_count={n['text_count']!r} last_changed={n['last_changed']!r}")
     print()
     for key in STAT_KEYS:
         s = sizes[key]
         print(f"{key}: {s['old']:,} -> {s['new']:,}  ({s['delta']:+,}, {fmt_pct(s['delta_pct'])})")
     print(f"count: {o['count']:,} -> {n['count']:,}  ({d['count']:+,}, {fmt_pct(d['count_pct'])})")
+    if o['text_count'] is None or n['text_count'] is None:
+        print("text_count: n/a (not tracked for one or both snapshots)")
+    else:
+        print(f"text_count: {o['text_count']:,} -> {n['text_count']:,}  ({d['text_count']:+,}, {fmt_pct(d['text_count_pct'])})")
     print()
     print(f"items added: {report['items_added_count']} ({fmt_pct(report['items_added_pct'])} of old total)")
     print(f"items removed: {report['items_removed_count']} ({fmt_pct(report['items_removed_pct'])} of old total)")

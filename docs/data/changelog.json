@@ -253653,14 +253653,16 @@
       "content_bytes": 482949177,
       "transliterated_bytes": 246125643,
       "count": 10218,
-      "last_changed": "2025-03-24T04:47:55Z"
+      "last_changed": "2025-03-24T04:47:55Z",
+      "text_count": 1966
     },
     "new": {
       "raw_bytes": 673953693,
       "content_bytes": 636494262,
       "transliterated_bytes": 326713969,
       "count": 20449,
-      "last_changed": "2025-04-29T10:35:46Z"
+      "last_changed": "2025-04-29T10:35:46Z",
+      "text_count": 2006
     },
     "sizes": {
       "raw_bytes": {
@@ -253684,7 +253686,9 @@
     },
     "delta": {
       "count": 10231,
-      "count_pct": 100.12722646310432
+      "count_pct": 100.12722646310432,
+      "text_count": 40,
+      "text_count_pct": 2.034587995930824
     },
     "items_added": [
       {
@@ -304980,14 +304984,16 @@
       "content_bytes": 636494262,
       "transliterated_bytes": 326713969,
       "count": 20449,
-      "last_changed": "2025-04-29T10:35:46Z"
+      "last_changed": "2025-04-29T10:35:46Z",
+      "text_count": 2006
     },
     "new": {
       "raw_bytes": 698326646,
       "content_bytes": 660468481,
       "transliterated_bytes": 338833908,
       "count": 20546,
-      "last_changed": "2025-05-26T08:38:25Z"
+      "last_changed": "2025-05-26T08:38:25Z",
+      "text_count": 2040
     },
     "sizes": {
       "raw_bytes": {
@@ -305011,7 +305017,9 @@
     },
     "delta": {
       "count": 97,
-      "count_pct": 0.4743508240011737
+      "count_pct": 0.4743508240011737,
+      "text_count": 34,
+      "text_count_pct": 1.694915254237288
     },
     "items_added": [
       {
@@ -305602,14 +305610,16 @@
       "content_bytes": 660468481,
       "transliterated_bytes": 338833908,
       "count": 20546,
-      "last_changed": "2025-05-26T08:38:25Z"
+      "last_changed": "2025-05-26T08:38:25Z",
+      "text_count": 2040
     },
     "new": {
       "raw_bytes": 702092694,
       "content_bytes": 664224296,
       "transliterated_bytes": 340796358,
       "count": 20565,
-      "last_changed": "2025-06-30T10:13:03Z"
+      "last_changed": "2025-06-30T10:13:03Z",
+      "text_count": 2059
     },
     "sizes": {
       "raw_bytes": {
@@ -305633,7 +305643,9 @@
     },
     "delta": {
       "count": 19,
-      "count_pct": 0.09247542100652195
+      "count_pct": 0.09247542100652195,
+      "text_count": 19,
+      "text_count_pct": 0.9313725490196079
     },
     "items_added": [
       {
@@ -305806,14 +305818,16 @@
       "content_bytes": 664224296,
       "transliterated_bytes": 340796358,
       "count": 20565,
-      "last_changed": "2025-06-30T10:13:03Z"
+      "last_changed": "2025-06-30T10:13:03Z",
+      "text_count": 2059
     },
     "new": {
       "raw_bytes": 712640445,
       "content_bytes": 674727083,
       "transliterated_bytes": 346146125,
       "count": 20587,
-      "last_changed": "2025-07-30T04:31:03Z"
+      "last_changed": "2025-07-30T04:31:03Z",
+      "text_count": 2081
     },
     "sizes": {
       "raw_bytes": {
@@ -305837,7 +305851,9 @@
     },
     "delta": {
       "count": 22,
-      "count_pct": 0.10697787503039144
+      "count_pct": 0.10697787503039144,
+      "text_count": 22,
+      "text_count_pct": 1.0684798445847499
     },
     "items_added": [
       {
@@ -306214,14 +306230,16 @@
       "content_bytes": 674727083,
       "transliterated_bytes": 346146125,
       "count": 20587,
-      "last_changed": "2025-07-30T04:31:03Z"
+      "last_changed": "2025-07-30T04:31:03Z",
+      "text_count": 2081
     },
     "new": {
       "raw_bytes": 715965438,
       "content_bytes": 678034761,
       "transliterated_bytes": 347869005,
       "count": 20605,
-      "last_changed": "2025-08-30T23:13:06Z"
+      "last_changed": "2025-08-30T23:13:06Z",
+      "text_count": 2097
     },
     "sizes": {
       "raw_bytes": {
@@ -306245,7 +306263,9 @@
     },
     "delta": {
       "count": 18,
-      "count_pct": 0.08743381745761888
+      "count_pct": 0.08743381745761888,
+      "text_count": 16,
+      "text_count_pct": 0.7688611244593945
     },
     "items_added": [
       {
@@ -306840,14 +306860,16 @@
       "content_bytes": 678034761,
       "transliterated_bytes": 347869005,
       "count": 20605,
-      "last_changed": "2025-08-30T23:13:06Z"
+      "last_changed": "2025-08-30T23:13:06Z",
+      "text_count": 2097
     },
     "new": {
       "raw_bytes": 719393760,
       "content_bytes": 681449359,
       "transliterated_bytes": 349654614,
       "count": 20612,
-      "last_changed": "2025-09-26T07:01:11Z"
+      "last_changed": "2025-09-26T07:01:11Z",
+      "text_count": 2103
     },
     "sizes": {
       "raw_bytes": {
@@ -306871,7 +306893,9 @@
     },
     "delta": {
       "count": 7,
-      "count_pct": 0.03397233681145353
+      "count_pct": 0.03397233681145353,
+      "text_count": 6,
+      "text_count_pct": 0.2861230329041488
     },
     "items_added": [
       {
@@ -307893,46 +307917,50 @@
     "items_removed_pct": 0.31535028138948185
   },
   {
-    "id": 6,
+    "id": 123,
     "date": "2025-12-01T00:00:00Z",
     "old_date": "2025-11-01T00:00:00Z",
     "old": {
-      "raw_bytes": 721217598,
-      "content_bytes": 683271117,
-      "transliterated_bytes": 350604056,
-      "count": 20562,
+      "raw_bytes": 739023635,
+      "content_bytes": 698990338,
+      "transliterated_bytes": 358740634,
+      "count": 22101,
+      "text_count": 2106,
       "last_changed": "2025-11-20T05:14:06Z"
     },
     "new": {
-      "raw_bytes": 723527184,
-      "content_bytes": 685575592,
-      "transliterated_bytes": 351782371,
-      "count": 20573,
+      "raw_bytes": 741333221,
+      "content_bytes": 701294813,
+      "transliterated_bytes": 359918949,
+      "count": 22112,
+      "text_count": 2110,
       "last_changed": "2025-12-17T19:04:44Z"
     },
     "sizes": {
       "raw_bytes": {
-        "old": 721217598,
-        "new": 723527184,
+        "old": 739023635,
+        "new": 741333221,
         "delta": 2309586,
-        "delta_pct": 0.3202342824696299
+        "delta_pct": 0.312518557001225
       },
       "content_bytes": {
-        "old": 683271117,
-        "new": 685575592,
+        "old": 698990338,
+        "new": 701294813,
         "delta": 2304475,
-        "delta_pct": 0.33727095184677625
+        "delta_pct": 0.329686245248214
       },
       "transliterated_bytes": {
-        "old": 350604056,
-        "new": 351782371,
+        "old": 358740634,
+        "new": 359918949,
         "delta": 1178315,
-        "delta_pct": 0.33608139433503875
+        "delta_pct": 0.3284587493927437
       }
     },
     "delta": {
       "count": 11,
-      "count_pct": 0.053496741562104856
+      "count_pct": 0.04977150355187548,
+      "text_count": 4,
+      "text_count_pct": 0.1899335232668566
     },
     "items_added": [
       {
@@ -308109,22 +308137,22 @@
         "id": "page:स्कन्दपुराणम्",
         "old": "2025-11-15T15:33:09Z",
         "new": "2025-12-13T15:04:19Z",
-        "old_bytes": 16368879,
-        "new_bytes": 16368901
+        "old_bytes": 16368987,
+        "new_bytes": 16369009
       },
       {
         "id": "page:स्कन्दपुराणम्/खण्डः ५ (अवन्तीखण्डः)",
         "old": "2024-11-24T04:04:24Z",
         "new": "2025-12-13T15:04:19Z",
-        "old_bytes": 2420236,
-        "new_bytes": 2420257
+        "old_bytes": 2473453,
+        "new_bytes": 2473474
       },
       {
         "id": "page:स्कन्दपुराणम्/खण्डः ५ (अवन्तीखण्डः)/रेवा खण्डम्",
         "old": "2024-11-24T04:04:24Z",
         "new": "2025-12-13T15:04:19Z",
-        "old_bytes": 1191282,
-        "new_bytes": 1191303
+        "old_bytes": 1226214,
+        "new_bytes": 1226235
       },
       {
         "id": "page:स्कन्दपुराणम्/खण्डः ५ (अवन्तीखण्डः)/रेवा खण्डम्/अध्यायः ०७३",
@@ -308134,18 +308162,11 @@
         "new_bytes": 3601
       },
       {
-        "id": "page:स्कन्दपुराणम्/खण्डः ७ (प्रभासखण्डः)",
-        "old": "2024-03-01T04:03:20Z",
-        "new": "2025-11-29T07:13:02Z",
-        "old_bytes": 2320226,
-        "new_bytes": 2320227
-      },
-      {
         "id": "page:स्कन्दपुराणम्/खण्डः ७ (प्रभासखण्डः)/प्रभासक्षेत्र माहात्म्यम्",
         "old": "2024-03-01T04:03:20Z",
         "new": "2025-11-29T07:13:02Z",
-        "old_bytes": 1344820,
-        "new_bytes": 1344821
+        "old_bytes": 1351310,
+        "new_bytes": 1351311
       },
       {
         "id": "page:स्कन्दपुराणम्/खण्डः ७ (प्रभासखण्डः)/प्रभासक्षेत्र माहात्म्यम्/अध्यायः ०२०",
@@ -308160,55 +308181,66 @@
         "new": "2025-11-29T07:13:02Z",
         "old_bytes": 17487,
         "new_bytes": 17488
+      },
+      {
+        "id": "page:स्कन्दपुराणम्/प्रभासखण्डः",
+        "old": "2024-10-11T05:30:51Z",
+        "new": "2025-11-29T07:13:02Z",
+        "old_bytes": 2551665,
+        "new_bytes": 2551666
       }
     ],
     "items_added_count": 11,
     "items_removed_count": 0,
     "items_changed_count": 24,
-    "items_added_pct": 0.053496741562104856,
+    "items_added_pct": 0.04977150355187548,
     "items_removed_pct": 0.0
   },
   {
-    "id": 5,
+    "id": 124,
     "date": "2026-01-01T00:00:00Z",
     "old_date": "2025-12-01T00:00:00Z",
     "old": {
-      "raw_bytes": 723527184,
-      "content_bytes": 685575592,
-      "transliterated_bytes": 351782371,
-      "count": 20573,
+      "raw_bytes": 741333221,
+      "content_bytes": 701294813,
+      "transliterated_bytes": 359918949,
+      "count": 22112,
+      "text_count": 2110,
       "last_changed": "2025-12-17T19:04:44Z"
     },
     "new": {
-      "raw_bytes": 727002905,
-      "content_bytes": 689040879,
-      "transliterated_bytes": 353534319,
-      "count": 20598,
+      "raw_bytes": 744808942,
+      "content_bytes": 704760100,
+      "transliterated_bytes": 361670897,
+      "count": 22137,
+      "text_count": 2118,
       "last_changed": "2026-01-01T11:06:38Z"
     },
     "sizes": {
       "raw_bytes": {
-        "old": 723527184,
-        "new": 727002905,
+        "old": 741333221,
+        "new": 744808942,
         "delta": 3475721,
-        "delta_pct": 0.4803856823712653
+        "delta_pct": 0.4688473282381068
       },
       "content_bytes": {
-        "old": 685575592,
-        "new": 689040879,
+        "old": 701294813,
+        "new": 704760100,
         "delta": 3465287,
-        "delta_pct": 0.5054565886587165
+        "delta_pct": 0.4941269970579406
       },
       "transliterated_bytes": {
-        "old": 351782371,
-        "new": 353534319,
+        "old": 359918949,
+        "new": 361670897,
         "delta": 1751948,
-        "delta_pct": 0.49802040819151794
+        "delta_pct": 0.48676181258797796
       }
     },
     "delta": {
       "count": 25,
-      "count_pct": 0.12151849511495649
+      "count_pct": 0.11306078147612156,
+      "text_count": 8,
+      "text_count_pct": 0.3791469194312796
     },
     "items_added": [
       {
@@ -308378,50 +308410,54 @@
     "items_added_count": 25,
     "items_removed_count": 0,
     "items_changed_count": 5,
-    "items_added_pct": 0.12151849511495649,
+    "items_added_pct": 0.11306078147612156,
     "items_removed_pct": 0.0
   },
   {
-    "id": 4,
+    "id": 125,
     "date": "2026-02-01T00:00:00Z",
     "old_date": "2026-01-01T00:00:00Z",
     "old": {
-      "raw_bytes": 727002905,
-      "content_bytes": 689040879,
-      "transliterated_bytes": 353534319,
-      "count": 20598,
+      "raw_bytes": 744808942,
+      "content_bytes": 704760100,
+      "transliterated_bytes": 361670897,
+      "count": 22137,
+      "text_count": 2118,
       "last_changed": "2026-01-01T11:06:38Z"
     },
     "new": {
-      "raw_bytes": 733286071,
-      "content_bytes": 695297855,
-      "transliterated_bytes": 356722410,
-      "count": 20617,
+      "raw_bytes": 751092150,
+      "content_bytes": 711017060,
+      "transliterated_bytes": 364858986,
+      "count": 22156,
+      "text_count": 2137,
       "last_changed": "2026-02-01T12:36:05Z"
     },
     "sizes": {
       "raw_bytes": {
-        "old": 727002905,
-        "new": 733286071,
-        "delta": 6283166,
-        "delta_pct": 0.8642559688258742
+        "old": 744808942,
+        "new": 751092150,
+        "delta": 6283208,
+        "delta_pct": 0.843599968486952
       },
       "content_bytes": {
-        "old": 689040879,
-        "new": 695297855,
-        "delta": 6256976,
-        "delta_pct": 0.908070361381273
+        "old": 704760100,
+        "new": 711017060,
+        "delta": 6256960,
+        "delta_pct": 0.8878141654160047
       },
       "transliterated_bytes": {
-        "old": 353534319,
-        "new": 356722410,
-        "delta": 3188091,
-        "delta_pct": 0.9017769502598134
+        "old": 361670897,
+        "new": 364858986,
+        "delta": 3188089,
+        "delta_pct": 0.8814889520955843
       }
     },
     "delta": {
       "count": 19,
-      "count_pct": 0.09224196523934362
+      "count_pct": 0.08582915480869133,
+      "text_count": 19,
+      "text_count_pct": 0.8970727101038716
     },
     "items_added": [
       {
@@ -308533,15 +308569,15 @@
         "id": "page:कथासरित्सागरः",
         "old": "2024-06-14T00:01:17Z",
         "new": "2026-01-08T06:52:18Z",
-        "old_bytes": 2492415,
-        "new_bytes": 2492414
+        "old_bytes": 2478144,
+        "new_bytes": 2478143
       },
       {
         "id": "page:कथासरित्सागरः/लम्बकः १",
         "old": "2023-01-09T09:36:19Z",
         "new": "2026-01-08T06:52:18Z",
-        "old_bytes": 106179,
-        "new_bytes": 106178
+        "old_bytes": 106247,
+        "new_bytes": 106246
       },
       {
         "id": "page:कथासरित्सागरः/लम्बकः १/तरङ्गः १",
@@ -308556,6 +308592,20 @@
         "new": "2026-01-01T11:07:00Z",
         "old_bytes": 144492,
         "new_bytes": 144454
+      },
+      {
+        "id": "page:कुमारसंभवम्",
+        "old": "2025-07-30T04:31:03Z",
+        "new": "2026-01-18T19:59:28Z",
+        "old_bytes": 1307140,
+        "new_bytes": 1307152
+      },
+      {
+        "id": "page:कुमारसम्भवम् - मल्लिनाथः/प्रथमः सर्गः",
+        "old": "2019-05-03T12:12:31Z",
+        "new": "2026-01-18T19:59:28Z",
+        "old_bytes": 69941,
+        "new_bytes": 69953
       },
       {
         "id": "page:क्रियाक्रमाद्योतिका",
@@ -308628,6 +308678,34 @@
         "new_bytes": 19646
       },
       {
+        "id": "page:रघुवंशम्/प्रथमः सर्गः",
+        "old": "2024-10-27T15:46:27Z",
+        "new": "2026-01-18T19:45:27Z",
+        "old_bytes": 14434,
+        "new_bytes": 14416
+      },
+      {
+        "id": "page:रामायणम्/युद्धकाण्डम्",
+        "old": "2024-09-13T17:33:33Z",
+        "new": "2026-01-30T04:36:11Z",
+        "old_bytes": 791610,
+        "new_bytes": 791614
+      },
+      {
+        "id": "page:रामायणम्/युद्धकाण्डम्/सर्गः ११७",
+        "old": "2024-09-13T17:33:33Z",
+        "new": "2026-01-30T04:36:11Z",
+        "old_bytes": 4975,
+        "new_bytes": 4979
+      },
+      {
+        "id": "page:वाल्मीकिरामायणम्",
+        "old": "2025-11-14T11:50:27Z",
+        "new": "2026-01-30T04:36:11Z",
+        "old_bytes": 3288334,
+        "new_bytes": 3288338
+      },
+      {
         "id": "page:विवेकचूडामणिः",
         "old": "2025-11-07T00:16:59Z",
         "new": "2026-01-25T14:11:38Z",
@@ -308651,51 +308729,55 @@
     ],
     "items_added_count": 19,
     "items_removed_count": 0,
-    "items_changed_count": 18,
-    "items_added_pct": 0.09224196523934362,
+    "items_changed_count": 24,
+    "items_added_pct": 0.08582915480869133,
     "items_removed_pct": 0.0
   },
   {
-    "id": 3,
+    "id": 126,
     "date": "2026-03-01T00:00:00Z",
     "old_date": "2026-02-01T00:00:00Z",
     "old": {
-      "raw_bytes": 733286071,
-      "content_bytes": 695297855,
-      "transliterated_bytes": 356722410,
-      "count": 20617,
+      "raw_bytes": 751092150,
+      "content_bytes": 711017060,
+      "transliterated_bytes": 364858986,
+      "count": 22156,
+      "text_count": 2137,
       "last_changed": "2026-02-01T12:36:05Z"
     },
     "new": {
-      "raw_bytes": 740814378,
-      "content_bytes": 702807474,
-      "transliterated_bytes": 360536157,
-      "count": 20638,
+      "raw_bytes": 758631232,
+      "content_bytes": 718527175,
+      "transliterated_bytes": 368672776,
+      "count": 22178,
+      "text_count": 2158,
       "last_changed": "2026-03-01T17:25:45Z"
     },
     "sizes": {
       "raw_bytes": {
-        "old": 733286071,
-        "new": 740814378,
-        "delta": 7528307,
-        "delta_pct": 1.0266534845989186
+        "old": 751092150,
+        "new": 758631232,
+        "delta": 7539082,
+        "delta_pct": 1.0037492736410571
       },
       "content_bytes": {
-        "old": 695297855,
-        "new": 702807474,
-        "delta": 7509619,
-        "delta_pct": 1.080057840822765
+        "old": 711017060,
+        "new": 718527175,
+        "delta": 7510115,
+        "delta_pct": 1.0562496207896896
       },
       "transliterated_bytes": {
-        "old": 356722410,
-        "new": 360536157,
-        "delta": 3813747,
-        "delta_pct": 1.0691077692595763
+        "old": 364858986,
+        "new": 368672776,
+        "delta": 3813790,
+        "delta_pct": 1.045277804943524
       }
     },
     "delta": {
-      "count": 21,
-      "count_pct": 0.1018576902556143
+      "count": 22,
+      "count_pct": 0.09929590178732624,
+      "text_count": 21,
+      "text_count_pct": 0.9826860084230229
     },
     "items_added": [
       {
@@ -308797,6 +308879,11 @@
         "id": "page:मोहचूडोत्तरम्",
         "date": "2026-02-26T10:50:27Z",
         "new_bytes": 144826
+      },
+      {
+        "id": "page:रामायणम्/अयोध्याकाण्डम्/सम्पूर्णम्",
+        "date": "2026-02-28T14:25:27Z",
+        "new_bytes": 26
       },
       {
         "id": "page:शिक्षापत्री",
@@ -308950,15 +309037,15 @@
         "id": "page:योगवासिष्ठः",
         "old": "2025-10-26T06:18:43Z",
         "new": "2026-02-27T04:47:26Z",
-        "old_bytes": 3721856,
-        "new_bytes": 3721876
+        "old_bytes": 3722062,
+        "new_bytes": 3722082
       },
       {
         "id": "page:योगवासिष्ठः/प्रकरणम् १ (वैराग्यप्रकरणम्)",
         "old": "2025-10-26T05:49:58Z",
         "new": "2026-02-27T04:47:26Z",
-        "old_bytes": 154984,
-        "new_bytes": 155004
+        "old_bytes": 155070,
+        "new_bytes": 155090
       },
       {
         "id": "page:योगवासिष्ठः/प्रकरणम् १ (वैराग्यप्रकरणम्)/सर्गः ०१",
@@ -308966,6 +309053,41 @@
         "new": "2026-02-27T04:47:26Z",
         "old_bytes": 14331,
         "new_bytes": 14351
+      },
+      {
+        "id": "page:रामायणम्/अयोध्याकाण्डम्",
+        "old": "2024-09-23T10:45:40Z",
+        "new": "2026-02-28T14:25:27Z",
+        "old_bytes": 605423,
+        "new_bytes": 605449
+      },
+      {
+        "id": "page:वाल्मीकिरामायणम्",
+        "old": "2026-01-30T04:36:11Z",
+        "new": "2026-02-28T14:25:27Z",
+        "old_bytes": 3288338,
+        "new_bytes": 3288364
+      },
+      {
+        "id": "page:विष्णुपुराणम्/तृतीयांशः",
+        "old": "2023-05-30T00:03:54Z",
+        "new": "2026-02-28T14:42:13Z",
+        "old_bytes": 110103,
+        "new_bytes": 110120
+      },
+      {
+        "id": "page:विष्णुपुराणम्/तृतीयांशः/अध्यायः ११",
+        "old": "2023-05-30T00:03:54Z",
+        "new": "2026-02-23T01:08:08Z",
+        "old_bytes": 15398,
+        "new_bytes": 15660
+      },
+      {
+        "id": "page:विष्णुपुराणम्/तृतीयांशः/अध्यायः १२",
+        "old": "2019-06-03T20:42:28Z",
+        "new": "2026-02-28T14:42:13Z",
+        "old_bytes": 6024,
+        "new_bytes": 5779
       },
       {
         "id": "page:वैशेषिकसूत्रम्",
@@ -308989,53 +309111,57 @@
         "new_bytes": 68175
       }
     ],
-    "items_added_count": 21,
+    "items_added_count": 22,
     "items_removed_count": 0,
-    "items_changed_count": 26,
-    "items_added_pct": 0.1018576902556143,
+    "items_changed_count": 31,
+    "items_added_pct": 0.09929590178732624,
     "items_removed_pct": 0.0
   },
   {
-    "id": 2,
+    "id": 127,
     "date": "2026-04-01T00:00:00Z",
     "old_date": "2026-03-01T00:00:00Z",
     "old": {
-      "raw_bytes": 740814378,
-      "content_bytes": 702807474,
-      "transliterated_bytes": 360536157,
-      "count": 20638,
+      "raw_bytes": 758631232,
+      "content_bytes": 718527175,
+      "transliterated_bytes": 368672776,
+      "count": 22178,
+      "text_count": 2158,
       "last_changed": "2026-03-01T17:25:45Z"
     },
     "new": {
-      "raw_bytes": 744711607,
-      "content_bytes": 706625717,
-      "transliterated_bytes": 362514303,
-      "count": 20660,
+      "raw_bytes": 762528941,
+      "content_bytes": 722346438,
+      "transliterated_bytes": 370651389,
+      "count": 22200,
+      "text_count": 2177,
       "last_changed": "2026-03-31T02:26:42Z"
     },
     "sizes": {
       "raw_bytes": {
-        "old": 740814378,
-        "new": 744711607,
-        "delta": 3897229,
-        "delta_pct": 0.5260736178638261
+        "old": 758631232,
+        "new": 762528941,
+        "delta": 3897709,
+        "delta_pct": 0.5137817737511761
       },
       "content_bytes": {
-        "old": 702807474,
-        "new": 706625717,
-        "delta": 3818243,
-        "delta_pct": 0.5432843475992971
+        "old": 718527175,
+        "new": 722346438,
+        "delta": 3819263,
+        "delta_pct": 0.5315405085409609
       },
       "transliterated_bytes": {
-        "old": 360536157,
-        "new": 362514303,
-        "delta": 1978146,
-        "delta_pct": 0.548667855246485
+        "old": 368672776,
+        "new": 370651389,
+        "delta": 1978613,
+        "delta_pct": 0.5366854101535287
       }
     },
     "delta": {
       "count": 22,
-      "count_pct": 0.10659947669347805
+      "count_pct": 0.09919740283163496,
+      "text_count": 19,
+      "text_count_pct": 0.8804448563484708
     },
     "items_added": [
       {
@@ -309155,8 +309281,8 @@
       },
       {
         "id": "page:शुक्लयजुर्वेदः/अध्यायः ३",
-        "date": "2026-03-12T13:18:03Z",
-        "new_bytes": 136199
+        "date": "2026-03-19T20:07:20Z",
+        "new_bytes": 136770
       },
       {
         "id": "page:शुक्लयजुर्वेदः/अध्यायः ६",
@@ -309197,8 +309323,8 @@
         "id": "page:आपस्तम्ब-श्रौतसूत्रम्",
         "old": "2024-07-07T04:03:46Z",
         "new": "2026-03-03T11:51:50Z",
-        "old_bytes": 814963,
-        "new_bytes": 814963
+        "old_bytes": 816355,
+        "new_bytes": 816355
       },
       {
         "id": "page:आपस्तम्बगृह्यसूत्रम्",
@@ -309274,8 +309400,8 @@
         "id": "page:तैत्तिरीयारण्यकम्(विस्वर)",
         "old": "2024-07-23T04:58:02Z",
         "new": "2026-03-10T09:05:36Z",
-        "old_bytes": 241104,
-        "new_bytes": 241108
+        "old_bytes": 371275,
+        "new_bytes": 371279
       },
       {
         "id": "page:तैत्तिरीयारण्यकम्(विस्वर)/प्रपाठकः २",
@@ -309309,8 +309435,8 @@
         "id": "page:बौधायनश्रौतसूत्रम्",
         "old": "2025-08-22T04:14:58Z",
         "new": "2026-03-03T12:16:10Z",
-        "old_bytes": 1339943,
-        "new_bytes": 1339943
+        "old_bytes": 1343101,
+        "new_bytes": 1343101
       },
       {
         "id": "page:बौधायनश्रौतसूत्रम्/प्रश्नः ०२",
@@ -309376,6 +309502,27 @@
         "new_bytes": 27619
       },
       {
+        "id": "page:विष्णुपुराणम्/तृतीयांशः",
+        "old": "2026-02-28T14:42:13Z",
+        "new": "2026-03-25T12:42:35Z",
+        "old_bytes": 110120,
+        "new_bytes": 110587
+      },
+      {
+        "id": "page:विष्णुपुराणम्/तृतीयांशः/अध्यायः १२",
+        "old": "2026-02-28T14:42:13Z",
+        "new": "2026-03-23T14:55:41Z",
+        "old_bytes": 5779,
+        "new_bytes": 5720
+      },
+      {
+        "id": "page:विष्णुपुराणम्/तृतीयांशः/अध्यायः १३",
+        "old": "2019-06-03T20:43:03Z",
+        "new": "2026-03-25T12:42:35Z",
+        "old_bytes": 4570,
+        "new_bytes": 5096
+      },
+      {
         "id": "page:शङ्खसंहिता",
         "old": "2023-11-20T06:23:11Z",
         "new": "2026-03-03T11:57:14Z",
@@ -309413,9 +309560,9 @@
       {
         "id": "page:शुक्लयजुर्वेदः",
         "old": "2024-06-27T18:19:43Z",
-        "new": "2026-03-19T12:25:02Z",
-        "old_bytes": 3577199,
-        "new_bytes": 3577352
+        "new": "2026-03-19T20:07:20Z",
+        "old_bytes": 3577771,
+        "new_bytes": 3577923
       },
       {
         "id": "page:शुक्लयजुर्वेदः/अध्यायः ०२",
@@ -309428,7 +309575,7 @@
         "id": "page:शुक्लयजुर्वेदः/अध्यायः ०३",
         "old": "2022-10-18T02:48:23Z",
         "new": "2026-03-12T13:18:03Z",
-        "old_bytes": 136199,
+        "old_bytes": 136771,
         "new_bytes": 51
       },
       {
@@ -309441,9 +309588,9 @@
       {
         "id": "page:शुक्‍लयजुर्वेदः",
         "old": "2023-01-19T02:48:58Z",
-        "new": "2026-03-19T20:07:20Z",
-        "old_bytes": 48666,
-        "new_bytes": 48661
+        "new": "2026-03-19T20:07:10Z",
+        "old_bytes": 5095,
+        "new_bytes": 5091
       },
       {
         "id": "page:शुक्‍लयजुर्वेदः/अध्यायः ०२",
@@ -309468,10 +309615,10 @@
       },
       {
         "id": "page:शुक्‍लयजुर्वेदः/यजुर्वेदः",
-        "old": "2020-04-10T19:53:02Z",
-        "new": "2026-03-19T20:07:20Z",
-        "old_bytes": 624,
-        "new_bytes": 622
+        "old": "2020-04-10T19:51:12Z",
+        "new": "2026-03-13T20:41:02Z",
+        "old_bytes": 52,
+        "new_bytes": 51
       },
       {
         "id": "page:शुक्‍लयजुर्वेदः/यजुर्वेदः/अध्यायः २",
@@ -309483,51 +309630,55 @@
     ],
     "items_added_count": 25,
     "items_removed_count": 3,
-    "items_changed_count": 43,
-    "items_added_pct": 0.12113576896986142,
-    "items_removed_pct": 0.01453629227638337
+    "items_changed_count": 46,
+    "items_added_pct": 0.11272432139958517,
+    "items_removed_pct": 0.01352691856795022
   },
   {
-    "id": 1,
+    "id": 128,
     "date": "2026-05-01T00:00:00Z",
     "old_date": "2026-04-01T00:00:00Z",
     "old": {
-      "raw_bytes": 744711607,
-      "content_bytes": 706625717,
-      "transliterated_bytes": 362514303,
-      "count": 20660,
+      "raw_bytes": 762528941,
+      "content_bytes": 722346438,
+      "transliterated_bytes": 370651389,
+      "count": 22200,
+      "text_count": 2177,
       "last_changed": "2026-03-31T02:26:42Z"
     },
     "new": {
-      "raw_bytes": 747910026,
-      "content_bytes": 709789358,
-      "transliterated_bytes": 364150804,
-      "count": 20675,
+      "raw_bytes": 763531623,
+      "content_bytes": 723328595,
+      "transliterated_bytes": 371206891,
+      "count": 22215,
+      "text_count": 2192,
       "last_changed": "2026-04-30T15:41:34Z"
     },
     "sizes": {
       "raw_bytes": {
-        "old": 744711607,
-        "new": 747910026,
-        "delta": 3198419,
-        "delta_pct": 0.4294842419449493
+        "old": 762528941,
+        "new": 763531623,
+        "delta": 1002682,
+        "delta_pct": 0.13149428776894123
       },
       "content_bytes": {
-        "old": 706625717,
-        "new": 709789358,
-        "delta": 3163641,
-        "delta_pct": 0.4477109909658156
+        "old": 722346438,
+        "new": 723328595,
+        "delta": 982157,
+        "delta_pct": 0.13596758401956707
       },
       "transliterated_bytes": {
-        "old": 362514303,
-        "new": 364150804,
-        "delta": 1636501,
-        "delta_pct": 0.4514307398238022
+        "old": 370651389,
+        "new": 371206891,
+        "delta": 555502,
+        "delta_pct": 0.14987182470804122
       }
     },
     "delta": {
       "count": 15,
-      "count_pct": 0.07260406582768635
+      "count_pct": 0.06756756756756757,
+      "text_count": 15,
+      "text_count_pct": 0.6890215893431327
     },
     "items_added": [
       {
@@ -309640,24 +309791,80 @@
         "new_bytes": 345073
       },
       {
+        "id": "page:रामायणम्/बालकाण्डम्",
+        "old": "2025-11-14T11:50:27Z",
+        "new": "2026-04-01T10:09:26Z",
+        "old_bytes": 319565,
+        "new_bytes": 319310
+      },
+      {
+        "id": "page:रामायणम्/बालकाण्डम्/सर्गः १",
+        "old": "2021-10-09T07:36:26Z",
+        "new": "2026-04-01T10:09:26Z",
+        "old_bytes": 13342,
+        "new_bytes": 13087
+      },
+      {
+        "id": "page:वाल्मीकिरामायणम्",
+        "old": "2026-02-28T14:25:27Z",
+        "new": "2026-04-01T10:09:26Z",
+        "old_bytes": 3288364,
+        "new_bytes": 3288109
+      },
+      {
+        "id": "page:विष्णुपुराणम्/तृतीयांशः",
+        "old": "2026-03-25T12:42:35Z",
+        "new": "2026-04-28T23:12:11Z",
+        "old_bytes": 110587,
+        "new_bytes": 110442
+      },
+      {
+        "id": "page:विष्णुपुराणम्/तृतीयांशः/अध्यायः १३",
+        "old": "2026-03-25T12:42:35Z",
+        "new": "2026-04-08T03:35:44Z",
+        "old_bytes": 5096,
+        "new_bytes": 5129
+      },
+      {
+        "id": "page:विष्णुपुराणम्/तृतीयांशः/अध्यायः १४",
+        "old": "2019-11-16T04:20:41Z",
+        "new": "2026-04-08T03:36:48Z",
+        "old_bytes": 4216,
+        "new_bytes": 4483
+      },
+      {
+        "id": "page:विष्णुपुराणम्/तृतीयांशः/अध्यायः १५",
+        "old": "2019-06-03T20:43:53Z",
+        "new": "2026-04-11T17:51:13Z",
+        "old_bytes": 7255,
+        "new_bytes": 6869
+      },
+      {
+        "id": "page:विष्णुपुराणम्/तृतीयांशः/अध्यायः १६",
+        "old": "2022-02-10T22:40:13Z",
+        "new": "2026-04-28T23:12:11Z",
+        "old_bytes": 2699,
+        "new_bytes": 2640
+      },
+      {
         "id": "page:शुक्लयजुर्वेदः",
-        "old": "2026-03-19T12:25:02Z",
+        "old": "2026-03-19T20:07:20Z",
         "new": "2026-04-29T05:04:40Z",
-        "old_bytes": 3577352,
-        "new_bytes": 3577352
+        "old_bytes": 3577923,
+        "new_bytes": 3577923
       },
       {
         "id": "page:शुक्‍लयजुर्वेदः",
-        "old": "2026-03-19T20:07:20Z",
+        "old": "2026-03-19T20:07:10Z",
         "new": "2026-04-29T05:04:50Z",
-        "old_bytes": 48661,
-        "new_bytes": 48661
+        "old_bytes": 5091,
+        "new_bytes": 5091
       }
     ],
     "items_added_count": 16,
     "items_removed_count": 1,
-    "items_changed_count": 5,
-    "items_added_pct": 0.07744433688286544,
-    "items_removed_pct": 0.00484027105517909
+    "items_changed_count": 13,
+    "items_added_pct": 0.07207207207207207,
+    "items_removed_pct": 0.0045045045045045045
   }
 ]

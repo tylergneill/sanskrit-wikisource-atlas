@@ -410,6 +410,12 @@ def build_page_node(
         "title": main_node.title,
         "url": page_url(main_node.title),
         "stats": own_stats,
+        # Preserved separately from "stats" (which recompute_page_dedup below
+        # overwrites with the subpage-inclusive rollup) so the frontend can
+        # still show this page's own un-rolled-up size once its subpages are
+        # disclosed and no longer need summarizing into the parent row -- see
+        # docs/app.js's renderPageLi.
+        "own_stats": own_stats,
         "subpages": subpage_jsons,
     }
     # Surfaces a link back to the source scan for a reader who wants it, even

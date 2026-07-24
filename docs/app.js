@@ -522,13 +522,17 @@ function renderPageLi(p, ownPath) {
 
   const a = el("a", { href: p.url, target: "_blank", rel: "noreferrer" }, displayTitle(p.title, p.id));
 
-  // p.stats is already a full rollup (this page's own size/date plus every
-  // descendant subpage's, see publish.py's build_page_node) -- shown as-is,
-  // reads like a mini category total whether collapsed or expanded.
+  // p.stats is a full rollup (this page's own size/date plus every descendant
+  // subpage's, see process.py's build_page_node/recompute_page_dedup) -- shown
+  // while collapsed, since then it's the only summary of what's nested inside.
+  // Once expanded, the subpages are individually visible below with their own
+  // sizes, so showing the rollup here too would double-count on screen; show
+  // p.own_stats (this page's content alone, un-rolled-up) instead.
+  const statsToShow = hasSubpages && isExpanded ? p.own_stats : p.stats;
   const metaParts = [];
-  const pageSize = contentSizeBytes(p.stats);
+  const pageSize = contentSizeBytes(statsToShow);
   if (pageSize != null) metaParts.push(formatBytes(pageSize));
-  const date = formatDate(p.stats?.last_changed);
+  const date = formatDate(statsToShow?.last_changed);
   if (date) metaParts.push(date);
   const meta = metaParts.length ? ` (${metaParts.join(", ")})` : "";
 

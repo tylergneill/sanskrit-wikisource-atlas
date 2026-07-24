@@ -11,7 +11,7 @@ A more accessible browsing interface for the Sanskrit text collection at sa.wiki
 Three parts connected by generated JSON files:
 
 1. **Pipeline** (`pipeline/`) — a multi-stage Python pipeline, run stage by stage via the `Makefile` targets below, that turns a downloaded MediaWiki XML dump into `docs/data/tree.json`:
-   - **Fetch** (`pipeline/fetch.py`) — locates, downloads, verifies, and decompresses the current monthly Content File Export for sa.wikisource.org from `dumps.wikimedia.org/other/mediawiki_content_current/`. Only a 3-month rolling window is available at this endpoint.
+   - **Fetch** (`pipeline/fetch.py`) — locates, downloads, verifies, and decompresses the current monthly Content File Export for sa.wikisource.org from `dumps.wikimedia.org/other/mediawiki_content_current/`. Only a 3-month rolling window is available at this endpoint. Discovery has no API: generation starts monthly on the 1st, and a run is only complete once `SHA256SUMS` appears alongside it, so `find_latest_export` checks candidate month directories for that file's presence rather than trusting a listing. The single XML export covers every namespace the pipeline needs (Main, Category, Index, Page, Template, Module) in one download.
    - **Parse** (`pipeline/parse_dump.py`) — stream-parses the dump XML (`iterparse`, one `<page>` at a time, O(1) memory) into per-namespace page records (`DumpIndex`).
    - **Build tree** (`pipeline/build_tree.py`) — constructs the Main-namespace subpage tree (pure tree, split on `/`) and the Category digraph (manually-maintained, not guaranteed acyclic or fully connected — see "Multi-parented categories" below).
    - **Transclusion** (`pipeline/transclusion.py`) — detects ProofreadPage `<pages index="..." />` transclusion links between Main-namespace pages and Index-namespace scan items, and derives content→category membership.
@@ -36,6 +36,8 @@ make ngrok                 # expose the local server via a public ngrok tunnel (
 ```
 
 There is no test suite, linter, or build step in this repo. `app.js`/`about.js` fetch their JSON data via relative paths, so `docs/` must be served over HTTP (`make serve`), not opened via `file://`.
+
+The `make` targets above are run by hand today. A GitHub Action driving fetch → process → publish on the dump's own monthly cadence is the intended eventual automation, not yet implemented.
 
 ## Key data shape (`docs/data/tree.json`)
 
@@ -113,4 +115,5 @@ For each month, `ensure_month` resolves an exact date to the right era (material
 ## Notes
 
 - `docs/VERSION` holds `__code_version__` (bump manually on user-visible frontend changes), `__data_version__` (pipeline-run date, stamped automatically by `process.py`'s `_stamp_data_version`), and `__content_version__` (the Wikimedia dump export's own date, also stamped automatically) — three separate dates, since a pipeline run's date and the dump's own snapshot date can differ.
-- `notes/` holds prototype/spec material not yet absorbed into the maintained codebase, and one-off historical analysis scripts kept for the record (not meant to be re-run routinely) — see `notes/sawikisource-scraper-spec.md` and `notes/wikisource-ontology.md` for the original pipeline design rationale.
+- `notes/` holds prototype/spec material not yet absorbed into the maintained codebase, and one-off historical analysis scripts kept for the record (not meant to be re-run routinely).
+- **Deliberate non-goals**: sub-monthly freshness (would require live API + `list=recentchanges` deltas, not just dump exports); full revision history (the pipeline reads `mediawiki_content_current`, the current-state export, not `_history`); partial-transclusion coverage tracking at Page-namespace granularity (transcluded/untranscluded is tracked as binary per Index item, on purpose — see "Untranscluded Index items" above).

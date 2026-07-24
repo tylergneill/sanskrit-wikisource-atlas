@@ -410,16 +410,18 @@ def _cat_link(title: str, cat_ns_name: str) -> str:
 def _findings_list(items: list[str]) -> str:
     """items are already-escaped/transliterated HTML fragments (built via
     _esc at the call site) -- this only wraps them in <li>/<ul>, it must not
-    re-escape or re-transliterate."""
+    re-escape or re-transliterate. Indented past its own <summary>'s
+    triangle+text start (docs/about.html's global .content ul reset only
+    gives 12px, not enough to read as nested under the header above it)."""
     lis = "\n".join(f"            <li>{item}</li>" for item in items)
-    return f"          <ul>\n{lis}\n          </ul>"
+    return f'          <ul style="margin-left: 1.6em;">\n{lis}\n          </ul>'
 
 
 def _bullet(description: str, count: int, inner_html: str) -> str:
     if count == 0:
-        return f"          <li>{description}: none found</li>"
+        return f'          <li class="audit-item"><div class="audit-summary audit-summary-empty">{description}: none found</div></li>'
     return (
-        f"          <li><details>\n"
+        f'          <li class="audit-item"><details>\n'
         f'            <summary class="audit-summary">{description} ({count})</summary>\n'
         f"{inner_html}\n"
         f"          </details></li>"
@@ -448,7 +450,7 @@ def render_audit_html(
     for title in sorted(breadcrumb_candidates, key=lambda t: -len(breadcrumb_candidates[t])):
         others = breadcrumb_candidates[title]
         sub = "".join(f"<li>{_link(o)}</li>" for o in others)
-        breadcrumb_items.append(f"{_link(title)} ({len(others)} candidate pages)<ul>{sub}</ul>")
+        breadcrumb_items.append(f'{_link(title)} ({len(others)} candidate pages)<ul style="margin-left: 1.6em;">{sub}</ul>')
     bullets.append(_bullet(
         'Pages that look like missed breadcrumb subpages (space-separated title instead of a "/")',
         len(breadcrumb_candidates),
@@ -505,7 +507,7 @@ def render_audit_html(
     ))
 
     body = "\n".join(bullets)
-    correction_list = f'        <ul style="list-style: disc; padding-left: 1.4em;">\n{body}\n        </ul>'
+    correction_list = f'        <ul style="list-style: none; padding-left: 0;">\n{body}\n        </ul>'
 
     bulk_items = [
         f"{_link(title)} &rarr; {', '.join(sorted(domains))}"
@@ -522,7 +524,7 @@ def render_audit_html(
         "          correction, just worth knowing for understanding how much of the corpus is original-to-the-wiki\n"
         "          vs. an unreviewed import:\n"
         "        </p>\n"
-        '        <ul style="list-style: disc; padding-left: 1.4em;">\n'
+        '        <ul style="list-style: none; padding-left: 0;">\n'
         f"{bulk_bullet}\n"
         "        </ul>"
     )

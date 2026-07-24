@@ -1,6 +1,6 @@
 """Backfill historical changelog entries from older monthly dump exports.
 
-Three source eras, all handled here:
+Four source eras, all handled here:
 
 1. **Current era** (pipeline.fetch / mediawiki_content_current): only a
    3-month rolling window is available online for sawikisource --
@@ -32,16 +32,25 @@ Three source eras, all handled here:
      up to the live rolling window's own start (2025-11-20).
 
 3. **Materialized era** (MATERIALIZED_MONTHS, _ensure_materialized_month):
-   covers exactly that Internet-Archive/live-window gap (2022-06 through
-   2025-10). No dump *file* exists for these months on either source, but
+   covers two separate gaps via the same on-demand mechanism, both driven off
+   MATERIALIZED_MONTHS (a single flat list -- nothing downstream needs to
+   distinguish which gap a given month came from):
+   - The Internet-Archive/live-window gap (MATERIALIZED_START/END, 2022-06
+     through 2025-10).
+   - The earlier archival hole between Internet Archive's last dump before
+     वर्गसर्वस्वम् existed (2011-10-13) and its first dump after real legacy
+     coverage resumes (2014-07-01) -- FOURTH_ERA_START/END, 2012-01 through
+     2014-06, bounded at 2012-01 since वर्गसर्वस्वम्'s earliest revision is
+     2012-01-20 (see notes/fourth-source-era.md).
+   No dump *file* exists for these months on any source, but
    pipeline/materialize_snapshots.py reconstructs one from
    sawikisource-latest-pages-meta-history.xml.bz2 (every surviving revision
    ever made) -- for a cutoff date D, the wiki's state at D is just, per
    page, the newest revision <= D. The ~533MB meta-history dump itself is
    downloaded once (auto-fetched on first need, cached at
-   dump/_materialize_src/) and reused for every month in the gap; each
+   dump/_materialize_src/) and reused for every month in both gaps; each
    month's reconstruction is generated on demand, one at a time, the moment
-   ensure_month needs it -- never all 41 months up front, since each
+   ensure_month needs it -- never all months up front, since each
    materialized XML runs 1-2GB and there's no reason to hold more than one
    on disk at a time (see cleanup_raw_dump, which now deletes a materialized
    month's XML right after its snapshot is written, same as every other
@@ -174,11 +183,28 @@ def current_era_months() -> list[str]:
 # redirect re-derivation).
 MATERIALIZED_START = "2022-06-01"
 MATERIALIZED_END = "2025-10-01"
+
+# Second, earlier materialized gap: Internet Archive's earliest two
+# sawikisource dumps (2011-09-04, 2011-10-13) predate वर्गसर्वस्वम् itself
+# (RootCategoryMissing, correctly skipped -- see process_dump), but its
+# *next* dump doesn't appear until 2014-07 -- a real ~2.5-year archival hole,
+# not specific to this mirror. Checking the same cached meta-history dump
+# used above shows वर्गसर्वस्वम्'s earliest revision is 2012-01-20T10:18:19Z,
+# so the category system this mirror's tree model depends on was already up
+# and running for the back half of that hole. Materializing 2012-01 through
+# 2014-06 (bounded at 2012-01 since the category genuinely doesn't exist
+# before that) recovers real historical growth the changelog would otherwise
+# silently show nothing for. See notes/fourth-source-era.md for the
+# investigation this range is based on.
+FOURTH_ERA_START = "2012-01-01"
+FOURTH_ERA_END = "2014-06-01"
+
 MATERIALIZED_MONTHS = [
     f"{y:04d}-{m:02d}-01"
-    for y in range(2022, 2026)
+    for y in range(2012, 2026)
     for m in range(1, 13)
-    if MATERIALIZED_START <= f"{y:04d}-{m:02d}-01" <= MATERIALIZED_END
+    if (MATERIALIZED_START <= f"{y:04d}-{m:02d}-01" <= MATERIALIZED_END)
+    or (FOURTH_ERA_START <= f"{y:04d}-{m:02d}-01" <= FOURTH_ERA_END)
 ]
 
 MATERIALIZE_SOURCE_URL = (

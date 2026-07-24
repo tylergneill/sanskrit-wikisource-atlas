@@ -6,8 +6,9 @@
 # anchor would silently stop advancing once a newer month appears) and
 # working backward through every available legacy month (pipeline.fetch_legacy
 # -- merged live rolling window + Internet Archive, see that module's
-# docstring), splicing in every materialized month (the Internet-Archive/
-# live-window gap, 2022-06 through 2025-10 -- see pipeline.backfill's
+# docstring), splicing in every materialized month (two gaps -- the
+# Internet-Archive/live-window gap, 2022-06 through 2025-10, and the earlier
+# pre-legacy-coverage gap, 2012-01 through 2014-06 -- see pipeline.backfill's
 # MATERIALIZED_MONTHS). Each is reconstructed on demand, one at a time, the
 # moment its step runs (see pipeline.backfill._ensure_materialized_month) --
 # nothing needs to be pre-generated before running this script. Each step is

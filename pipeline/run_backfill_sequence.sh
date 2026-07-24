@@ -1,10 +1,12 @@
 #!/usr/bin/env bash
 # Runs pipeline.backfill one month-pair at a time, starting from the newest
-# current-era month already anchored in docs/data/changelog.json
-# (2026-05-01) and working backward through every available legacy month
-# (pipeline.fetch_legacy -- merged live rolling window + Internet Archive,
-# see that module's docstring) down to the oldest (2011-09-01, as of this
-# writing), splicing in every materialized month (the Internet-Archive/
+# current-era month available right now (queried live via
+# pipeline.backfill.current_era_months -- NOT a hardcoded list, since the
+# live 3-month rolling window shifts forward over time and a hardcoded
+# anchor would silently stop advancing once a newer month appears) and
+# working backward through every available legacy month (pipeline.fetch_legacy
+# -- merged live rolling window + Internet Archive, see that module's
+# docstring), splicing in every materialized month (the Internet-Archive/
 # live-window gap, 2022-06 through 2025-10 -- see pipeline.backfill's
 # MATERIALIZED_MONTHS). Each is reconstructed on demand, one at a time, the
 # moment its step runs (see pipeline.backfill._ensure_materialized_month) --
@@ -14,6 +16,24 @@
 # lose earlier progress (already-appended changelog entries and
 # already-fetched/materialized dumps are skipped/reused on rerun -- see
 # ensure_month/ensure_snapshot in pipeline/backfill.py).
+#
+# This script ONLY walks backward, never forward -- per standing project
+# convention, backfill must never process an older month before a newer
+# one, at any granularity (see memory: feedback-backfill-newest-first). It
+# does not attempt to "catch up" a changelog that has fallen behind the
+# live current-era window; that's a separate, deliberate operation the user
+# runs explicitly (a plain `python -m pipeline.backfill --months OLDER
+# NEWER` for whichever specific newer months are needed), not something
+# this script does automatically as a side effect.
+#
+# The walk eventually reaches Internet Archive dumps too early for this
+# mirror's tree model (वर्गसर्वस्वम् didn't exist yet on sa.wikisource) --
+# pipeline.backfill.main() already catches RootCategoryMissing and skips
+# those months rather than crashing (see that exception's docstring), so
+# this script doesn't need its own cutoff for "too early": it can safely
+# keep walking all the way back to the oldest Internet Archive snapshot,
+# and every month before real historical coverage begins (currently
+# 2014-07, per docs/data/changelog.json) is simply skipped, not erred on.
 #
 # Usage: bash pipeline/run_backfill_sequence.sh [--workers N]
 
@@ -25,13 +45,15 @@ if [[ "${1:-}" == "--workers" ]]; then
   WORKERS_ARGS=(--workers "$2")
 fi
 
-# Oldest current-era month already in the changelog -- the backward walk
-# starts by connecting the newest legacy month to this one. (The legacy
-# listing below now actually reaches up through 2026-07 itself, since the
-# live rolling window overlaps the current-era window -- but months from
-# here forward are deliberately still fetched via the current-era path in
-# pipeline.backfill, see LEGACY_CUTOVER, so this script never walks past it.)
-NEWEST_ANCHORED="2026-05-01"
+# Newest current-era month available right now (queried live -- see
+# pipeline.backfill.current_era_months) -- the backward walk starts here.
+echo "checking newest available current-era month..."
+NEWEST_ANCHORED=$(python3 -c "
+from pipeline.backfill import current_era_months
+months = current_era_months()
+print(months[-1])
+")
+echo "newest current-era month: ${NEWEST_ANCHORED}"
 
 # Legacy months, oldest first (merged live rolling window + Internet
 # Archive, as pipeline.fetch_legacy reports them right now, filtered to

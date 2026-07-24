@@ -68,6 +68,27 @@ USER_AGENT = (
 session = requests.Session()
 session.headers.update({"User-Agent": USER_AGENT})
 
+# archive.org's metadata/search endpoints occasionally hang or reset under
+# load (confirmed live: a bare ReadTimeout on find_archive_snapshot killed a
+# 123-step pipeline.backfill run at its second-to-last step, discarding
+# nothing already logged but forcing a full rerun of the whole sequence just
+# to retry one flaky request) -- retry transient network errors a few times
+# with backoff before giving up, rather than letting one hiccup anywhere in
+# a long historical walk take down the entire run.
+def _get_with_retry(url: str, *, retries: int = 3, backoff: float = 2.0, **kwargs) -> requests.Response:
+    import time
+    last_exc: Exception | None = None
+    for attempt in range(retries):
+        try:
+            return session.get(url, **kwargs)
+        except (requests.exceptions.ConnectionError, requests.exceptions.Timeout) as e:
+            last_exc = e
+            if attempt < retries - 1:
+                wait = backoff * (2 ** attempt)
+                print(f"  (transient error on {url}: {e} -- retrying in {wait:.0f}s)", file=sys.stderr)
+                time.sleep(wait)
+    raise last_exc
+
 
 @dataclass
 class LegacyDump:
@@ -92,7 +113,7 @@ def list_live_snapshots() -> list[str]:
     """Query the live legacy rolling-window directory listing, returning
     dump dates (YYYYMMDD, as they appear in the directory names) sorted
     chronologically. One HTTP request."""
-    resp = session.get(f"{LIVE_BASE_URL}/", timeout=30)
+    resp = _get_with_retry(f"{LIVE_BASE_URL}/", timeout=30)
     resp.raise_for_status()
     dates = re.findall(r'href="(\d{8})/"', resp.text)
     return sorted(set(dates))
@@ -103,7 +124,7 @@ def find_live_snapshot(date8: str) -> LegacyDump | None:
     pages-meta-current.xml.bz2 descriptor, or None if that date/file
     doesn't exist there."""
     sums_url = f"{LIVE_BASE_URL}/{date8}/sawikisource-{date8}-md5sums.txt"
-    resp = session.get(sums_url, timeout=30)
+    resp = _get_with_retry(sums_url, timeout=30)
     if not resp.ok:
         return None
     filename = f"sawikisource-{date8}-pages-meta-current.xml.bz2"
@@ -135,7 +156,7 @@ def find_live_snapshot(date8: str) -> LegacyDump | None:
 def list_archive_snapshots() -> list[str]:
     """Query the Internet Archive search API for every sawikisource-<date>
     item, returning identifiers sorted chronologically. One HTTP request."""
-    resp = session.get(
+    resp = _get_with_retry(
         "https://archive.org/advancedsearch.php",
         params={
             "q": f"identifier:{IDENTIFIER_PREFIX}2*",
@@ -154,7 +175,7 @@ def find_archive_snapshot(identifier: str) -> LegacyDump | None:
     """Look up one Internet Archive item's metadata and return its
     pages-meta-current.xml.bz2 descriptor, or None if that item/file
     doesn't exist."""
-    resp = session.get(f"{IA_METADATA_URL}/{identifier}", timeout=30)
+    resp = _get_with_retry(f"{IA_METADATA_URL}/{identifier}", timeout=30)
     if not resp.ok:
         return None
     data = resp.json()

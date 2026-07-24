@@ -107,6 +107,7 @@ Usage:
 from __future__ import annotations
 
 import argparse
+import datetime as _dt
 import json
 import shutil
 import subprocess
@@ -124,10 +125,38 @@ from pipeline.compare import build_report, print_summary
 
 # Below this date, months are fetched from the Internet Archive
 # (pipeline.fetch_legacy) instead of mediawiki_content_current
-# (pipeline.fetch) -- see module docstring.
+# (pipeline.fetch) -- see module docstring. This is the format's launch
+# date, not the rolling window's own start, so it never needs to move again
+# even as the window itself slides forward -- see current_era_months() below
+# for the part that actually tracks "what's live right now".
 LEGACY_CUTOVER = "2026-05-01"
 
-CURRENT_ERA_MONTHS = ["2026-05-01", "2026-06-01", "2026-07-01"]
+
+def current_era_months() -> list[str]:
+    """Queries mediawiki_content_current live (via pipeline.fetch.find_export)
+    for every complete month from LEGACY_CUTOVER through today, oldest first.
+    Replaces a hardcoded CURRENT_ERA_MONTHS list, which went stale the moment
+    a new month rolled into the live 3-month rolling window (e.g. once August
+    has a complete export, a hardcoded "May/June/July" list would silently
+    keep omitting August from every backfill run, and NEWEST_ANCHORED in
+    run_backfill_sequence.sh would never catch up) -- see
+    notes/about-page-fact-check.md's "deltas stop short of the live dump"
+    investigation for the incident that surfaced this. Walks forward from
+    LEGACY_CUTOVER rather than backward from today, since the window's exact
+    width isn't guaranteed to stay 3 months forever and this reflects
+    whatever Wikimedia is actually serving right now, not an assumed count."""
+    months = []
+    year, month = (int(p) for p in LEGACY_CUTOVER.split("-")[:2])
+    today = _dt.date.today()
+    while _dt.date(year, month, 1) <= today:
+        date_str = f"{year:04d}-{month:02d}-01"
+        if fetch_mod.find_export(date_str) is not None:
+            months.append(date_str)
+        month += 1
+        if month > 12:
+            month = 1
+            year += 1
+    return months
 
 # Internet Archive's volunteer sawikisource pipeline stalled after 2022-05-01
 # (confirmed live against archive.org's advancedsearch API -- both the plain
@@ -230,13 +259,15 @@ def default_months() -> list[str]:
     window and Internet Archive -- see fetch_legacy.list_available_months),
     every materialized gap month (MATERIALIZED_MONTHS -- always included,
     since materialization now happens on demand rather than depending on
-    pre-existing disk output, see _ensure_materialized_month), plus the 3
-    current-era months, oldest first -- the full available range absent an
-    explicit --months override."""
+    pre-existing disk output, see _ensure_materialized_month), plus every
+    current-era month queried live (current_era_months() -- NOT a hardcoded
+    count, since the live rolling window's contents shift forward over
+    time), oldest first -- the full available range absent an explicit
+    --months override."""
     legacy_months = sorted(fetch_legacy.list_available_months())
     legacy_dates = [f"{ym}-01" for ym in legacy_months]
     materialized_dates = [d for d in MATERIALIZED_MONTHS if d not in legacy_dates]
-    return sorted(set(legacy_dates) | set(materialized_dates)) + CURRENT_ERA_MONTHS
+    return sorted(set(legacy_dates) | set(materialized_dates)) + current_era_months()
 
 
 def ensure_month(

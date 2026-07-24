@@ -2,20 +2,21 @@
 
 A more accessible interface for the text content at sa.wikisource.org
 
+Served at https://tylergneill.github.io/sanskrit-wikisource-mirror.
+
 # motivation
 
-Sanskrit Wikisource has more material than most people realize.
-The material may not be of the highest academic quality — metadata is almost completely lacking, for example.
-Still, this material may be of use, and it deserves to be better appreciated.
+Sanskrit Wikisource holds more material than most people realize, but it's hard to browse: category and page structures are disorienting to navigate, there's no metadata like filesize, and there's no transliteration for readers who prefer, e.g., IAST over Devanagari.
 
-The problem is that Wikisource is not well-built for browsing.
-The ease of doing so completely depends on how well human curators have organized content with category tags.
-There is simply no other good overview option for non-technical users.
-
-Also, what if someone wants to read the page in IAST? Or know more about the e-texts, like filesizes?
-Also, it can be disorienting when there are so many levels of subcategories. 
-
-For that reason, I've programmatically scraped the structure from Wikisource itself and created a new front-end interface. 
-This allows for more intuitive and informative browsing of the collection.
+This project mirrors that structure into a dedicated, searchable, transliteration-aware front-end, making the collection easier to explore. It also recommends ways to improve the source collection.
 
 See blog post at tylerneill.info/blog-kalpataru-diaries
+
+# how it works
+
+Two pipeline commands produce everything the site needs:
+
+- `make process` — builds `docs/data/tree.json`, the current live corpus tree, from the most recent month's snapshot
+- `make backfill` — builds `docs/data/changelog.json`, the historical month-over-month changelog
+
+Both are static JSON files consumed directly by the frontend in `docs/` (no build step, no server). See `CLAUDE.md` for full architecture, pipeline stages, and data shape details.

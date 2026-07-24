@@ -547,6 +547,7 @@ function renderPageLi(p, ownPath) {
     el("span", { class: "pageRowMain" },
       a,
       meta ? el("span", { class: "small" }, meta) : null,
+      renderSourceIndexLinks(p.source_indexes),
     ),
     toggle,
     renderMultiCatButton(p.title),
@@ -565,6 +566,29 @@ function renderPageLi(p, ownPath) {
   return li;
 }
 
+// Renders a small scan-icon link per Index item this page transcludes leaves
+// from (build_tree_json's source_indexes -- see pipeline/process.py's
+// build_page_node), for a reader who wants to jump to the original scan even
+// though the mirror otherwise drops a transcluded Index item from display
+// entirely in favor of this page (see docs/about.html, "Transclusion").
+// Absent/empty for the overwhelming majority of pages (no ProofreadPage
+// involvement at all), so this returns null rather than an empty wrapper.
+function renderSourceIndexLinks(sourceIndexes) {
+  if (!sourceIndexes || !sourceIndexes.length) return null;
+  return el("span", { class: "sourceIndexLinks" },
+    ...sourceIndexes.map((src) =>
+      el("a", {
+        href: src.url, target: "_blank", rel: "noreferrer",
+        class: "sourceIndexLink",
+        title: `Scanned source: ${displayTitle(src.title)}`,
+      },
+        el("span", { class: "small" }, "pdf"),
+        el("span", { class: "scanIcon" }),
+      ),
+    ),
+  );
+}
+
 // Renders a single Index-namespace item (untranscluded scan/OCR-source page --
 // see transclusion.is_transcluded and publish.py's build_index_item_node).
 // Never expandable into individual पृष्ठम्:Title/N (scanned-leaf) rows --
@@ -575,7 +599,9 @@ function renderPageLi(p, ownPath) {
 // assembled into a readable mainspace article -- there is nothing to click
 // through to but the raw scan. Badge text and tooltip spell that out
 // explicitly (a bare "Index" badge reads as a content-type label, not a
-// "not real content yet" warning). stats here already include the
+// "not real content yet" warning; "Proofing" names the Wikisource
+// workflow stage it's actually in, see docs/about.html's "OCR 'Proofreading'
+// Pipeline Types"). stats here already include the
 // पृष्ठम्:Title/N rollup (see build_index_item_node/compute_page_ns_rollup),
 // so the byte size shown is the real scanned/proofread content size, not
 // just the Index page's own near-empty proofreading-status scaffolding.
@@ -591,7 +617,7 @@ function renderIndexItemLi(item, ownPath) {
 
   return el("li", {},
     el("span", { class: "pageRow", ...multiCatRowProps(item.title, ownPath) },
-      el("span", { class: "indexBadge", title: "Scanned/OCR source, not yet a finished mainspace text" }, "OCR only"),
+      el("span", { class: "indexBadge", title: "Scanned/OCR source, still in the Proofreading workflow -- not yet transcluded into a finished mainspace text" }, "Proofing"),
       a,
       meta ? el("span", { class: "small" }, meta) : null,
       renderMultiCatButton(item.title),

@@ -93,12 +93,12 @@
           Pages can be labeled with any number of Categories.
           For each Category, Wikisource creates a display page that shows all associated items.
         </p>
-        <p>  
+        <p>
           Categories of course also relate to each other, creating their own directed graph.
           By convention, this graph should be constructed as a simple tree,
           with a single root, exactly one parent per node, and nothing left out.
-          However, since categorization is done manually, this is not guaranteed,
-          and one Category may have multiple parents, and there can even be cycles.
+          However, since categorization is done manually, this is not guaranteed;
+          one Category may have multiple parents, and there can even be cycles.
         </p>
 
         <h3>Namespaces</h3>
@@ -125,7 +125,7 @@
           and when satisfied with a given page, they manually increment the color-coded progress indicator
           (red -> yellow -> green).
         </p>
-        
+
         <p>
           By convention, Index items can be labeled with Categories, but Pages should not be.
           This is because all items labeled with a given Category show up equally when viewing that Category.
@@ -141,11 +141,14 @@
         </p>
 
         <p>
-          When OCR content has <em>not</em> been transcluded,
-          the mirror flags this fact with an "OCR only" label,
-          which may not be true if the editor copy-pasted.
-          Where any range <em>has</em> been transcluded,
-          the mirror flags this with a "(OCR source)" link to the respective Index.
+          When OCR content has <em>not</em> been transcluded to Main,
+          the mirror flags this fact with a "Proofing" label;
+          it remains possible that the editor copy-pasted to Main.
+          Where any range <em>has</em> been transcluded, the mirror simply shows
+          the Mainspace page as the real content and drops the underlying Index item
+          from display entirely, since it would just be a duplicate — but a small
+          "pdf" link next to the page title still points back to that source Index,
+          for a reader who wants to check the page against the original scan.
         </p>
 
         <p>
@@ -227,7 +230,7 @@
         </p>
 
         <p>
-          An item filed in multiple places threatens to be double-counted in the mirror's size and
+          An item filed in multiple places risks being double-counted in the mirror's size and
           text-count stats. Special care avoids this: each item is credited to a category's rollup
           exactly once, at whichever ancestor its various paths first converge. For example, काश्यपसंहिता is filed under both धर्मशास्त्रम् (> काश्यपरचनाः) and वेदाः (> उपवेदाः > आयुर्वेदः > काश्यपरचनाः), so its size and text count contribute to both धर्मशास्त्रम् and वेदाः, but the top-level "All"
           aggregation still only counts it once.
@@ -241,7 +244,7 @@
           In order to obtain a meaningful sense of "how much real text is here",
           this mirror parses the wikitext, strips out overhead, populates transcluded content,
           and transliterates from Devanāgarī to IAST.
-          IAST is smaller on disk (approximately 60%) and more common for cross-collection comparison.
+          IAST text takes up less space (approximately 60% of the Devanāgarī byte count) and is more common for cross-collection comparison.
         </p>
 
       </details>

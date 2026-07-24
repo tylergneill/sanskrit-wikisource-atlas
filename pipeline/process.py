@@ -20,7 +20,8 @@ nodes -- there is no separate list of pointers.
 
 PageNode (Main-namespace page, filed into this category via its own direct
 [[वर्गः:...]] tag):
-  { id, type: "page", title, url, stats, subpages: [PageNode] }
+  { id, type: "page", title, url, stats, subpages: [PageNode],
+    source_indexes?: [{title, url}] }
   subpages come from the Main-namespace tree (build_tree.MainPageNode),
   nested the same way the old schema nested them. A breadcrumb-subpage
   (title split on "/") normally only appears nested inside its parent's
@@ -30,6 +31,11 @@ PageNode (Main-namespace page, filed into this category via its own direct
   dedup happens in stats rollup" treatment build_category already gives
   multi-tagged top-level pages (see build_category's page_jsons loop and
   notes/wikisource-editing-plan.md, "Silent subpage category divergence").
+  source_indexes is present (non-empty) only when this page transcludes a
+  range of पृष्ठम्:Title/N leaves belonging to one or more Index items, via
+  <pages index="..." /> -- a link back to the source scan, since the mirror
+  otherwise drops a transcluded Index item from display entirely in favor
+  of this page (see build_reverse_transclusion_map).
 
 Node (page-pointer): a second+ filing of a page already emitted elsewhere in
 the tree (a page tagged with >1 category directly -- same multi-filing
@@ -97,7 +103,12 @@ from pipeline.content_size import (
     compute_content_sizes_parallel,
 )
 from pipeline.parse_dump import DumpIndex, PageRecord, category_links, is_excluded_category, parse_dump
-from pipeline.transclusion import build_transclusion_map, direct_categories, is_transcluded
+from pipeline.transclusion import (
+    build_reverse_transclusion_map,
+    build_transclusion_map,
+    direct_categories,
+    is_transcluded,
+)
 
 Stats = dict  # {raw_bytes, content_bytes, transliterated_bytes, count, last_changed}
 
@@ -279,6 +290,8 @@ def build_page_node(
     main_node: MainPageNode,
     owning_cat_id: str,
     content_index: ContentIndex,
+    reverse_transclusion_map: dict[str, set[str]] | None = None,
+    index_ns_name: str = "",
 ) -> tuple[dict, dict]:
     """Returns (json_node, own_stats) where own_stats covers this page alone
     (not its subpages). `stats` on the returned node is set to own_stats too,
@@ -309,7 +322,7 @@ def build_page_node(
 
     subpage_jsons = []
     for child in main_node.children:
-        child_json, _ = build_page_node(child, owning_cat_id, content_index)
+        child_json, _ = build_page_node(child, owning_cat_id, content_index, reverse_transclusion_map, index_ns_name)
         subpage_jsons.append(child_json)
 
     node = {
@@ -320,6 +333,20 @@ def build_page_node(
         "stats": own_stats,
         "subpages": subpage_jsons,
     }
+    # Surfaces a link back to the source scan for a reader who wants it, even
+    # though the mirror otherwise drops a transcluded Index item from display
+    # entirely in favor of this Main page (see docs/about.html,
+    # "Transclusion"). A Main page never transcludes an Index item directly --
+    # the <pages index="..." /> tag names the Index but what's actually
+    # injected is a range of that Index's own पृष्ठम्:Title/N leaf pages.
+    # Sorted for determinism -- a page transcluding leaves from more than one
+    # Index is rare but not prevented by ProofreadPage.
+    source_titles = (reverse_transclusion_map or {}).get(main_node.title)
+    if source_titles:
+        node["source_indexes"] = [
+            {"title": t, "url": index_url(t, index_ns_name)}
+            for t in sorted(source_titles)
+        ]
     return node, own_stats
 
 
@@ -381,6 +408,7 @@ def build_tree_json(
     main_nodes: dict[str, MainPageNode],
     transclusion_map: dict[str, set[str]],
     content_index: ContentIndex,
+    reverse_transclusion_map: dict[str, set[str]] | None = None,
 ) -> dict:
     index_ns_id = dump_index.index_ns_id()
     # Same ProofreadPage-extension caveat as above: only used to build
@@ -444,7 +472,7 @@ def build_tree_json(
                 parent_tags = content_index.main_categories.get(main_node.parent_title, set())
                 if title in parent_tags:
                     continue  # already discoverable via the parent's own filing under this category
-            page_json, _ = build_page_node(main_node, node_id, content_index)
+            page_json, _ = build_page_node(main_node, node_id, content_index, reverse_transclusion_map, index_ns_name)
             page_jsons.append(page_json)
 
         index_jsons = []
@@ -519,7 +547,7 @@ def build_tree_json(
     orphan_page_jsons = []
     for t in orphan_zero_cat_main:
         main_node = main_nodes[t]
-        page_json, _ = build_page_node(main_node, cat_id(ORPHAN_BUCKET_TITLE), content_index)
+        page_json, _ = build_page_node(main_node, cat_id(ORPHAN_BUCKET_TITLE), content_index, reverse_transclusion_map, index_ns_name)
         orphan_page_jsons.append(page_json)
 
     orphan_index_jsons = [
@@ -721,6 +749,7 @@ def main() -> None:
 
     print("building transclusion map...", file=sys.stderr)
     transclusion_map = build_transclusion_map(dump_index.pages_by_ns[0])
+    reverse_transclusion_map = build_reverse_transclusion_map(dump_index.pages_by_ns[0])
 
     print("computing content sizes (this is the slow step)...", file=sys.stderr)
     content_index = compute_all_content_sizes(
@@ -729,7 +758,7 @@ def main() -> None:
     )
 
     print("assembling tree...", file=sys.stderr)
-    tree = build_tree_json(dump_index, graph, main_nodes, transclusion_map, content_index)
+    tree = build_tree_json(dump_index, graph, main_nodes, transclusion_map, content_index, reverse_transclusion_map)
 
     args.out.parent.mkdir(parents=True, exist_ok=True)
     with open(args.out, "w", encoding="utf-8") as f:

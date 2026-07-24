@@ -57,6 +57,25 @@ def build_transclusion_map(main_records: list[PageRecord]) -> dict[str, set[str]
     return dict(result)
 
 
+def build_reverse_transclusion_map(main_records: list[PageRecord]) -> dict[str, set[str]]:
+    """Returns Main-namespace title -> set of Index titles whose पृष्ठम्:Title/N
+    leaf pages it transcludes a range of -- the reverse direction of
+    build_transclusion_map, for surfacing a link back to the source scan/
+    Index item from the Main page that superseded it in display (see
+    docs/about.html, "Transclusion": the mirror drops a transcluded Index
+    item from display entirely in favor of the Main page, but a reader may
+    still want to jump to the scan). A Main page never transcludes the
+    Index item itself -- only individual leaf pages under it, named via the
+    Index in its own <pages index="..." /> tag. Main titles with no such
+    tags at all are simply absent as keys."""
+    result: dict[str, set[str]] = {}
+    for rec in main_records:
+        titles = transcluded_index_titles(rec.text)
+        if titles:
+            result[rec.title] = titles
+    return result
+
+
 def is_transcluded(index_title: str, transclusion_map: dict[str, set[str]]) -> bool:
     return bool(transclusion_map.get(index_title))
 

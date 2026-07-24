@@ -554,6 +554,34 @@ a[target="_blank"]::after{
   mask-repeat: no-repeat;
 }
 
+.sourceIndexLinks{
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: 6px;
+}
+.sourceIndexLink{
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  opacity: 0.5;
+}
+.sourceIndexLink:hover{
+  opacity: 1;
+}
+.scanIcon{
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  background-color: currentColor;
+  -webkit-mask-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 10 10' xmlns='http://www.w3.org/2000/svg'%3E%3Crect x='1.5' y='0.5' width='7' height='9' rx='0.6' stroke='black' stroke-width='1' fill='none'/%3E%3Cpath d='M3.2 3.2 H6.8 M3.2 5 H6.8 M3.2 6.8 H5.4' stroke='black' stroke-width='0.8' stroke-linecap='round'/%3E%3C/svg%3E");
+  mask-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 10 10' xmlns='http://www.w3.org/2000/svg'%3E%3Crect x='1.5' y='0.5' width='7' height='9' rx='0.6' stroke='black' stroke-width='1' fill='none'/%3E%3Cpath d='M3.2 3.2 H6.8 M3.2 5 H6.8 M3.2 6.8 H5.4' stroke='black' stroke-width='0.8' stroke-linecap='round'/%3E%3C/svg%3E");
+  -webkit-mask-size: contain;
+  mask-size: contain;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+}
+
 /* Mid-size: topbar wraps to 2 rows, but sidebar stays visible in the grid
    (no hamburger/off-canvas -- that's reserved for the narrower tier below). */
 @media (max-width: 1100px){

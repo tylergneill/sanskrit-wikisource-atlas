@@ -8,14 +8,16 @@
       "content_bytes": 147763351,
       "transliterated_bytes": 79413822,
       "count": 10138,
-      "last_changed": "2014-07-14T06:14:44Z"
+      "last_changed": "2014-07-14T06:14:44Z",
+      "text_count": 234
     },
     "new": {
       "raw_bytes": 161337196,
       "content_bytes": 154186156,
       "transliterated_bytes": 82595268,
       "count": 10205,
-      "last_changed": "2014-08-10T07:08:41Z"
+      "last_changed": "2014-08-10T07:08:41Z",
+      "text_count": 240
     },
     "sizes": {
       "raw_bytes": {
@@ -39,7 +41,9 @@
     },
     "delta": {
       "count": 67,
-      "count_pct": 0.6608798579601499
+      "count_pct": 0.6608798579601499,
+      "text_count": 6,
+      "text_count_pct": 2.5641025641025643
     },
     "items_added": [
       {
@@ -349,14 +353,16 @@
       "content_bytes": 154186156,
       "transliterated_bytes": 82595268,
       "count": 10205,
-      "last_changed": "2014-08-10T07:08:41Z"
+      "last_changed": "2014-08-10T07:08:41Z",
+      "text_count": 240
     },
     "new": {
       "raw_bytes": 52491,
       "content_bytes": 8028,
       "transliterated_bytes": 4215,
       "count": 2,
-      "last_changed": "2013-06-11T07:14:42Z"
+      "last_changed": "2013-06-11T07:14:42Z",
+      "text_count": 243
     },
     "sizes": {
       "raw_bytes": {
@@ -380,7 +386,9 @@
     },
     "delta": {
       "count": -10203,
-      "count_pct": -99.98040176384126
+      "count_pct": -99.98040176384126,
+      "text_count": 3,
+      "text_count_pct": 1.25
     },
     "items_added": [
       {
@@ -787,14 +795,16 @@
       "content_bytes": 8028,
       "transliterated_bytes": 4215,
       "count": 2,
-      "last_changed": "2013-06-11T07:14:42Z"
+      "last_changed": "2013-06-11T07:14:42Z",
+      "text_count": 243
     },
     "new": {
       "raw_bytes": 27846569,
       "content_bytes": 27419163,
       "transliterated_bytes": 14266313,
       "count": 1826,
-      "last_changed": "2014-10-21T07:38:04Z"
+      "last_changed": "2014-10-21T07:38:04Z",
+      "text_count": 247
     },
     "sizes": {
       "raw_bytes": {
@@ -818,7 +828,9 @@
     },
     "delta": {
       "count": 1824,
-      "count_pct": 91200.0
+      "count_pct": 91200.0,
+      "text_count": 4,
+      "text_count_pct": 1.646090534979424
     },
     "items_added": [
       {
@@ -1504,14 +1516,16 @@
       "content_bytes": 27419163,
       "transliterated_bytes": 14266313,
       "count": 1826,
-      "last_changed": "2014-10-21T07:38:04Z"
+      "last_changed": "2014-10-21T07:38:04Z",
+      "text_count": 247
     },
     "new": {
       "raw_bytes": 29584686,
       "content_bytes": 29156649,
       "transliterated_bytes": 15195213,
       "count": 1828,
-      "last_changed": "2014-11-18T02:16:17Z"
+      "last_changed": "2014-11-18T02:16:17Z",
+      "text_count": 247
     },
     "sizes": {
       "raw_bytes": {
@@ -1535,7 +1549,9 @@
     },
     "delta": {
       "count": 2,
-      "count_pct": 0.10952902519167579
+      "count_pct": 0.10952902519167579,
+      "text_count": 0,
+      "text_count_pct": 0.0
     },
     "items_added": [
       {
@@ -1595,14 +1611,16 @@
       "content_bytes": 29156649,
       "transliterated_bytes": 15195213,
       "count": 1828,
-      "last_changed": "2014-11-18T02:16:17Z"
+      "last_changed": "2014-11-18T02:16:17Z",
+      "text_count": 247
     },
     "new": {
       "raw_bytes": 85582247,
       "content_bytes": 84249204,
       "transliterated_bytes": 43854107,
       "count": 3875,
-      "last_changed": "2014-12-15T13:45:10Z"
+      "last_changed": "2014-12-15T13:45:10Z",
+      "text_count": 562
     },
     "sizes": {
       "raw_bytes": {
@@ -1626,7 +1644,9 @@
     },
     "delta": {
       "count": 2047,
-      "count_pct": 111.98030634573304
+      "count_pct": 111.98030634573304,
+      "text_count": 315,
+      "text_count_pct": 127.53036437246963
     },
     "items_added": [
       {
@@ -9537,14 +9557,16 @@
       "content_bytes": 84249204,
       "transliterated_bytes": 43854107,
       "count": 3875,
-      "last_changed": "2014-12-15T13:45:10Z"
+      "last_changed": "2014-12-15T13:45:10Z",
+      "text_count": 562
     },
     "new": {
       "raw_bytes": 85791570,
       "content_bytes": 83234113,
       "transliterated_bytes": 43321625,
       "count": 3878,
-      "last_changed": "2015-02-11T07:22:25Z"
+      "last_changed": "2015-02-11T07:22:25Z",
+      "text_count": 562
     },
     "sizes": {
       "raw_bytes": {
@@ -9568,7 +9590,9 @@
     },
     "delta": {
       "count": 3,
-      "count_pct": 0.07741935483870968
+      "count_pct": 0.07741935483870968,
+      "text_count": 0,
+      "text_count_pct": 0.0
     },
     "items_added": [
       {
@@ -9738,14 +9762,16 @@
       "content_bytes": 83234113,
       "transliterated_bytes": 43321625,
       "count": 3878,
-      "last_changed": "2015-02-11T07:22:25Z"
+      "last_changed": "2015-02-11T07:22:25Z",
+      "text_count": 562
     },
     "new": {
       "raw_bytes": 86085466,
       "content_bytes": 83558505,
       "transliterated_bytes": 43451534,
       "count": 3881,
-      "last_changed": "2015-03-04T13:41:45Z"
+      "last_changed": "2015-03-04T13:41:45Z",
+      "text_count": 562
     },
     "sizes": {
       "raw_bytes": {
@@ -9769,7 +9795,9 @@
     },
     "delta": {
       "count": 3,
-      "count_pct": 0.07735946364105209
+      "count_pct": 0.07735946364105209,
+      "text_count": 0,
+      "text_count_pct": 0.0
     },
     "items_added": [
       {
@@ -9879,14 +9907,16 @@
       "content_bytes": 83558505,
       "transliterated_bytes": 43451534,
       "count": 3881,
-      "last_changed": "2015-03-04T13:41:45Z"
+      "last_changed": "2015-03-04T13:41:45Z",
+      "text_count": 562
     },
     "new": {
       "raw_bytes": 87991283,
       "content_bytes": 85464054,
       "transliterated_bytes": 44469873,
       "count": 3888,
-      "last_changed": "2015-03-31T14:01:15Z"
+      "last_changed": "2015-03-31T14:01:15Z",
+      "text_count": 562
     },
     "sizes": {
       "raw_bytes": {
@@ -9910,7 +9940,9 @@
     },
     "delta": {
       "count": 7,
-      "count_pct": 0.18036588508116466
+      "count_pct": 0.18036588508116466,
+      "text_count": 0,
+      "text_count_pct": 0.0
     },
     "items_added": [
       {
@@ -10009,14 +10041,16 @@
       "content_bytes": 85464054,
       "transliterated_bytes": 44469873,
       "count": 3888,
-      "last_changed": "2015-03-31T14:01:15Z"
+      "last_changed": "2015-03-31T14:01:15Z",
+      "text_count": 562
     },
     "new": {
       "raw_bytes": 90706664,
       "content_bytes": 88166268,
       "transliterated_bytes": 45862830,
       "count": 3892,
-      "last_changed": "2015-06-02T04:32:49Z"
+      "last_changed": "2015-06-02T04:32:49Z",
+      "text_count": 562
     },
     "sizes": {
       "raw_bytes": {
@@ -10040,7 +10074,9 @@
     },
     "delta": {
       "count": 4,
-      "count_pct": 0.102880658436214
+      "count_pct": 0.102880658436214,
+      "text_count": 0,
+      "text_count_pct": 0.0
     },
     "items_added": [
       {
@@ -10397,14 +10433,16 @@
       "content_bytes": 88166268,
       "transliterated_bytes": 45862830,
       "count": 3892,
-      "last_changed": "2015-06-02T04:32:49Z"
+      "last_changed": "2015-06-02T04:32:49Z",
+      "text_count": 562
     },
     "new": {
       "raw_bytes": 99996806,
       "content_bytes": 90721852,
       "transliterated_bytes": 47249609,
       "count": 3902,
-      "last_changed": "2015-07-02T04:17:47Z"
+      "last_changed": "2015-07-02T04:17:47Z",
+      "text_count": 562
     },
     "sizes": {
       "raw_bytes": {
@@ -10428,7 +10466,9 @@
     },
     "delta": {
       "count": 10,
-      "count_pct": 0.2569373072970195
+      "count_pct": 0.2569373072970195,
+      "text_count": 0,
+      "text_count_pct": 0.0
     },
     "items_added": [
       {
@@ -10563,14 +10603,16 @@
       "content_bytes": 90721852,
       "transliterated_bytes": 47249609,
       "count": 3902,
-      "last_changed": "2015-07-02T04:17:47Z"
+      "last_changed": "2015-07-02T04:17:47Z",
+      "text_count": 562
     },
     "new": {
       "raw_bytes": 130981829,
       "content_bytes": 98531182,
       "transliterated_bytes": 51402226,
       "count": 3947,
-      "last_changed": "2015-08-05T13:59:42Z"
+      "last_changed": "2015-08-05T13:59:42Z",
+      "text_count": 562
     },
     "sizes": {
       "raw_bytes": {
@@ -10594,7 +10636,9 @@
     },
     "delta": {
       "count": 45,
-      "count_pct": 1.1532547411583802
+      "count_pct": 1.1532547411583802,
+      "text_count": 0,
+      "text_count_pct": 0.0
     },
     "items_added": [
       {
@@ -11016,14 +11060,16 @@
       "content_bytes": 98531182,
       "transliterated_bytes": 51402226,
       "count": 3947,
-      "last_changed": "2015-08-05T13:59:42Z"
+      "last_changed": "2015-08-05T13:59:42Z",
+      "text_count": 562
     },
     "new": {
       "raw_bytes": 136736206,
       "content_bytes": 99934330,
       "transliterated_bytes": 52165966,
       "count": 3954,
-      "last_changed": "2015-09-01T09:54:53Z"
+      "last_changed": "2015-09-01T09:54:53Z",
+      "text_count": 562
     },
     "sizes": {
       "raw_bytes": {
@@ -11047,7 +11093,9 @@
     },
     "delta": {
       "count": 7,
-      "count_pct": 0.177349885989359
+      "count_pct": 0.177349885989359,
+      "text_count": 0,
+      "text_count_pct": 0.0
     },
     "items_added": [
       {
@@ -11163,14 +11211,16 @@
       "content_bytes": 99934330,
       "transliterated_bytes": 52165966,
       "count": 3954,
-      "last_changed": "2015-09-01T09:54:53Z"
+      "last_changed": "2015-09-01T09:54:53Z",
+      "text_count": 562
     },
     "new": {
       "raw_bytes": 143317492,
       "content_bytes": 101612804,
       "transliterated_bytes": 53070315,
       "count": 3969,
-      "last_changed": "2015-09-29T09:27:25Z"
+      "last_changed": "2015-09-29T09:27:25Z",
+      "text_count": 567
     },
     "sizes": {
       "raw_bytes": {
@@ -11194,7 +11244,9 @@
     },
     "delta": {
       "count": 15,
-      "count_pct": 0.37936267071320184
+      "count_pct": 0.37936267071320184,
+      "text_count": 5,
+      "text_count_pct": 0.8896797153024911
     },
     "items_added": [
       {
@@ -11361,14 +11413,16 @@
       "content_bytes": 101612804,
       "transliterated_bytes": 53070315,
       "count": 3969,
-      "last_changed": "2015-09-29T09:27:25Z"
+      "last_changed": "2015-09-29T09:27:25Z",
+      "text_count": 567
     },
     "new": {
       "raw_bytes": 161648166,
       "content_bytes": 114105397,
       "transliterated_bytes": 59816649,
       "count": 3889,
-      "last_changed": "2015-11-02T10:20:09Z"
+      "last_changed": "2015-11-02T10:20:09Z",
+      "text_count": 686
     },
     "sizes": {
       "raw_bytes": {
@@ -11392,7 +11446,9 @@
     },
     "delta": {
       "count": -80,
-      "count_pct": -2.015621063240111
+      "count_pct": -2.015621063240111,
+      "text_count": 119,
+      "text_count_pct": 20.987654320987655
     },
     "items_added": [
       {
@@ -18832,14 +18888,16 @@
       "content_bytes": 114105397,
       "transliterated_bytes": 59816649,
       "count": 3889,
-      "last_changed": "2015-11-02T10:20:09Z"
+      "last_changed": "2015-11-02T10:20:09Z",
+      "text_count": 686
     },
     "new": {
       "raw_bytes": 161812762,
       "content_bytes": 116630042,
       "transliterated_bytes": 61127536,
       "count": 4025,
-      "last_changed": "2015-12-01T04:35:57Z"
+      "last_changed": "2015-12-01T04:35:57Z",
+      "text_count": 686
     },
     "sizes": {
       "raw_bytes": {
@@ -18863,7 +18921,9 @@
     },
     "delta": {
       "count": 136,
-      "count_pct": 3.497042941630239
+      "count_pct": 3.497042941630239,
+      "text_count": 0,
+      "text_count_pct": 0.0
     },
     "items_added": [
       {
@@ -20143,14 +20203,16 @@
       "content_bytes": 116630042,
       "transliterated_bytes": 61127536,
       "count": 4025,
-      "last_changed": "2015-12-01T04:35:57Z"
+      "last_changed": "2015-12-01T04:35:57Z",
+      "text_count": 686
     },
     "new": {
       "raw_bytes": 164102120,
       "content_bytes": 122115659,
       "transliterated_bytes": 63932008,
       "count": 4408,
-      "last_changed": "2016-01-09T06:28:20Z"
+      "last_changed": "2016-01-09T06:28:20Z",
+      "text_count": 686
     },
     "sizes": {
       "raw_bytes": {
@@ -20174,7 +20236,9 @@
     },
     "delta": {
       "count": 383,
-      "count_pct": 9.51552795031056
+      "count_pct": 9.51552795031056,
+      "text_count": 0,
+      "text_count_pct": 0.0
     },
     "items_added": [
       {
@@ -23154,14 +23218,16 @@
       "content_bytes": 122115659,
       "transliterated_bytes": 63932008,
       "count": 4408,
-      "last_changed": "2016-01-09T06:28:20Z"
+      "last_changed": "2016-01-09T06:28:20Z",
+      "text_count": 686
     },
     "new": {
       "raw_bytes": 187078262,
       "content_bytes": 145001823,
       "transliterated_bytes": 76974575,
       "count": 5984,
-      "last_changed": "2016-02-03T02:58:07Z"
+      "last_changed": "2016-02-03T02:58:07Z",
+      "text_count": 1394
     },
     "sizes": {
       "raw_bytes": {
@@ -23185,7 +23251,9 @@
     },
     "delta": {
       "count": 1576,
-      "count_pct": 35.75317604355717
+      "count_pct": 35.75317604355717,
+      "text_count": 708,
+      "text_count_pct": 103.2069970845481
     },
     "items_added": [
       {
@@ -44526,14 +44594,16 @@
       "content_bytes": 145001823,
       "transliterated_bytes": 76974575,
       "count": 5984,
-      "last_changed": "2016-02-03T02:58:07Z"
+      "last_changed": "2016-02-03T02:58:07Z",
+      "text_count": 1394
     },
     "new": {
       "raw_bytes": 299202661,
       "content_bytes": 254803293,
       "transliterated_bytes": 133195618,
       "count": 6481,
-      "last_changed": "2016-03-04T04:48:10Z"
+      "last_changed": "2016-03-04T04:48:10Z",
+      "text_count": 1390
     },
     "sizes": {
       "raw_bytes": {
@@ -44557,7 +44627,9 @@
     },
     "delta": {
       "count": 497,
-      "count_pct": 8.30548128342246
+      "count_pct": 8.30548128342246,
+      "text_count": -4,
+      "text_count_pct": -0.28694404591104733
     },
     "items_added": [
       {
@@ -49795,14 +49867,16 @@
       "content_bytes": 254803293,
       "transliterated_bytes": 133195618,
       "count": 6481,
-      "last_changed": "2016-03-04T04:48:10Z"
+      "last_changed": "2016-03-04T04:48:10Z",
+      "text_count": 1390
     },
     "new": {
       "raw_bytes": 305168468,
       "content_bytes": 260708419,
       "transliterated_bytes": 136277298,
       "count": 6979,
-      "last_changed": "2016-04-06T22:19:02Z"
+      "last_changed": "2016-04-06T22:19:02Z",
+      "text_count": 1348
     },
     "sizes": {
       "raw_bytes": {
@@ -49826,7 +49900,9 @@
     },
     "delta": {
       "count": 498,
-      "count_pct": 7.683999382811295
+      "count_pct": 7.683999382811295,
+      "text_count": -42,
+      "text_count_pct": -3.0215827338129495
     },
     "items_added": [
       {
@@ -53603,14 +53679,16 @@
       "content_bytes": 260708419,
       "transliterated_bytes": 136277298,
       "count": 6979,
-      "last_changed": "2016-04-06T22:19:02Z"
+      "last_changed": "2016-04-06T22:19:02Z",
+      "text_count": 1348
     },
     "new": {
       "raw_bytes": 305963216,
       "content_bytes": 262843007,
       "transliterated_bytes": 137458449,
       "count": 7396,
-      "last_changed": "2016-05-01T07:31:46Z"
+      "last_changed": "2016-05-01T07:31:46Z",
+      "text_count": 1348
     },
     "sizes": {
       "raw_bytes": {
@@ -53634,7 +53712,9 @@
     },
     "delta": {
       "count": 417,
-      "count_pct": 5.975068061326838
+      "count_pct": 5.975068061326838,
+      "text_count": 0,
+      "text_count_pct": 0.0
     },
     "items_added": [
       {
@@ -59104,14 +59184,16 @@
       "content_bytes": 262843007,
       "transliterated_bytes": 137458449,
       "count": 7396,
-      "last_changed": "2016-05-01T07:31:46Z"
+      "last_changed": "2016-05-01T07:31:46Z",
+      "text_count": 1348
     },
     "new": {
       "raw_bytes": 285353364,
       "content_bytes": 259135972,
       "transliterated_bytes": 135404077,
       "count": 8886,
-      "last_changed": "2016-06-01T02:46:52Z"
+      "last_changed": "2016-06-01T02:46:52Z",
+      "text_count": 1349
     },
     "sizes": {
       "raw_bytes": {
@@ -59135,7 +59217,9 @@
     },
     "delta": {
       "count": 1490,
-      "count_pct": 20.146024878312602
+      "count_pct": 20.146024878312602,
+      "text_count": 1,
+      "text_count_pct": 0.07418397626112759
     },
     "items_added": [
       {
@@ -72837,14 +72921,16 @@
       "content_bytes": 259135972,
       "transliterated_bytes": 135404077,
       "count": 8886,
-      "last_changed": "2016-06-01T02:46:52Z"
+      "last_changed": "2016-06-01T02:46:52Z",
+      "text_count": 1349
     },
     "new": {
       "raw_bytes": 271133835,
       "content_bytes": 255973869,
       "transliterated_bytes": 133666530,
       "count": 9387,
-      "last_changed": "2016-07-02T08:36:43Z"
+      "last_changed": "2016-07-02T08:36:43Z",
+      "text_count": 1337
     },
     "sizes": {
       "raw_bytes": {
@@ -72868,7 +72954,9 @@
     },
     "delta": {
       "count": 501,
-      "count_pct": 5.638082376772451
+      "count_pct": 5.638082376772451,
+      "text_count": -12,
+      "text_count_pct": -0.8895478131949592
     },
     "items_added": [
       {
@@ -79206,14 +79294,16 @@
       "content_bytes": 255973869,
       "transliterated_bytes": 133666530,
       "count": 9387,
-      "last_changed": "2016-07-02T08:36:43Z"
+      "last_changed": "2016-07-02T08:36:43Z",
+      "text_count": 1337
     },
     "new": {
       "raw_bytes": 273556817,
       "content_bytes": 259021064,
       "transliterated_bytes": 135233241,
       "count": 9809,
-      "last_changed": "2016-08-01T04:23:17Z"
+      "last_changed": "2016-08-01T04:23:17Z",
+      "text_count": 1318
     },
     "sizes": {
       "raw_bytes": {
@@ -79237,7 +79327,9 @@
     },
     "delta": {
       "count": 422,
-      "count_pct": 4.495578992223288
+      "count_pct": 4.495578992223288,
+      "text_count": -19,
+      "text_count_pct": -1.4210919970082274
     },
     "items_added": [
       {
@@ -84327,14 +84419,16 @@
       "content_bytes": 259021064,
       "transliterated_bytes": 135233241,
       "count": 9809,
-      "last_changed": "2016-08-01T04:23:17Z"
+      "last_changed": "2016-08-01T04:23:17Z",
+      "text_count": 1318
     },
     "new": {
       "raw_bytes": 277719559,
       "content_bytes": 264022881,
       "transliterated_bytes": 137743865,
       "count": 10114,
-      "last_changed": "2016-08-31T04:32:07Z"
+      "last_changed": "2016-08-31T04:32:07Z",
+      "text_count": 1320
     },
     "sizes": {
       "raw_bytes": {
@@ -84358,7 +84452,9 @@
     },
     "delta": {
       "count": 305,
-      "count_pct": 3.109389336323784
+      "count_pct": 3.109389336323784,
+      "text_count": 2,
+      "text_count_pct": 0.15174506828528073
     },
     "items_added": [
       {
@@ -87776,14 +87872,16 @@
       "content_bytes": 264022881,
       "transliterated_bytes": 137743865,
       "count": 10114,
-      "last_changed": "2016-08-31T04:32:07Z"
+      "last_changed": "2016-08-31T04:32:07Z",
+      "text_count": 1320
     },
     "new": {
       "raw_bytes": 278087963,
       "content_bytes": 264522218,
       "transliterated_bytes": 137990308,
       "count": 10222,
-      "last_changed": "2016-09-30T12:49:51Z"
+      "last_changed": "2016-09-30T12:49:51Z",
+      "text_count": 1321
     },
     "sizes": {
       "raw_bytes": {
@@ -87807,7 +87905,9 @@
     },
     "delta": {
       "count": 108,
-      "count_pct": 1.0678267747676489
+      "count_pct": 1.0678267747676489,
+      "text_count": 1,
+      "text_count_pct": 0.07575757575757576
     },
     "items_added": [
       {
@@ -89377,14 +89477,16 @@
       "content_bytes": 264522218,
       "transliterated_bytes": 137990308,
       "count": 10222,
-      "last_changed": "2016-09-30T12:49:51Z"
+      "last_changed": "2016-09-30T12:49:51Z",
+      "text_count": 1321
     },
     "new": {
       "raw_bytes": 293434494,
       "content_bytes": 279654839,
       "transliterated_bytes": 145601043,
       "count": 10706,
-      "last_changed": "2016-10-31T23:20:17Z"
+      "last_changed": "2016-10-31T23:20:17Z",
+      "text_count": 1347
     },
     "sizes": {
       "raw_bytes": {
@@ -89408,7 +89510,9 @@
     },
     "delta": {
       "count": 484,
-      "count_pct": 4.734885540990022
+      "count_pct": 4.734885540990022,
+      "text_count": 26,
+      "text_count_pct": 1.9682059046177138
     },
     "items_added": [
       {
@@ -93703,14 +93807,16 @@
       "content_bytes": 279654839,
       "transliterated_bytes": 145601043,
       "count": 10706,
-      "last_changed": "2016-10-31T23:20:17Z"
+      "last_changed": "2016-10-31T23:20:17Z",
+      "text_count": 1347
     },
     "new": {
       "raw_bytes": 318382477,
       "content_bytes": 304160436,
       "transliterated_bytes": 157973559,
       "count": 11197,
-      "last_changed": "2016-12-01T11:20:46Z"
+      "last_changed": "2016-12-01T11:20:46Z",
+      "text_count": 1428
     },
     "sizes": {
       "raw_bytes": {
@@ -93734,7 +93840,9 @@
     },
     "delta": {
       "count": 491,
-      "count_pct": 4.5862133383149635
+      "count_pct": 4.5862133383149635,
+      "text_count": 81,
+      "text_count_pct": 6.013363028953229
     },
     "items_added": [
       {
@@ -96932,14 +97040,16 @@
       "content_bytes": 304160436,
       "transliterated_bytes": 157973559,
       "count": 11197,
-      "last_changed": "2016-12-01T11:20:46Z"
+      "last_changed": "2016-12-01T11:20:46Z",
+      "text_count": 1428
     },
     "new": {
       "raw_bytes": 323748006,
       "content_bytes": 309135069,
       "transliterated_bytes": 160536509,
       "count": 11502,
-      "last_changed": "2017-01-01T06:13:16Z"
+      "last_changed": "2017-01-01T06:13:16Z",
+      "text_count": 1433
     },
     "sizes": {
       "raw_bytes": {
@@ -96963,7 +97073,9 @@
     },
     "delta": {
       "count": 305,
-      "count_pct": 2.723943913548272
+      "count_pct": 2.723943913548272,
+      "text_count": 5,
+      "text_count_pct": 0.35014005602240894
     },
     "items_added": [
       {
@@ -99822,14 +99934,16 @@
       "content_bytes": 309135069,
       "transliterated_bytes": 160536509,
       "count": 11502,
-      "last_changed": "2017-01-01T06:13:16Z"
+      "last_changed": "2017-01-01T06:13:16Z",
+      "text_count": 1433
     },
     "new": {
       "raw_bytes": 334513831,
       "content_bytes": 319431117,
       "transliterated_bytes": 165818555,
       "count": 11920,
-      "last_changed": "2017-02-01T03:34:55Z"
+      "last_changed": "2017-02-01T03:34:55Z",
+      "text_count": 1442
     },
     "sizes": {
       "raw_bytes": {
@@ -99853,7 +99967,9 @@
     },
     "delta": {
       "count": 418,
-      "count_pct": 3.63415058250739
+      "count_pct": 3.63415058250739,
+      "text_count": 9,
+      "text_count_pct": 0.6280530355896721
     },
     "items_added": [
       {
@@ -103526,14 +103642,16 @@
       "content_bytes": 319431117,
       "transliterated_bytes": 165818555,
       "count": 11920,
-      "last_changed": "2017-02-01T03:34:55Z"
+      "last_changed": "2017-02-01T03:34:55Z",
+      "text_count": 1442
     },
     "new": {
       "raw_bytes": 341820369,
       "content_bytes": 325535022,
       "transliterated_bytes": 169009047,
       "count": 12189,
-      "last_changed": "2017-03-01T04:14:40Z"
+      "last_changed": "2017-03-01T04:14:40Z",
+      "text_count": 1444
     },
     "sizes": {
       "raw_bytes": {
@@ -103557,7 +103675,9 @@
     },
     "delta": {
       "count": 269,
-      "count_pct": 2.2567114093959733
+      "count_pct": 2.2567114093959733,
+      "text_count": 2,
+      "text_count_pct": 0.13869625520110956
     },
     "items_added": [
       {
@@ -106254,14 +106374,16 @@
       "content_bytes": 325535022,
       "transliterated_bytes": 169009047,
       "count": 12189,
-      "last_changed": "2017-03-01T04:14:40Z"
+      "last_changed": "2017-03-01T04:14:40Z",
+      "text_count": 1444
     },
     "new": {
       "raw_bytes": 346366114,
       "content_bytes": 329585582,
       "transliterated_bytes": 171126323,
       "count": 12469,
-      "last_changed": "2017-04-02T05:03:28Z"
+      "last_changed": "2017-04-02T05:03:28Z",
+      "text_count": 1444
     },
     "sizes": {
       "raw_bytes": {
@@ -106285,7 +106407,9 @@
     },
     "delta": {
       "count": 280,
-      "count_pct": 2.2971531708917876
+      "count_pct": 2.2971531708917876,
+      "text_count": 0,
+      "text_count_pct": 0.0
     },
     "items_added": [
       {
@@ -108764,14 +108888,16 @@
       "content_bytes": 329585582,
       "transliterated_bytes": 171126323,
       "count": 12469,
-      "last_changed": "2017-04-02T05:03:28Z"
+      "last_changed": "2017-04-02T05:03:28Z",
+      "text_count": 1444
     },
     "new": {
       "raw_bytes": 347266902,
       "content_bytes": 330261259,
       "transliterated_bytes": 171440105,
       "count": 12585,
-      "last_changed": "2017-04-30T11:07:13Z"
+      "last_changed": "2017-04-30T11:07:13Z",
+      "text_count": 1446
     },
     "sizes": {
       "raw_bytes": {
@@ -108795,7 +108921,9 @@
     },
     "delta": {
       "count": 116,
-      "count_pct": 0.9303071617611677
+      "count_pct": 0.9303071617611677,
+      "text_count": 2,
+      "text_count_pct": 0.13850415512465375
     },
     "items_added": [
       {
@@ -110570,14 +110698,16 @@
       "content_bytes": 330261259,
       "transliterated_bytes": 171440105,
       "count": 12585,
-      "last_changed": "2017-04-30T11:07:13Z"
+      "last_changed": "2017-04-30T11:07:13Z",
+      "text_count": 1446
     },
     "new": {
       "raw_bytes": 350156891,
       "content_bytes": 333115423,
       "transliterated_bytes": 172957666,
       "count": 12745,
-      "last_changed": "2017-06-01T03:26:20Z"
+      "last_changed": "2017-06-01T03:26:20Z",
+      "text_count": 1446
     },
     "sizes": {
       "raw_bytes": {
@@ -110601,7 +110731,9 @@
     },
     "delta": {
       "count": 160,
-      "count_pct": 1.2713547874453714
+      "count_pct": 1.2713547874453714,
+      "text_count": 0,
+      "text_count_pct": 0.0
     },
     "items_added": [
       {
@@ -112907,14 +113039,16 @@
       "content_bytes": 333115423,
       "transliterated_bytes": 172957666,
       "count": 12745,
-      "last_changed": "2017-06-01T03:26:20Z"
+      "last_changed": "2017-06-01T03:26:20Z",
+      "text_count": 1446
     },
     "new": {
       "raw_bytes": 352373531,
       "content_bytes": 334450163,
       "transliterated_bytes": 173693865,
       "count": 12800,
-      "last_changed": "2017-07-20T02:37:33Z"
+      "last_changed": "2017-07-20T02:37:33Z",
+      "text_count": 1445
     },
     "sizes": {
       "raw_bytes": {
@@ -112938,7 +113072,9 @@
     },
     "delta": {
       "count": 55,
-      "count_pct": 0.4315417810906238
+      "count_pct": 0.4315417810906238,
+      "text_count": -1,
+      "text_count_pct": -0.06915629322268327
     },
     "items_added": [
       {
@@ -115387,14 +115523,16 @@
       "content_bytes": 334450163,
       "transliterated_bytes": 173693865,
       "count": 12800,
-      "last_changed": "2017-07-20T02:37:33Z"
+      "last_changed": "2017-07-20T02:37:33Z",
+      "text_count": 1445
     },
     "new": {
       "raw_bytes": 354488263,
       "content_bytes": 336536277,
       "transliterated_bytes": 174772753,
       "count": 12982,
-      "last_changed": "2017-08-01T01:43:16Z"
+      "last_changed": "2017-08-01T01:43:16Z",
+      "text_count": 1445
     },
     "sizes": {
       "raw_bytes": {
@@ -115418,7 +115556,9 @@
     },
     "delta": {
       "count": 182,
-      "count_pct": 1.421875
+      "count_pct": 1.421875,
+      "text_count": 0,
+      "text_count_pct": 0.0
     },
     "items_added": [
       {
@@ -116742,14 +116882,16 @@
       "content_bytes": 336536277,
       "transliterated_bytes": 174772753,
       "count": 12982,
-      "last_changed": "2017-08-01T01:43:16Z"
+      "last_changed": "2017-08-01T01:43:16Z",
+      "text_count": 1445
     },
     "new": {
       "raw_bytes": 358074868,
       "content_bytes": 340730226,
       "transliterated_bytes": 176884156,
       "count": 13212,
-      "last_changed": "2017-09-01T08:26:46Z"
+      "last_changed": "2017-09-01T08:26:46Z",
+      "text_count": 1445
     },
     "sizes": {
       "raw_bytes": {
@@ -116773,7 +116915,9 @@
     },
     "delta": {
       "count": 230,
-      "count_pct": 1.77168386997381
+      "count_pct": 1.77168386997381,
+      "text_count": 0,
+      "text_count_pct": 0.0
     },
     "items_added": [
       {
@@ -119121,14 +119265,16 @@
       "content_bytes": 340730226,
       "transliterated_bytes": 176884156,
       "count": 13212,
-      "last_changed": "2017-09-01T08:26:46Z"
+      "last_changed": "2017-09-01T08:26:46Z",
+      "text_count": 1445
     },
     "new": {
       "raw_bytes": 365781282,
       "content_bytes": 348445035,
       "transliterated_bytes": 180694498,
       "count": 13107,
-      "last_changed": "2017-10-01T04:59:14Z"
+      "last_changed": "2017-10-01T04:59:14Z",
+      "text_count": 1445
     },
     "sizes": {
       "raw_bytes": {
@@ -119152,7 +119298,9 @@
     },
     "delta": {
       "count": -105,
-      "count_pct": -0.7947320617620345
+      "count_pct": -0.7947320617620345,
+      "text_count": 0,
+      "text_count_pct": 0.0
     },
     "items_added": [
       {
@@ -124102,14 +124250,16 @@
       "content_bytes": 348445035,
       "transliterated_bytes": 180694498,
       "count": 13107,
-      "last_changed": "2017-10-01T04:59:14Z"
+      "last_changed": "2017-10-01T04:59:14Z",
+      "text_count": 1445
     },
     "new": {
       "raw_bytes": 372184780,
       "content_bytes": 354760225,
       "transliterated_bytes": 183975626,
       "count": 13450,
-      "last_changed": "2017-11-03T03:12:35Z"
+      "last_changed": "2017-11-03T03:12:35Z",
+      "text_count": 1448
     },
     "sizes": {
       "raw_bytes": {
@@ -124133,7 +124283,9 @@
     },
     "delta": {
       "count": 343,
-      "count_pct": 2.6169222552834364
+      "count_pct": 2.6169222552834364,
+      "text_count": 3,
+      "text_count_pct": 0.20761245674740483
     },
     "items_added": [
       {
@@ -126689,14 +126841,16 @@
       "content_bytes": 354760225,
       "transliterated_bytes": 183975626,
       "count": 13450,
-      "last_changed": "2017-11-03T03:12:35Z"
+      "last_changed": "2017-11-03T03:12:35Z",
+      "text_count": 1448
     },
     "new": {
       "raw_bytes": 374483248,
       "content_bytes": 356862376,
       "transliterated_bytes": 185051463,
       "count": 13617,
-      "last_changed": "2017-11-30T19:26:06Z"
+      "last_changed": "2017-11-30T19:26:06Z",
+      "text_count": 1449
     },
     "sizes": {
       "raw_bytes": {
@@ -126720,7 +126874,9 @@
     },
     "delta": {
       "count": 167,
-      "count_pct": 1.241635687732342
+      "count_pct": 1.241635687732342,
+      "text_count": 1,
+      "text_count_pct": 0.06906077348066299
     },
     "items_added": [
       {
@@ -128564,14 +128720,16 @@
       "content_bytes": 356862376,
       "transliterated_bytes": 185051463,
       "count": 13617,
-      "last_changed": "2017-11-30T19:26:06Z"
+      "last_changed": "2017-11-30T19:26:06Z",
+      "text_count": 1449
     },
     "new": {
       "raw_bytes": 382980961,
       "content_bytes": 364610089,
       "transliterated_bytes": 188862107,
       "count": 13727,
-      "last_changed": "2018-01-01T05:50:39Z"
+      "last_changed": "2018-01-01T05:50:39Z",
+      "text_count": 1475
     },
     "sizes": {
       "raw_bytes": {
@@ -128595,7 +128753,9 @@
     },
     "delta": {
       "count": 110,
-      "count_pct": 0.8078137622090035
+      "count_pct": 0.8078137622090035,
+      "text_count": 26,
+      "text_count_pct": 1.7943409247757074
     },
     "items_added": [
       {
@@ -130259,14 +130419,16 @@
       "content_bytes": 364610089,
       "transliterated_bytes": 188862107,
       "count": 13727,
-      "last_changed": "2018-01-01T05:50:39Z"
+      "last_changed": "2018-01-01T05:50:39Z",
+      "text_count": 1475
     },
     "new": {
       "raw_bytes": 384022520,
       "content_bytes": 365172159,
       "transliterated_bytes": 189146444,
       "count": 13758,
-      "last_changed": "2018-02-01T00:46:14Z"
+      "last_changed": "2018-02-01T00:46:14Z",
+      "text_count": 1476
     },
     "sizes": {
       "raw_bytes": {
@@ -130290,7 +130452,9 @@
     },
     "delta": {
       "count": 31,
-      "count_pct": 0.22583230130399942
+      "count_pct": 0.22583230130399942,
+      "text_count": 1,
+      "text_count_pct": 0.06779661016949153
     },
     "items_added": [
       {
@@ -131517,14 +131681,16 @@
       "content_bytes": 365172159,
       "transliterated_bytes": 189146444,
       "count": 13758,
-      "last_changed": "2018-02-01T00:46:14Z"
+      "last_changed": "2018-02-01T00:46:14Z",
+      "text_count": 1476
     },
     "new": {
       "raw_bytes": 384091125,
       "content_bytes": 365234889,
       "transliterated_bytes": 189179693,
       "count": 13762,
-      "last_changed": "2018-03-01T01:06:25Z"
+      "last_changed": "2018-03-01T01:06:25Z",
+      "text_count": 1476
     },
     "sizes": {
       "raw_bytes": {
@@ -131548,7 +131714,9 @@
     },
     "delta": {
       "count": 4,
-      "count_pct": 0.02907399331298154
+      "count_pct": 0.02907399331298154,
+      "text_count": 0,
+      "text_count_pct": 0.0
     },
     "items_added": [
       {
@@ -132073,14 +132241,16 @@
       "content_bytes": 365234889,
       "transliterated_bytes": 189179693,
       "count": 13762,
-      "last_changed": "2018-03-01T01:06:25Z"
+      "last_changed": "2018-03-01T01:06:25Z",
+      "text_count": 1476
     },
     "new": {
       "raw_bytes": 387075461,
       "content_bytes": 367958700,
       "transliterated_bytes": 190654103,
       "count": 13987,
-      "last_changed": "2018-07-31T14:47:59Z"
+      "last_changed": "2018-07-31T14:47:59Z",
+      "text_count": 1473
     },
     "sizes": {
       "raw_bytes": {
@@ -132104,7 +132274,9 @@
     },
     "delta": {
       "count": 225,
-      "count_pct": 1.634936782444412
+      "count_pct": 1.634936782444412,
+      "text_count": -3,
+      "text_count_pct": -0.2032520325203252
     },
     "items_added": [
       {
@@ -136449,14 +136621,16 @@
       "content_bytes": 367958700,
       "transliterated_bytes": 190654103,
       "count": 13987,
-      "last_changed": "2018-07-31T14:47:59Z"
+      "last_changed": "2018-07-31T14:47:59Z",
+      "text_count": 1473
     },
     "new": {
       "raw_bytes": 388527058,
       "content_bytes": 369396383,
       "transliterated_bytes": 191399248,
       "count": 14112,
-      "last_changed": "2018-09-01T12:30:01Z"
+      "last_changed": "2018-09-01T12:30:01Z",
+      "text_count": 1487
     },
     "sizes": {
       "raw_bytes": {
@@ -136480,7 +136654,9 @@
     },
     "delta": {
       "count": 125,
-      "count_pct": 0.8936869950668478
+      "count_pct": 0.8936869950668478,
+      "text_count": 14,
+      "text_count_pct": 0.9504412763068567
     },
     "items_added": [
       {
@@ -137864,14 +138040,16 @@
       "content_bytes": 369396383,
       "transliterated_bytes": 191399248,
       "count": 14112,
-      "last_changed": "2018-09-01T12:30:01Z"
+      "last_changed": "2018-09-01T12:30:01Z",
+      "text_count": 1487
     },
     "new": {
       "raw_bytes": 389276159,
       "content_bytes": 370156599,
       "transliterated_bytes": 191813422,
       "count": 14167,
-      "last_changed": "2018-09-30T12:43:21Z"
+      "last_changed": "2018-09-30T12:43:21Z",
+      "text_count": 1514
     },
     "sizes": {
       "raw_bytes": {
@@ -137895,7 +138073,9 @@
     },
     "delta": {
       "count": 55,
-      "count_pct": 0.3897392290249433
+      "count_pct": 0.3897392290249433,
+      "text_count": 27,
+      "text_count_pct": 1.8157363819771353
     },
     "items_added": [
       {
@@ -139158,14 +139338,16 @@
       "content_bytes": 370156599,
       "transliterated_bytes": 191813422,
       "count": 14167,
-      "last_changed": "2018-09-30T12:43:21Z"
+      "last_changed": "2018-09-30T12:43:21Z",
+      "text_count": 1514
     },
     "new": {
       "raw_bytes": 390370821,
       "content_bytes": 371249175,
       "transliterated_bytes": 192399162,
       "count": 14255,
-      "last_changed": "2018-11-01T11:51:21Z"
+      "last_changed": "2018-11-01T11:51:21Z",
+      "text_count": 1515
     },
     "sizes": {
       "raw_bytes": {
@@ -139189,7 +139371,9 @@
     },
     "delta": {
       "count": 88,
-      "count_pct": 0.6211618550151761
+      "count_pct": 0.6211618550151761,
+      "text_count": 1,
+      "text_count_pct": 0.06605019815059446
     },
     "items_added": [
       {
@@ -140331,14 +140515,16 @@
       "content_bytes": 371249175,
       "transliterated_bytes": 192399162,
       "count": 14255,
-      "last_changed": "2018-11-01T11:51:21Z"
+      "last_changed": "2018-11-01T11:51:21Z",
+      "text_count": 1515
     },
     "new": {
       "raw_bytes": 395037276,
       "content_bytes": 375644637,
       "transliterated_bytes": 194648789,
       "count": 14732,
-      "last_changed": "2018-12-01T10:56:56Z"
+      "last_changed": "2018-12-01T10:56:56Z",
+      "text_count": 1516
     },
     "sizes": {
       "raw_bytes": {
@@ -140362,7 +140548,9 @@
     },
     "delta": {
       "count": 477,
-      "count_pct": 3.346194317783234
+      "count_pct": 3.346194317783234,
+      "text_count": 1,
+      "text_count_pct": 0.066006600660066
     },
     "items_added": [
       {
@@ -144034,14 +144222,16 @@
       "content_bytes": 375644637,
       "transliterated_bytes": 194648789,
       "count": 14732,
-      "last_changed": "2018-12-01T10:56:56Z"
+      "last_changed": "2018-12-01T10:56:56Z",
+      "text_count": 1516
     },
     "new": {
       "raw_bytes": 398099462,
       "content_bytes": 378505814,
       "transliterated_bytes": 196154200,
       "count": 14954,
-      "last_changed": "2018-12-31T20:39:35Z"
+      "last_changed": "2018-12-31T20:39:35Z",
+      "text_count": 1518
     },
     "sizes": {
       "raw_bytes": {
@@ -144065,7 +144255,9 @@
     },
     "delta": {
       "count": 222,
-      "count_pct": 1.5069237035025793
+      "count_pct": 1.5069237035025793,
+      "text_count": 2,
+      "text_count_pct": 0.13192612137203166
     },
     "items_added": [
       {
@@ -145708,14 +145900,16 @@
       "content_bytes": 378505814,
       "transliterated_bytes": 196154200,
       "count": 14954,
-      "last_changed": "2018-12-31T20:39:35Z"
+      "last_changed": "2018-12-31T20:39:35Z",
+      "text_count": 1518
     },
     "new": {
       "raw_bytes": 398981235,
       "content_bytes": 379391638,
       "transliterated_bytes": 196621879,
       "count": 14989,
-      "last_changed": "2019-02-01T10:35:38Z"
+      "last_changed": "2019-02-01T10:35:38Z",
+      "text_count": 1518
     },
     "sizes": {
       "raw_bytes": {
@@ -145739,7 +145933,9 @@
     },
     "delta": {
       "count": 35,
-      "count_pct": 0.23405109000936206
+      "count_pct": 0.23405109000936206,
+      "text_count": 0,
+      "text_count_pct": 0.0
     },
     "items_added": [
       {
@@ -146622,14 +146818,16 @@
       "content_bytes": 379391638,
       "transliterated_bytes": 196621879,
       "count": 14989,
-      "last_changed": "2019-02-01T10:35:38Z"
+      "last_changed": "2019-02-01T10:35:38Z",
+      "text_count": 1518
     },
     "new": {
       "raw_bytes": 399870837,
       "content_bytes": 380288735,
       "transliterated_bytes": 197094332,
       "count": 15019,
-      "last_changed": "2019-03-01T06:54:49Z"
+      "last_changed": "2019-03-01T06:54:49Z",
+      "text_count": 1518
     },
     "sizes": {
       "raw_bytes": {
@@ -146653,7 +146851,9 @@
     },
     "delta": {
       "count": 30,
-      "count_pct": 0.20014677430115418
+      "count_pct": 0.20014677430115418,
+      "text_count": 0,
+      "text_count_pct": 0.0
     },
     "items_added": [
       {
@@ -147518,14 +147718,16 @@
       "content_bytes": 380288735,
       "transliterated_bytes": 197094332,
       "count": 15019,
-      "last_changed": "2019-03-01T06:54:49Z"
+      "last_changed": "2019-03-01T06:54:49Z",
+      "text_count": 1518
     },
     "new": {
       "raw_bytes": 354580084,
       "content_bytes": 326229306,
       "transliterated_bytes": 167361739,
       "count": 8513,
-      "last_changed": "2020-07-20T06:24:56Z"
+      "last_changed": "2020-07-20T06:24:56Z",
+      "text_count": 1595
     },
     "sizes": {
       "raw_bytes": {
@@ -147549,7 +147751,9 @@
     },
     "delta": {
       "count": -6506,
-      "count_pct": -43.31846327984553
+      "count_pct": -43.31846327984553,
+      "text_count": 77,
+      "text_count_pct": 5.072463768115942
     },
     "items_added": [
       {
@@ -202024,14 +202228,16 @@
       "content_bytes": 326229306,
       "transliterated_bytes": 167361739,
       "count": 8513,
-      "last_changed": "2020-07-20T06:24:56Z"
+      "last_changed": "2020-07-20T06:24:56Z",
+      "text_count": 1595
     },
     "new": {
       "raw_bytes": 354913523,
       "content_bytes": 326559224,
       "transliterated_bytes": 167521232,
       "count": 8519,
-      "last_changed": "2020-07-31T12:40:02Z"
+      "last_changed": "2020-07-31T12:40:02Z",
+      "text_count": 1595
     },
     "sizes": {
       "raw_bytes": {
@@ -202055,7 +202261,9 @@
     },
     "delta": {
       "count": 6,
-      "count_pct": 0.07048044167743452
+      "count_pct": 0.07048044167743452,
+      "text_count": 0,
+      "text_count_pct": 0.0
     },
     "items_added": [
       {
@@ -202566,14 +202774,16 @@
       "content_bytes": 326559224,
       "transliterated_bytes": 167521232,
       "count": 8519,
-      "last_changed": "2020-07-31T12:40:02Z"
+      "last_changed": "2020-07-31T12:40:02Z",
+      "text_count": 1595
     },
     "new": {
       "raw_bytes": 344467943,
       "content_bytes": 316159200,
       "transliterated_bytes": 162309287,
       "count": 8392,
-      "last_changed": "2020-09-01T06:03:58Z"
+      "last_changed": "2020-09-01T06:03:58Z",
+      "text_count": 1458
     },
     "sizes": {
       "raw_bytes": {
@@ -202597,7 +202807,9 @@
     },
     "delta": {
       "count": -127,
-      "count_pct": -1.4907853034393708
+      "count_pct": -1.4907853034393708,
+      "text_count": -137,
+      "text_count_pct": -8.589341692789969
     },
     "items_added": [
       {
@@ -204913,14 +205125,16 @@
       "content_bytes": 316159200,
       "transliterated_bytes": 162309287,
       "count": 8392,
-      "last_changed": "2020-09-01T06:03:58Z"
+      "last_changed": "2020-09-01T06:03:58Z",
+      "text_count": 1458
     },
     "new": {
       "raw_bytes": 345493703,
       "content_bytes": 317175753,
       "transliterated_bytes": 162801396,
       "count": 8420,
-      "last_changed": "2020-09-30T15:15:11Z"
+      "last_changed": "2020-09-30T15:15:11Z",
+      "text_count": 1459
     },
     "sizes": {
       "raw_bytes": {
@@ -204944,7 +205158,9 @@
     },
     "delta": {
       "count": 28,
-      "count_pct": 0.3336510962821735
+      "count_pct": 0.3336510962821735,
+      "text_count": 1,
+      "text_count_pct": 0.06858710562414266
     },
     "items_added": [
       {
@@ -205841,14 +206057,16 @@
       "content_bytes": 317175753,
       "transliterated_bytes": 162801396,
       "count": 8420,
-      "last_changed": "2020-09-30T15:15:11Z"
+      "last_changed": "2020-09-30T15:15:11Z",
+      "text_count": 1459
     },
     "new": {
       "raw_bytes": 346939600,
       "content_bytes": 318084915,
       "transliterated_bytes": 163267731,
       "count": 8435,
-      "last_changed": "2020-11-01T01:06:01Z"
+      "last_changed": "2020-11-01T01:06:01Z",
+      "text_count": 1459
     },
     "sizes": {
       "raw_bytes": {
@@ -205872,7 +206090,9 @@
     },
     "delta": {
       "count": 15,
-      "count_pct": 0.17814726840855108
+      "count_pct": 0.17814726840855108,
+      "text_count": 0,
+      "text_count_pct": 0.0
     },
     "items_added": [
       {
@@ -206795,14 +207015,16 @@
       "content_bytes": 318084915,
       "transliterated_bytes": 163267731,
       "count": 8435,
-      "last_changed": "2020-11-01T01:06:01Z"
+      "last_changed": "2020-11-01T01:06:01Z",
+      "text_count": 1459
     },
     "new": {
       "raw_bytes": 348543141,
       "content_bytes": 319187042,
       "transliterated_bytes": 163833637,
       "count": 8445,
-      "last_changed": "2020-12-01T02:19:05Z"
+      "last_changed": "2020-12-01T02:19:05Z",
+      "text_count": 1459
     },
     "sizes": {
       "raw_bytes": {
@@ -206826,7 +207048,9 @@
     },
     "delta": {
       "count": 10,
-      "count_pct": 0.11855364552459988
+      "count_pct": 0.11855364552459988,
+      "text_count": 0,
+      "text_count_pct": 0.0
     },
     "items_added": [
       {
@@ -207990,14 +208214,16 @@
       "content_bytes": 319187042,
       "transliterated_bytes": 163833637,
       "count": 8445,
-      "last_changed": "2020-12-01T02:19:05Z"
+      "last_changed": "2020-12-01T02:19:05Z",
+      "text_count": 1459
     },
     "new": {
       "raw_bytes": 349602233,
       "content_bytes": 320230742,
       "transliterated_bytes": 164374755,
       "count": 8476,
-      "last_changed": "2021-01-01T03:49:54Z"
+      "last_changed": "2021-01-01T03:49:54Z",
+      "text_count": 1459
     },
     "sizes": {
       "raw_bytes": {
@@ -208021,7 +208247,9 @@
     },
     "delta": {
       "count": 31,
-      "count_pct": 0.36708111308466546
+      "count_pct": 0.36708111308466546,
+      "text_count": 0,
+      "text_count_pct": 0.0
     },
     "items_added": [
       {
@@ -209220,14 +209448,16 @@
       "content_bytes": 320230742,
       "transliterated_bytes": 164374755,
       "count": 8476,
-      "last_changed": "2021-01-01T03:49:54Z"
+      "last_changed": "2021-01-01T03:49:54Z",
+      "text_count": 1459
     },
     "new": {
       "raw_bytes": 350977865,
       "content_bytes": 321592584,
       "transliterated_bytes": 165030481,
       "count": 8504,
-      "last_changed": "2021-01-31T23:23:03Z"
+      "last_changed": "2021-01-31T23:23:03Z",
+      "text_count": 1460
     },
     "sizes": {
       "raw_bytes": {
@@ -209251,7 +209481,9 @@
     },
     "delta": {
       "count": 28,
-      "count_pct": 0.33034450212364325
+      "count_pct": 0.33034450212364325,
+      "text_count": 1,
+      "text_count_pct": 0.06854009595613433
     },
     "items_added": [
       {
@@ -210134,14 +210366,16 @@
       "content_bytes": 321592584,
       "transliterated_bytes": 165030481,
       "count": 8504,
-      "last_changed": "2021-01-31T23:23:03Z"
+      "last_changed": "2021-01-31T23:23:03Z",
+      "text_count": 1460
     },
     "new": {
       "raw_bytes": 351087764,
       "content_bytes": 321693670,
       "transliterated_bytes": 165070022,
       "count": 8521,
-      "last_changed": "2021-03-01T05:13:56Z"
+      "last_changed": "2021-03-01T05:13:56Z",
+      "text_count": 1460
     },
     "sizes": {
       "raw_bytes": {
@@ -210165,7 +210399,9 @@
     },
     "delta": {
       "count": 17,
-      "count_pct": 0.19990592662276577
+      "count_pct": 0.19990592662276577,
+      "text_count": 0,
+      "text_count_pct": 0.0
     },
     "items_added": [
       {
@@ -210972,14 +211208,16 @@
       "content_bytes": 321693670,
       "transliterated_bytes": 165070022,
       "count": 8521,
-      "last_changed": "2021-03-01T05:13:56Z"
+      "last_changed": "2021-03-01T05:13:56Z",
+      "text_count": 1460
     },
     "new": {
       "raw_bytes": 352428615,
       "content_bytes": 323027496,
       "transliterated_bytes": 165759418,
       "count": 8541,
-      "last_changed": "2021-04-01T03:31:29Z"
+      "last_changed": "2021-04-01T03:31:29Z",
+      "text_count": 1459
     },
     "sizes": {
       "raw_bytes": {
@@ -211003,7 +211241,9 @@
     },
     "delta": {
       "count": 20,
-      "count_pct": 0.23471423541837813
+      "count_pct": 0.23471423541837813,
+      "text_count": -1,
+      "text_count_pct": -0.0684931506849315
     },
     "items_added": [
       {
@@ -212206,14 +212446,16 @@
       "content_bytes": 323027496,
       "transliterated_bytes": 165759418,
       "count": 8541,
-      "last_changed": "2021-04-01T03:31:29Z"
+      "last_changed": "2021-04-01T03:31:29Z",
+      "text_count": 1459
     },
     "new": {
       "raw_bytes": 353844970,
       "content_bytes": 324294625,
       "transliterated_bytes": 166413729,
       "count": 8590,
-      "last_changed": "2021-05-01T08:47:34Z"
+      "last_changed": "2021-05-01T08:47:34Z",
+      "text_count": 1460
     },
     "sizes": {
       "raw_bytes": {
@@ -212237,7 +212479,9 @@
     },
     "delta": {
       "count": 49,
-      "count_pct": 0.5737033134293408
+      "count_pct": 0.5737033134293408,
+      "text_count": 1,
+      "text_count_pct": 0.06854009595613433
     },
     "items_added": [
       {
@@ -213666,14 +213910,16 @@
       "content_bytes": 324294625,
       "transliterated_bytes": 166413729,
       "count": 8590,
-      "last_changed": "2021-05-01T08:47:34Z"
+      "last_changed": "2021-05-01T08:47:34Z",
+      "text_count": 1460
     },
     "new": {
       "raw_bytes": 355281502,
       "content_bytes": 325669736,
       "transliterated_bytes": 167111935,
       "count": 8646,
-      "last_changed": "2021-06-01T06:42:28Z"
+      "last_changed": "2021-06-01T06:42:28Z",
+      "text_count": 1460
     },
     "sizes": {
       "raw_bytes": {
@@ -213697,7 +213943,9 @@
     },
     "delta": {
       "count": 56,
-      "count_pct": 0.6519208381839348
+      "count_pct": 0.6519208381839348,
+      "text_count": 0,
+      "text_count_pct": 0.0
     },
     "items_added": [
       {
@@ -215294,14 +215542,16 @@
       "content_bytes": 325669736,
       "transliterated_bytes": 167111935,
       "count": 8646,
-      "last_changed": "2021-06-01T06:42:28Z"
+      "last_changed": "2021-06-01T06:42:28Z",
+      "text_count": 1460
     },
     "new": {
       "raw_bytes": 355628388,
       "content_bytes": 325971165,
       "transliterated_bytes": 167259745,
       "count": 8681,
-      "last_changed": "2021-07-01T06:31:16Z"
+      "last_changed": "2021-07-01T06:31:16Z",
+      "text_count": 1460
     },
     "sizes": {
       "raw_bytes": {
@@ -215325,7 +215575,9 @@
     },
     "delta": {
       "count": 35,
-      "count_pct": 0.40481147351376356
+      "count_pct": 0.40481147351376356,
+      "text_count": 0,
+      "text_count_pct": 0.0
     },
     "items_added": [
       {
@@ -216880,14 +217132,16 @@
       "content_bytes": 325971165,
       "transliterated_bytes": 167259745,
       "count": 8681,
-      "last_changed": "2021-07-01T06:31:16Z"
+      "last_changed": "2021-07-01T06:31:16Z",
+      "text_count": 1460
     },
     "new": {
       "raw_bytes": 357148848,
       "content_bytes": 327433049,
       "transliterated_bytes": 168025962,
       "count": 8742,
-      "last_changed": "2021-07-31T23:13:29Z"
+      "last_changed": "2021-07-31T23:13:29Z",
+      "text_count": 1460
     },
     "sizes": {
       "raw_bytes": {
@@ -216911,7 +217165,9 @@
     },
     "delta": {
       "count": 61,
-      "count_pct": 0.702684022578044
+      "count_pct": 0.702684022578044,
+      "text_count": 0,
+      "text_count_pct": 0.0
     },
     "items_added": [
       {
@@ -218421,14 +218677,16 @@
       "content_bytes": 327433049,
       "transliterated_bytes": 168025962,
       "count": 8742,
-      "last_changed": "2021-07-31T23:13:29Z"
+      "last_changed": "2021-07-31T23:13:29Z",
+      "text_count": 1460
     },
     "new": {
       "raw_bytes": 364602431,
       "content_bytes": 334768144,
       "transliterated_bytes": 171736971,
       "count": 8994,
-      "last_changed": "2021-09-01T07:05:19Z"
+      "last_changed": "2021-09-01T07:05:19Z",
+      "text_count": 1656
     },
     "sizes": {
       "raw_bytes": {
@@ -218452,7 +218710,9 @@
     },
     "delta": {
       "count": 252,
-      "count_pct": 2.8826355525051475
+      "count_pct": 2.8826355525051475,
+      "text_count": 196,
+      "text_count_pct": 13.424657534246576
     },
     "items_added": [
       {
@@ -220952,14 +221212,16 @@
       "content_bytes": 334768144,
       "transliterated_bytes": 171736971,
       "count": 8994,
-      "last_changed": "2021-09-01T07:05:19Z"
+      "last_changed": "2021-09-01T07:05:19Z",
+      "text_count": 1656
     },
     "new": {
       "raw_bytes": 365581634,
       "content_bytes": 335730572,
       "transliterated_bytes": 172216047,
       "count": 9019,
-      "last_changed": "2021-10-01T05:44:38Z"
+      "last_changed": "2021-10-01T05:44:38Z",
+      "text_count": 1655
     },
     "sizes": {
       "raw_bytes": {
@@ -220983,7 +221245,9 @@
     },
     "delta": {
       "count": 25,
-      "count_pct": 0.27796308650211254
+      "count_pct": 0.27796308650211254,
+      "text_count": -1,
+      "text_count_pct": -0.06038647342995169
     },
     "items_added": [
       {
@@ -222141,14 +222405,16 @@
       "content_bytes": 335730572,
       "transliterated_bytes": 172216047,
       "count": 9019,
-      "last_changed": "2021-10-01T05:44:38Z"
+      "last_changed": "2021-10-01T05:44:38Z",
+      "text_count": 1655
     },
     "new": {
       "raw_bytes": 366074760,
       "content_bytes": 336214341,
       "transliterated_bytes": 172461879,
       "count": 9034,
-      "last_changed": "2021-11-01T04:29:06Z"
+      "last_changed": "2021-11-01T04:29:06Z",
+      "text_count": 1654
     },
     "sizes": {
       "raw_bytes": {
@@ -222172,7 +222438,9 @@
     },
     "delta": {
       "count": 15,
-      "count_pct": 0.1663155560483424
+      "count_pct": 0.1663155560483424,
+      "text_count": -1,
+      "text_count_pct": -0.06042296072507553
     },
     "items_added": [
       {
@@ -223392,14 +223660,16 @@
       "content_bytes": 336214341,
       "transliterated_bytes": 172461879,
       "count": 9034,
-      "last_changed": "2021-11-01T04:29:06Z"
+      "last_changed": "2021-11-01T04:29:06Z",
+      "text_count": 1654
     },
     "new": {
       "raw_bytes": 366498544,
       "content_bytes": 337632212,
       "transliterated_bytes": 173184539,
       "count": 9173,
-      "last_changed": "2021-12-01T03:11:33Z"
+      "last_changed": "2021-12-01T03:11:33Z",
+      "text_count": 1654
     },
     "sizes": {
       "raw_bytes": {
@@ -223423,7 +223693,9 @@
     },
     "delta": {
       "count": 139,
-      "count_pct": 1.5386318352889086
+      "count_pct": 1.5386318352889086,
+      "text_count": 0,
+      "text_count_pct": 0.0
     },
     "items_added": [
       {
@@ -226520,14 +226792,16 @@
       "content_bytes": 337632212,
       "transliterated_bytes": 173184539,
       "count": 9173,
-      "last_changed": "2021-12-01T03:11:33Z"
+      "last_changed": "2021-12-01T03:11:33Z",
+      "text_count": 1654
     },
     "new": {
       "raw_bytes": 367211848,
       "content_bytes": 338663449,
       "transliterated_bytes": 173692528,
       "count": 9200,
-      "last_changed": "2022-01-01T07:48:56Z"
+      "last_changed": "2022-01-01T07:48:56Z",
+      "text_count": 1677
     },
     "sizes": {
       "raw_bytes": {
@@ -226551,7 +226825,9 @@
     },
     "delta": {
       "count": 27,
-      "count_pct": 0.29434209091900143
+      "count_pct": 0.29434209091900143,
+      "text_count": 23,
+      "text_count_pct": 1.3905683192261185
     },
     "items_added": [
       {
@@ -228094,14 +228370,16 @@
       "content_bytes": 338663449,
       "transliterated_bytes": 173692528,
       "count": 9200,
-      "last_changed": "2022-01-01T07:48:56Z"
+      "last_changed": "2022-01-01T07:48:56Z",
+      "text_count": 1677
     },
     "new": {
       "raw_bytes": 376702510,
       "content_bytes": 348077675,
       "transliterated_bytes": 178348677,
       "count": 9312,
-      "last_changed": "2022-02-01T07:32:26Z"
+      "last_changed": "2022-02-01T07:32:26Z",
+      "text_count": 1687
     },
     "sizes": {
       "raw_bytes": {
@@ -228125,7 +228403,9 @@
     },
     "delta": {
       "count": 112,
-      "count_pct": 1.2173913043478262
+      "count_pct": 1.2173913043478262,
+      "text_count": 10,
+      "text_count_pct": 0.5963029218843172
     },
     "items_added": [
       {
@@ -229774,14 +230054,16 @@
       "content_bytes": 348077675,
       "transliterated_bytes": 178348677,
       "count": 9312,
-      "last_changed": "2022-02-01T07:32:26Z"
+      "last_changed": "2022-02-01T07:32:26Z",
+      "text_count": 1687
     },
     "new": {
       "raw_bytes": 383266013,
       "content_bytes": 354550130,
       "transliterated_bytes": 181638614,
       "count": 9436,
-      "last_changed": "2022-03-01T07:58:02Z"
+      "last_changed": "2022-03-01T07:58:02Z",
+      "text_count": 1711
     },
     "sizes": {
       "raw_bytes": {
@@ -229805,7 +230087,9 @@
     },
     "delta": {
       "count": 124,
-      "count_pct": 1.331615120274914
+      "count_pct": 1.331615120274914,
+      "text_count": 24,
+      "text_count_pct": 1.4226437462951986
     },
     "items_added": [
       {
@@ -232099,14 +232383,16 @@
       "content_bytes": 354550130,
       "transliterated_bytes": 181638614,
       "count": 9436,
-      "last_changed": "2022-03-01T07:58:02Z"
+      "last_changed": "2022-03-01T07:58:02Z",
+      "text_count": 1711
     },
     "new": {
       "raw_bytes": 386294610,
       "content_bytes": 357309037,
       "transliterated_bytes": 182884273,
       "count": 9488,
-      "last_changed": "2022-03-31T19:41:40Z"
+      "last_changed": "2022-03-31T19:41:40Z",
+      "text_count": 1718
     },
     "sizes": {
       "raw_bytes": {
@@ -232130,7 +232416,9 @@
     },
     "delta": {
       "count": 52,
-      "count_pct": 0.5510809665112336
+      "count_pct": 0.5510809665112336,
+      "text_count": 7,
+      "text_count_pct": 0.4091174751607247
     },
     "items_added": [
       {
@@ -233150,14 +233438,16 @@
       "content_bytes": 357309037,
       "transliterated_bytes": 182884273,
       "count": 9488,
-      "last_changed": "2022-03-31T19:41:40Z"
+      "last_changed": "2022-03-31T19:41:40Z",
+      "text_count": 1718
     },
     "new": {
       "raw_bytes": 386325431,
       "content_bytes": 357336326,
       "transliterated_bytes": 182897394,
       "count": 9490,
-      "last_changed": "2022-04-30T09:03:55Z"
+      "last_changed": "2022-04-30T09:03:55Z",
+      "text_count": 1718
     },
     "sizes": {
       "raw_bytes": {
@@ -233181,7 +233471,9 @@
     },
     "delta": {
       "count": 2,
-      "count_pct": 0.021079258010118045
+      "count_pct": 0.021079258010118045,
+      "text_count": 0,
+      "text_count_pct": 0.0
     },
     "items_added": [
       {
@@ -234424,14 +234716,16 @@
       "content_bytes": 357336326,
       "transliterated_bytes": 182897394,
       "count": 9490,
-      "last_changed": "2022-04-30T09:03:55Z"
+      "last_changed": "2022-04-30T09:03:55Z",
+      "text_count": 1718
     },
     "new": {
       "raw_bytes": 384052548,
       "content_bytes": 355075993,
       "transliterated_bytes": 181697441,
       "count": 9446,
-      "last_changed": "2022-05-31T23:50:05Z"
+      "last_changed": "2022-05-31T23:50:05Z",
+      "text_count": 1710
     },
     "sizes": {
       "raw_bytes": {
@@ -234455,7 +234749,9 @@
     },
     "delta": {
       "count": -44,
-      "count_pct": -0.4636459430979979
+      "count_pct": -0.4636459430979979,
+      "text_count": -8,
+      "text_count_pct": -0.46565774155995343
     },
     "items_added": [
       {
@@ -235983,14 +236279,16 @@
       "content_bytes": 355075993,
       "transliterated_bytes": 181697441,
       "count": 9446,
-      "last_changed": "2022-05-31T23:50:05Z"
+      "last_changed": "2022-05-31T23:50:05Z",
+      "text_count": 1710
     },
     "new": {
       "raw_bytes": 384224242,
       "content_bytes": 355226912,
       "transliterated_bytes": 181774323,
       "count": 9447,
-      "last_changed": "2022-06-30T13:57:46Z"
+      "last_changed": "2022-06-30T13:57:46Z",
+      "text_count": 1708
     },
     "sizes": {
       "raw_bytes": {
@@ -236014,7 +236312,9 @@
     },
     "delta": {
       "count": 1,
-      "count_pct": 0.010586491636671608
+      "count_pct": 0.010586491636671608,
+      "text_count": -2,
+      "text_count_pct": -0.11695906432748537
     },
     "items_added": [
       {
@@ -236739,14 +237039,16 @@
       "content_bytes": 355226912,
       "transliterated_bytes": 181774323,
       "count": 9447,
-      "last_changed": "2022-06-30T13:57:46Z"
+      "last_changed": "2022-06-30T13:57:46Z",
+      "text_count": 1708
     },
     "new": {
       "raw_bytes": 384584661,
       "content_bytes": 355580698,
       "transliterated_bytes": 181950049,
       "count": 9447,
-      "last_changed": "2022-07-31T20:36:30Z"
+      "last_changed": "2022-07-31T20:36:30Z",
+      "text_count": 1707
     },
     "sizes": {
       "raw_bytes": {
@@ -236770,7 +237072,9 @@
     },
     "delta": {
       "count": 0,
-      "count_pct": 0.0
+      "count_pct": 0.0,
+      "text_count": -1,
+      "text_count_pct": -0.0585480093676815
     },
     "items_added": [
       {
@@ -237404,14 +237708,16 @@
       "content_bytes": 355580698,
       "transliterated_bytes": 181950049,
       "count": 9447,
-      "last_changed": "2022-07-31T20:36:30Z"
+      "last_changed": "2022-07-31T20:36:30Z",
+      "text_count": 1707
     },
     "new": {
       "raw_bytes": 387095672,
       "content_bytes": 358019385,
       "transliterated_bytes": 183226409,
       "count": 9457,
-      "last_changed": "2022-08-30T00:31:51Z"
+      "last_changed": "2022-08-30T00:31:51Z",
+      "text_count": 1708
     },
     "sizes": {
       "raw_bytes": {
@@ -237435,7 +237741,9 @@
     },
     "delta": {
       "count": 10,
-      "count_pct": 0.10585371017254155
+      "count_pct": 0.10585371017254155,
+      "text_count": 1,
+      "text_count_pct": 0.05858230814294083
     },
     "items_added": [
       {
@@ -238025,14 +238333,16 @@
       "content_bytes": 358019385,
       "transliterated_bytes": 183226409,
       "count": 9457,
-      "last_changed": "2022-08-30T00:31:51Z"
+      "last_changed": "2022-08-30T00:31:51Z",
+      "text_count": 1708
     },
     "new": {
       "raw_bytes": 387334476,
       "content_bytes": 358254269,
       "transliterated_bytes": 183342619,
       "count": 9461,
-      "last_changed": "2022-09-28T01:18:20Z"
+      "last_changed": "2022-09-28T01:18:20Z",
+      "text_count": 1710
     },
     "sizes": {
       "raw_bytes": {
@@ -238056,7 +238366,9 @@
     },
     "delta": {
       "count": 4,
-      "count_pct": 0.042296711430686265
+      "count_pct": 0.042296711430686265,
+      "text_count": 2,
+      "text_count_pct": 0.117096018735363
     },
     "items_added": [
       {
@@ -238455,14 +238767,16 @@
       "content_bytes": 358254269,
       "transliterated_bytes": 183342619,
       "count": 9461,
-      "last_changed": "2022-09-28T01:18:20Z"
+      "last_changed": "2022-09-28T01:18:20Z",
+      "text_count": 1710
     },
     "new": {
       "raw_bytes": 387360468,
       "content_bytes": 358277921,
       "transliterated_bytes": 183354791,
       "count": 9466,
-      "last_changed": "2022-10-31T23:16:24Z"
+      "last_changed": "2022-10-31T23:16:24Z",
+      "text_count": 1711
     },
     "sizes": {
       "raw_bytes": {
@@ -238486,7 +238800,9 @@
     },
     "delta": {
       "count": 5,
-      "count_pct": 0.05284853609555015
+      "count_pct": 0.05284853609555015,
+      "text_count": 1,
+      "text_count_pct": 0.05847953216374269
     },
     "items_added": [
       {
@@ -238974,14 +239290,16 @@
       "content_bytes": 358277921,
       "transliterated_bytes": 183354791,
       "count": 9466,
-      "last_changed": "2022-10-31T23:16:24Z"
+      "last_changed": "2022-10-31T23:16:24Z",
+      "text_count": 1711
     },
     "new": {
       "raw_bytes": 387469798,
       "content_bytes": 358393116,
       "transliterated_bytes": 183380669,
       "count": 9458,
-      "last_changed": "2022-11-30T02:04:54Z"
+      "last_changed": "2022-11-30T02:04:54Z",
+      "text_count": 1710
     },
     "sizes": {
       "raw_bytes": {
@@ -239005,7 +239323,9 @@
     },
     "delta": {
       "count": -8,
-      "count_pct": -0.08451299387280795
+      "count_pct": -0.08451299387280795,
+      "text_count": -1,
+      "text_count_pct": -0.058445353594389245
     },
     "items_added": [
       {
@@ -239858,14 +240178,16 @@
       "content_bytes": 358393116,
       "transliterated_bytes": 183380669,
       "count": 9458,
-      "last_changed": "2022-11-30T02:04:54Z"
+      "last_changed": "2022-11-30T02:04:54Z",
+      "text_count": 1710
     },
     "new": {
       "raw_bytes": 387484639,
       "content_bytes": 358407009,
       "transliterated_bytes": 183387276,
       "count": 9458,
-      "last_changed": "2022-12-31T09:38:46Z"
+      "last_changed": "2022-12-31T09:38:46Z",
+      "text_count": 1710
     },
     "sizes": {
       "raw_bytes": {
@@ -239889,7 +240211,9 @@
     },
     "delta": {
       "count": 0,
-      "count_pct": 0.0
+      "count_pct": 0.0,
+      "text_count": 0,
+      "text_count_pct": 0.0
     },
     "items_added": [
       {
@@ -240455,14 +240779,16 @@
       "content_bytes": 358407009,
       "transliterated_bytes": 183387276,
       "count": 9458,
-      "last_changed": "2022-12-31T09:38:46Z"
+      "last_changed": "2022-12-31T09:38:46Z",
+      "text_count": 1710
     },
     "new": {
       "raw_bytes": 387593495,
       "content_bytes": 358509333,
       "transliterated_bytes": 183434896,
       "count": 9459,
-      "last_changed": "2023-01-29T02:31:28Z"
+      "last_changed": "2023-01-29T02:31:28Z",
+      "text_count": 1710
     },
     "sizes": {
       "raw_bytes": {
@@ -240486,7 +240812,9 @@
     },
     "delta": {
       "count": 1,
-      "count_pct": 0.010573059843518714
+      "count_pct": 0.010573059843518714,
+      "text_count": 0,
+      "text_count_pct": 0.0
     },
     "items_added": [
       {
@@ -241367,14 +241695,16 @@
       "content_bytes": 358509333,
       "transliterated_bytes": 183434896,
       "count": 9459,
-      "last_changed": "2023-01-29T02:31:28Z"
+      "last_changed": "2023-01-29T02:31:28Z",
+      "text_count": 1710
     },
     "new": {
       "raw_bytes": 387595293,
       "content_bytes": 358509832,
       "transliterated_bytes": 183435143,
       "count": 9460,
-      "last_changed": "2023-02-27T17:44:50Z"
+      "last_changed": "2023-02-27T17:44:50Z",
+      "text_count": 1710
     },
     "sizes": {
       "raw_bytes": {
@@ -241398,7 +241728,9 @@
     },
     "delta": {
       "count": 1,
-      "count_pct": 0.01057194206575748
+      "count_pct": 0.01057194206575748,
+      "text_count": 0,
+      "text_count_pct": 0.0
     },
     "items_added": [
       {
@@ -241684,14 +242016,16 @@
       "content_bytes": 358509832,
       "transliterated_bytes": 183435143,
       "count": 9460,
-      "last_changed": "2023-02-27T17:44:50Z"
+      "last_changed": "2023-02-27T17:44:50Z",
+      "text_count": 1710
     },
     "new": {
       "raw_bytes": 387784438,
       "content_bytes": 358690373,
       "transliterated_bytes": 183525970,
       "count": 9466,
-      "last_changed": "2023-03-31T22:52:02Z"
+      "last_changed": "2023-03-31T22:52:02Z",
+      "text_count": 1716
     },
     "sizes": {
       "raw_bytes": {
@@ -241715,7 +242049,9 @@
     },
     "delta": {
       "count": 6,
-      "count_pct": 0.06342494714587738
+      "count_pct": 0.06342494714587738,
+      "text_count": 6,
+      "text_count_pct": 0.3508771929824561
     },
     "items_added": [
       {
@@ -242425,14 +242761,16 @@
       "content_bytes": 358690373,
       "transliterated_bytes": 183525970,
       "count": 9466,
-      "last_changed": "2023-03-31T22:52:02Z"
+      "last_changed": "2023-03-31T22:52:02Z",
+      "text_count": 1716
     },
     "new": {
       "raw_bytes": 387798407,
       "content_bytes": 358704852,
       "transliterated_bytes": 183533976,
       "count": 9467,
-      "last_changed": "2023-04-30T06:08:11Z"
+      "last_changed": "2023-04-30T06:08:11Z",
+      "text_count": 1716
     },
     "sizes": {
       "raw_bytes": {
@@ -242456,7 +242794,9 @@
     },
     "delta": {
       "count": 1,
-      "count_pct": 0.010564124234100993
+      "count_pct": 0.010564124234100993,
+      "text_count": 0,
+      "text_count_pct": 0.0
     },
     "items_added": [
       {
@@ -242714,14 +243054,16 @@
       "content_bytes": 358704852,
       "transliterated_bytes": 183533976,
       "count": 9467,
-      "last_changed": "2023-04-30T06:08:11Z"
+      "last_changed": "2023-04-30T06:08:11Z",
+      "text_count": 1716
     },
     "new": {
       "raw_bytes": 387801652,
       "content_bytes": 358685463,
       "transliterated_bytes": 183525019,
       "count": 9467,
-      "last_changed": "2023-05-31T16:15:24Z"
+      "last_changed": "2023-05-31T16:15:24Z",
+      "text_count": 1716
     },
     "sizes": {
       "raw_bytes": {
@@ -242745,7 +243087,9 @@
     },
     "delta": {
       "count": 0,
-      "count_pct": 0.0
+      "count_pct": 0.0,
+      "text_count": 0,
+      "text_count_pct": 0.0
     },
     "items_added": [],
     "items_removed": [],
@@ -243025,14 +243369,16 @@
       "content_bytes": 358685463,
       "transliterated_bytes": 183525019,
       "count": 9467,
-      "last_changed": "2023-05-31T16:15:24Z"
+      "last_changed": "2023-05-31T16:15:24Z",
+      "text_count": 1716
     },
     "new": {
       "raw_bytes": 387806313,
       "content_bytes": 358689498,
       "transliterated_bytes": 183527096,
       "count": 9468,
-      "last_changed": "2023-06-28T02:08:21Z"
+      "last_changed": "2023-06-28T02:08:21Z",
+      "text_count": 1716
     },
     "sizes": {
       "raw_bytes": {
@@ -243056,7 +243402,9 @@
     },
     "delta": {
       "count": 1,
-      "count_pct": 0.010563008344776593
+      "count_pct": 0.010563008344776593,
+      "text_count": 0,
+      "text_count_pct": 0.0
     },
     "items_added": [
       {
@@ -243307,14 +243655,16 @@
       "content_bytes": 358689498,
       "transliterated_bytes": 183527096,
       "count": 9468,
-      "last_changed": "2023-06-28T02:08:21Z"
+      "last_changed": "2023-06-28T02:08:21Z",
+      "text_count": 1716
     },
     "new": {
       "raw_bytes": 397369930,
       "content_bytes": 368006386,
       "transliterated_bytes": 188195589,
       "count": 9483,
-      "last_changed": "2023-07-28T12:30:22Z"
+      "last_changed": "2023-07-28T12:30:22Z",
+      "text_count": 1731
     },
     "sizes": {
       "raw_bytes": {
@@ -243338,7 +243688,9 @@
     },
     "delta": {
       "count": 15,
-      "count_pct": 0.15842839036755388
+      "count_pct": 0.15842839036755388,
+      "text_count": 15,
+      "text_count_pct": 0.8741258741258742
     },
     "items_added": [
       {
@@ -243596,14 +243948,16 @@
       "content_bytes": 368006386,
       "transliterated_bytes": 188195589,
       "count": 9483,
-      "last_changed": "2023-07-28T12:30:22Z"
+      "last_changed": "2023-07-28T12:30:22Z",
+      "text_count": 1731
     },
     "new": {
       "raw_bytes": 400512644,
       "content_bytes": 371112040,
       "transliterated_bytes": 189746259,
       "count": 9499,
-      "last_changed": "2023-08-29T03:27:52Z"
+      "last_changed": "2023-08-29T03:27:52Z",
+      "text_count": 1747
     },
     "sizes": {
       "raw_bytes": {
@@ -243627,7 +243981,9 @@
     },
     "delta": {
       "count": 16,
-      "count_pct": 0.16872297796056102
+      "count_pct": 0.16872297796056102,
+      "text_count": 16,
+      "text_count_pct": 0.9243212016175621
     },
     "items_added": [
       {
@@ -243946,14 +244302,16 @@
       "content_bytes": 371112040,
       "transliterated_bytes": 189746259,
       "count": 9499,
-      "last_changed": "2023-08-29T03:27:52Z"
+      "last_changed": "2023-08-29T03:27:52Z",
+      "text_count": 1747
     },
     "new": {
       "raw_bytes": 400574732,
       "content_bytes": 371157623,
       "transliterated_bytes": 189770133,
       "count": 9500,
-      "last_changed": "2023-09-29T00:55:17Z"
+      "last_changed": "2023-09-29T00:55:17Z",
+      "text_count": 1748
     },
     "sizes": {
       "raw_bytes": {
@@ -243977,7 +244335,9 @@
     },
     "delta": {
       "count": 1,
-      "count_pct": 0.010527423939362039
+      "count_pct": 0.010527423939362039,
+      "text_count": 1,
+      "text_count_pct": 0.057240984544934176
     },
     "items_added": [
       {
@@ -244144,14 +244504,16 @@
       "content_bytes": 371157623,
       "transliterated_bytes": 189770133,
       "count": 9500,
-      "last_changed": "2023-09-29T00:55:17Z"
+      "last_changed": "2023-09-29T00:55:17Z",
+      "text_count": 1748
     },
     "new": {
       "raw_bytes": 403644294,
       "content_bytes": 374201511,
       "transliterated_bytes": 191225660,
       "count": 9522,
-      "last_changed": "2023-10-26T15:48:55Z"
+      "last_changed": "2023-10-26T15:48:55Z",
+      "text_count": 1752
     },
     "sizes": {
       "raw_bytes": {
@@ -244175,7 +244537,9 @@
     },
     "delta": {
       "count": 22,
-      "count_pct": 0.23157894736842105
+      "count_pct": 0.23157894736842105,
+      "text_count": 4,
+      "text_count_pct": 0.2288329519450801
     },
     "items_added": [
       {
@@ -244601,14 +244965,16 @@
       "content_bytes": 374201511,
       "transliterated_bytes": 191225660,
       "count": 9522,
-      "last_changed": "2023-10-26T15:48:55Z"
+      "last_changed": "2023-10-26T15:48:55Z",
+      "text_count": 1752
     },
     "new": {
       "raw_bytes": 408872019,
       "content_bytes": 379408012,
       "transliterated_bytes": 193808997,
       "count": 9561,
-      "last_changed": "2023-11-30T05:17:20Z"
+      "last_changed": "2023-11-30T05:17:20Z",
+      "text_count": 1777
     },
     "sizes": {
       "raw_bytes": {
@@ -244632,7 +244998,9 @@
     },
     "delta": {
       "count": 39,
-      "count_pct": 0.4095778197857593
+      "count_pct": 0.4095778197857593,
+      "text_count": 25,
+      "text_count_pct": 1.4269406392694064
     },
     "items_added": [
       {
@@ -244905,14 +245273,16 @@
       "content_bytes": 379408012,
       "transliterated_bytes": 193808997,
       "count": 9561,
-      "last_changed": "2023-11-30T05:17:20Z"
+      "last_changed": "2023-11-30T05:17:20Z",
+      "text_count": 1777
     },
     "new": {
       "raw_bytes": 416240666,
       "content_bytes": 386759682,
       "transliterated_bytes": 197386112,
       "count": 9601,
-      "last_changed": "2023-12-31T13:43:11Z"
+      "last_changed": "2023-12-31T13:43:11Z",
+      "text_count": 1801
     },
     "sizes": {
       "raw_bytes": {
@@ -244936,7 +245306,9 @@
     },
     "delta": {
       "count": 40,
-      "count_pct": 0.41836627967785794
+      "count_pct": 0.41836627967785794,
+      "text_count": 24,
+      "text_count_pct": 1.3505908835115363
     },
     "items_added": [
       {
@@ -245270,14 +245642,16 @@
       "content_bytes": 386759682,
       "transliterated_bytes": 197386112,
       "count": 9601,
-      "last_changed": "2023-12-31T13:43:11Z"
+      "last_changed": "2023-12-31T13:43:11Z",
+      "text_count": 1801
     },
     "new": {
       "raw_bytes": 417222152,
       "content_bytes": 387730916,
       "transliterated_bytes": 197873463,
       "count": 9613,
-      "last_changed": "2024-01-28T00:08:01Z"
+      "last_changed": "2024-01-28T00:08:01Z",
+      "text_count": 1803
     },
     "sizes": {
       "raw_bytes": {
@@ -245301,7 +245675,9 @@
     },
     "delta": {
       "count": 12,
-      "count_pct": 0.1249869805228622
+      "count_pct": 0.1249869805228622,
+      "text_count": 2,
+      "text_count_pct": 0.1110494169905608
     },
     "items_added": [
       {
@@ -245614,14 +245990,16 @@
       "content_bytes": 387730916,
       "transliterated_bytes": 197873463,
       "count": 9613,
-      "last_changed": "2024-01-28T00:08:01Z"
+      "last_changed": "2024-01-28T00:08:01Z",
+      "text_count": 1803
     },
     "new": {
       "raw_bytes": 417302808,
       "content_bytes": 387799590,
       "transliterated_bytes": 197909392,
       "count": 9622,
-      "last_changed": "2024-02-28T01:27:42Z"
+      "last_changed": "2024-02-28T01:27:42Z",
+      "text_count": 1804
     },
     "sizes": {
       "raw_bytes": {
@@ -245645,7 +246023,9 @@
     },
     "delta": {
       "count": 9,
-      "count_pct": 0.09362321855820244
+      "count_pct": 0.09362321855820244,
+      "text_count": 1,
+      "text_count_pct": 0.05546311702717693
     },
     "items_added": [
       {
@@ -246734,14 +247114,16 @@
       "content_bytes": 387799590,
       "transliterated_bytes": 197909392,
       "count": 9622,
-      "last_changed": "2024-02-28T01:27:42Z"
+      "last_changed": "2024-02-28T01:27:42Z",
+      "text_count": 1804
     },
     "new": {
       "raw_bytes": 417372036,
       "content_bytes": 387863925,
       "transliterated_bytes": 197922847,
       "count": 9625,
-      "last_changed": "2024-03-31T20:17:06Z"
+      "last_changed": "2024-03-31T20:17:06Z",
+      "text_count": 1804
     },
     "sizes": {
       "raw_bytes": {
@@ -246765,7 +247147,9 @@
     },
     "delta": {
       "count": 3,
-      "count_pct": 0.03117854915817917
+      "count_pct": 0.03117854915817917,
+      "text_count": 0,
+      "text_count_pct": 0.0
     },
     "items_added": [
       {
@@ -247537,14 +247921,16 @@
       "content_bytes": 387863925,
       "transliterated_bytes": 197922847,
       "count": 9625,
-      "last_changed": "2024-03-31T20:17:06Z"
+      "last_changed": "2024-03-31T20:17:06Z",
+      "text_count": 1804
     },
     "new": {
       "raw_bytes": 424432828,
       "content_bytes": 394895520,
       "transliterated_bytes": 201302438,
       "count": 9692,
-      "last_changed": "2024-04-30T20:54:22Z"
+      "last_changed": "2024-04-30T20:54:22Z",
+      "text_count": 1812
     },
     "sizes": {
       "raw_bytes": {
@@ -247568,7 +247954,9 @@
     },
     "delta": {
       "count": 67,
-      "count_pct": 0.6961038961038961
+      "count_pct": 0.6961038961038961,
+      "text_count": 8,
+      "text_count_pct": 0.4434589800443459
     },
     "items_added": [
       {
@@ -248534,14 +248922,16 @@
       "content_bytes": 394895520,
       "transliterated_bytes": 201302438,
       "count": 9692,
-      "last_changed": "2024-04-30T20:54:22Z"
+      "last_changed": "2024-04-30T20:54:22Z",
+      "text_count": 1812
     },
     "new": {
       "raw_bytes": 457057814,
       "content_bytes": 427464895,
       "transliterated_bytes": 217269620,
       "count": 9904,
-      "last_changed": "2024-05-31T11:47:15Z"
+      "last_changed": "2024-05-31T11:47:15Z",
+      "text_count": 1827
     },
     "sizes": {
       "raw_bytes": {
@@ -248565,7 +248955,9 @@
     },
     "delta": {
       "count": 212,
-      "count_pct": 2.1873710276516714
+      "count_pct": 2.1873710276516714,
+      "text_count": 15,
+      "text_count_pct": 0.8278145695364238
     },
     "items_added": [
       {
@@ -250088,14 +250480,16 @@
       "content_bytes": 427464895,
       "transliterated_bytes": 217269620,
       "count": 9904,
-      "last_changed": "2024-05-31T11:47:15Z"
+      "last_changed": "2024-05-31T11:47:15Z",
+      "text_count": 1827
     },
     "new": {
       "raw_bytes": 487325776,
       "content_bytes": 457693635,
       "transliterated_bytes": 231896270,
       "count": 10006,
-      "last_changed": "2024-06-28T14:27:10Z"
+      "last_changed": "2024-06-28T14:27:10Z",
+      "text_count": 1858
     },
     "sizes": {
       "raw_bytes": {
@@ -250119,7 +250513,9 @@
     },
     "delta": {
       "count": 102,
-      "count_pct": 1.0298869143780292
+      "count_pct": 1.0298869143780292,
+      "text_count": 31,
+      "text_count_pct": 1.6967706622879037
     },
     "items_added": [
       {
@@ -251176,14 +251572,16 @@
       "content_bytes": 457693635,
       "transliterated_bytes": 231896270,
       "count": 10006,
-      "last_changed": "2024-06-28T14:27:10Z"
+      "last_changed": "2024-06-28T14:27:10Z",
+      "text_count": 1858
     },
     "new": {
       "raw_bytes": 503918532,
       "content_bytes": 473894946,
       "transliterated_bytes": 240015091,
       "count": 10200,
-      "last_changed": "2024-07-31T06:20:13Z"
+      "last_changed": "2024-07-31T06:20:13Z",
+      "text_count": 1958
     },
     "sizes": {
       "raw_bytes": {
@@ -251207,7 +251605,9 @@
     },
     "delta": {
       "count": 194,
-      "count_pct": 1.9388366979812113
+      "count_pct": 1.9388366979812113,
+      "text_count": 100,
+      "text_count_pct": 5.382131324004305
     },
     "items_added": [
       {
@@ -252584,14 +252984,16 @@
       "content_bytes": 473894946,
       "transliterated_bytes": 240015091,
       "count": 10200,
-      "last_changed": "2024-07-31T06:20:13Z"
+      "last_changed": "2024-07-31T06:20:13Z",
+      "text_count": 1958
     },
     "new": {
       "raw_bytes": 504080634,
       "content_bytes": 474056983,
       "transliterated_bytes": 240092902,
       "count": 10201,
-      "last_changed": "2024-08-27T11:40:42Z"
+      "last_changed": "2024-08-27T11:40:42Z",
+      "text_count": 1958
     },
     "sizes": {
       "raw_bytes": {
@@ -252615,7 +253017,9 @@
     },
     "delta": {
       "count": 1,
-      "count_pct": 0.00980392156862745
+      "count_pct": 0.00980392156862745,
+      "text_count": 0,
+      "text_count_pct": 0.0
     },
     "items_added": [
       {
@@ -252712,14 +253116,16 @@
       "content_bytes": 474056983,
       "transliterated_bytes": 240092902,
       "count": 10201,
-      "last_changed": "2024-08-27T11:40:42Z"
+      "last_changed": "2024-08-27T11:40:42Z",
+      "text_count": 1958
     },
     "new": {
       "raw_bytes": 505414392,
       "content_bytes": 475389116,
       "transliterated_bytes": 240790625,
       "count": 10208,
-      "last_changed": "2024-09-27T11:16:09Z"
+      "last_changed": "2024-09-27T11:16:09Z",
+      "text_count": 1965
     },
     "sizes": {
       "raw_bytes": {
@@ -252743,7 +253149,9 @@
     },
     "delta": {
       "count": 7,
-      "count_pct": 0.06862072345848447
+      "count_pct": 0.06862072345848447,
+      "text_count": 7,
+      "text_count_pct": 0.3575076608784474
     },
     "items_added": [
       {
@@ -252961,14 +253369,16 @@
       "content_bytes": 475389116,
       "transliterated_bytes": 240790625,
       "count": 10208,
-      "last_changed": "2024-09-27T11:16:09Z"
+      "last_changed": "2024-09-27T11:16:09Z",
+      "text_count": 1965
     },
     "new": {
       "raw_bytes": 505414447,
       "content_bytes": 475389159,
       "transliterated_bytes": 240790642,
       "count": 10208,
-      "last_changed": "2024-10-10T07:38:28Z"
+      "last_changed": "2024-10-10T07:38:28Z",
+      "text_count": 1965
     },
     "sizes": {
       "raw_bytes": {
@@ -252992,7 +253402,9 @@
     },
     "delta": {
       "count": 0,
-      "count_pct": 0.0
+      "count_pct": 0.0,
+      "text_count": 0,
+      "text_count_pct": 0.0
     },
     "items_added": [],
     "items_removed": [],
@@ -253041,14 +253453,16 @@
       "content_bytes": 475389159,
       "transliterated_bytes": 240790642,
       "count": 10208,
-      "last_changed": "2024-10-10T07:38:28Z"
+      "last_changed": "2024-10-10T07:38:28Z",
+      "text_count": 1965
     },
     "new": {
       "raw_bytes": 505414590,
       "content_bytes": 475389117,
       "transliterated_bytes": 240790590,
       "count": 10208,
-      "last_changed": "2024-11-25T21:44:05Z"
+      "last_changed": "2024-11-25T21:44:05Z",
+      "text_count": 1965
     },
     "sizes": {
       "raw_bytes": {
@@ -253072,7 +253486,9 @@
     },
     "delta": {
       "count": 0,
-      "count_pct": 0.0
+      "count_pct": 0.0,
+      "text_count": 0,
+      "text_count_pct": 0.0
     },
     "items_added": [],
     "items_removed": [],
@@ -253212,14 +253628,16 @@
       "content_bytes": 475389117,
       "transliterated_bytes": 240790590,
       "count": 10208,
-      "last_changed": "2024-11-25T21:44:05Z"
+      "last_changed": "2024-11-25T21:44:05Z",
+      "text_count": 1965
     },
     "new": {
       "raw_bytes": 505414560,
       "content_bytes": 475389087,
       "transliterated_bytes": 240790487,
       "count": 10208,
-      "last_changed": "2024-12-29T17:59:32Z"
+      "last_changed": "2024-12-29T17:59:32Z",
+      "text_count": 1965
     },
     "sizes": {
       "raw_bytes": {
@@ -253243,7 +253661,9 @@
     },
     "delta": {
       "count": 0,
-      "count_pct": 0.0
+      "count_pct": 0.0,
+      "text_count": 0,
+      "text_count_pct": 0.0
     },
     "items_added": [],
     "items_removed": [],
@@ -253299,14 +253719,16 @@
       "content_bytes": 475389087,
       "transliterated_bytes": 240790487,
       "count": 10208,
-      "last_changed": "2024-12-29T17:59:32Z"
+      "last_changed": "2024-12-29T17:59:32Z",
+      "text_count": 1965
     },
     "new": {
       "raw_bytes": 505403111,
       "content_bytes": 475377622,
       "transliterated_bytes": 240779030,
       "count": 10208,
-      "last_changed": "2025-01-31T07:27:41Z"
+      "last_changed": "2025-01-31T07:27:41Z",
+      "text_count": 1965
     },
     "sizes": {
       "raw_bytes": {
@@ -253330,7 +253752,9 @@
     },
     "delta": {
       "count": 0,
-      "count_pct": 0.0
+      "count_pct": 0.0,
+      "text_count": 0,
+      "text_count_pct": 0.0
     },
     "items_added": [],
     "items_removed": [],
@@ -253407,14 +253831,16 @@
       "content_bytes": 475377622,
       "transliterated_bytes": 240779030,
       "count": 10208,
-      "last_changed": "2025-01-31T07:27:41Z"
+      "last_changed": "2025-01-31T07:27:41Z",
+      "text_count": 1965
     },
     "new": {
       "raw_bytes": 513003332,
       "content_bytes": 482948304,
       "transliterated_bytes": 246125130,
       "count": 10218,
-      "last_changed": "2025-02-24T14:01:35Z"
+      "last_changed": "2025-02-24T14:01:35Z",
+      "text_count": 1966
     },
     "sizes": {
       "raw_bytes": {
@@ -253438,7 +253864,9 @@
     },
     "delta": {
       "count": 10,
-      "count_pct": 0.09796238244514106
+      "count_pct": 0.09796238244514106,
+      "text_count": 1,
+      "text_count_pct": 0.05089058524173028
     },
     "items_added": [
       {
@@ -253552,14 +253980,16 @@
       "content_bytes": 482948304,
       "transliterated_bytes": 246125130,
       "count": 10218,
-      "last_changed": "2025-02-24T14:01:35Z"
+      "last_changed": "2025-02-24T14:01:35Z",
+      "text_count": 1966
     },
     "new": {
       "raw_bytes": 513004451,
       "content_bytes": 482949177,
       "transliterated_bytes": 246125643,
       "count": 10218,
-      "last_changed": "2025-03-24T04:47:55Z"
+      "last_changed": "2025-03-24T04:47:55Z",
+      "text_count": 1966
     },
     "sizes": {
       "raw_bytes": {
@@ -253583,7 +254013,9 @@
     },
     "delta": {
       "count": 0,
-      "count_pct": 0.0
+      "count_pct": 0.0,
+      "text_count": 0,
+      "text_count_pct": 0.0
     },
     "items_added": [],
     "items_removed": [],
@@ -307925,7 +308357,7 @@
       "content_bytes": 698990338,
       "transliterated_bytes": 358740634,
       "count": 22101,
-      "text_count": 2106,
+      "text_count": 2854,
       "last_changed": "2025-11-20T05:14:06Z"
     },
     "new": {
@@ -307933,7 +308365,7 @@
       "content_bytes": 701294813,
       "transliterated_bytes": 359918949,
       "count": 22112,
-      "text_count": 2110,
+      "text_count": 2858,
       "last_changed": "2025-12-17T19:04:44Z"
     },
     "sizes": {
@@ -307960,7 +308392,7 @@
       "count": 11,
       "count_pct": 0.04977150355187548,
       "text_count": 4,
-      "text_count_pct": 0.1899335232668566
+      "text_count_pct": 0.1401541695865452
     },
     "items_added": [
       {
@@ -308205,7 +308637,7 @@
       "content_bytes": 701294813,
       "transliterated_bytes": 359918949,
       "count": 22112,
-      "text_count": 2110,
+      "text_count": 2858,
       "last_changed": "2025-12-17T19:04:44Z"
     },
     "new": {
@@ -308213,7 +308645,7 @@
       "content_bytes": 704760100,
       "transliterated_bytes": 361670897,
       "count": 22137,
-      "text_count": 2118,
+      "text_count": 2866,
       "last_changed": "2026-01-01T11:06:38Z"
     },
     "sizes": {
@@ -308240,7 +308672,7 @@
       "count": 25,
       "count_pct": 0.11306078147612156,
       "text_count": 8,
-      "text_count_pct": 0.3791469194312796
+      "text_count_pct": 0.27991602519244224
     },
     "items_added": [
       {
@@ -308422,7 +308854,7 @@
       "content_bytes": 704760100,
       "transliterated_bytes": 361670897,
       "count": 22137,
-      "text_count": 2118,
+      "text_count": 2866,
       "last_changed": "2026-01-01T11:06:38Z"
     },
     "new": {
@@ -308430,7 +308862,7 @@
       "content_bytes": 711017060,
       "transliterated_bytes": 364858986,
       "count": 22156,
-      "text_count": 2137,
+      "text_count": 2885,
       "last_changed": "2026-02-01T12:36:05Z"
     },
     "sizes": {
@@ -308457,7 +308889,7 @@
       "count": 19,
       "count_pct": 0.08582915480869133,
       "text_count": 19,
-      "text_count_pct": 0.8970727101038716
+      "text_count_pct": 0.6629448709002094
     },
     "items_added": [
       {
@@ -308742,7 +309174,7 @@
       "content_bytes": 711017060,
       "transliterated_bytes": 364858986,
       "count": 22156,
-      "text_count": 2137,
+      "text_count": 2885,
       "last_changed": "2026-02-01T12:36:05Z"
     },
     "new": {
@@ -308750,7 +309182,7 @@
       "content_bytes": 718527175,
       "transliterated_bytes": 368672776,
       "count": 22178,
-      "text_count": 2158,
+      "text_count": 2906,
       "last_changed": "2026-03-01T17:25:45Z"
     },
     "sizes": {
@@ -308777,7 +309209,7 @@
       "count": 22,
       "count_pct": 0.09929590178732624,
       "text_count": 21,
-      "text_count_pct": 0.9826860084230229
+      "text_count_pct": 0.7279029462738301
     },
     "items_added": [
       {
@@ -309126,7 +309558,7 @@
       "content_bytes": 718527175,
       "transliterated_bytes": 368672776,
       "count": 22178,
-      "text_count": 2158,
+      "text_count": 2906,
       "last_changed": "2026-03-01T17:25:45Z"
     },
     "new": {
@@ -309134,7 +309566,7 @@
       "content_bytes": 722346438,
       "transliterated_bytes": 370651389,
       "count": 22200,
-      "text_count": 2177,
+      "text_count": 2926,
       "last_changed": "2026-03-31T02:26:42Z"
     },
     "sizes": {
@@ -309160,8 +309592,8 @@
     "delta": {
       "count": 22,
       "count_pct": 0.09919740283163496,
-      "text_count": 19,
-      "text_count_pct": 0.8804448563484708
+      "text_count": 20,
+      "text_count_pct": 0.6882312456985548
     },
     "items_added": [
       {
@@ -309643,7 +310075,7 @@
       "content_bytes": 722346438,
       "transliterated_bytes": 370651389,
       "count": 22200,
-      "text_count": 2177,
+      "text_count": 2926,
       "last_changed": "2026-03-31T02:26:42Z"
     },
     "new": {
@@ -309651,7 +310083,7 @@
       "content_bytes": 723328595,
       "transliterated_bytes": 371206891,
       "count": 22215,
-      "text_count": 2192,
+      "text_count": 2941,
       "last_changed": "2026-04-30T15:41:34Z"
     },
     "sizes": {
@@ -309678,7 +310110,7 @@
       "count": 15,
       "count_pct": 0.06756756756756757,
       "text_count": 15,
-      "text_count_pct": 0.6890215893431327
+      "text_count_pct": 0.5126452494873548
     },
     "items_added": [
       {

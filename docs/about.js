@@ -324,6 +324,17 @@ function niceTicks(min, max, count) {
   return ticks;
 }
 
+// Ticks at an exact fixed step (e.g. round 100 MB increments), rather than
+// niceTicks' auto-picked 1/2/5x10^n step -- lets a chart's gridlines land on
+// fixed, predictable, cross-chart-comparable values instead of whatever
+// number happens to divide the current data's range evenly.
+function fixedStepTicks(min, max, step) {
+  const start = Math.ceil(min / step) * step;
+  const ticks = [];
+  for (let v = start; v <= max + step * 0.001; v += step) ticks.push(v);
+  return ticks.length > 0 ? ticks : [min];
+}
+
 function fmtAxisBytes(n) {
   const mb = n / 1024 / 1024;
   if (mb >= 1000) return (mb / 1024).toFixed(1) + " GB";
@@ -334,7 +345,7 @@ function fmtAxisCount(n) {
   return n.toLocaleString();
 }
 
-function renderTrendChart(container, points, { title, getValue, fmtValue, fmtAxis }) {
+function renderTrendChart(container, points, { title, getValue, fmtValue, fmtAxis, tickStep }) {
   const width = 720;
   const height = 220;
   const margin = { top: 10, right: 16, bottom: 26, left: 56 };
@@ -373,8 +384,8 @@ function renderTrendChart(container, points, { title, getValue, fmtValue, fmtAxi
     "aria-label": title,
   });
 
-  // Gridlines + y-axis labels (nice round values).
-  const yTicks = niceTicks(yMin, yMax, 4);
+  // Gridlines + y-axis labels (nice round values, or a fixed step if given).
+  const yTicks = tickStep ? fixedStepTicks(yMin, yMax, tickStep) : niceTicks(yMin, yMax, 4);
   for (const t of yTicks) {
     const y = yScale(t);
     svg.appendChild(svgEl("line", {
@@ -528,6 +539,7 @@ function renderChangelogCharts() {
     getValue: (p) => p.bytes,
     fmtValue: fmtBytes,
     fmtAxis: fmtAxisBytes,
+    tickStep: 100 * 1024 * 1024,
   });
 
   // text_count is absent on snapshots from before that stat existed --

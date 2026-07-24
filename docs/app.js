@@ -24,6 +24,9 @@ const state = {
                              // of finding its own handful of sibling occurrences.
   expandedPageLists: new Set(), // category ids whose page/index-item list has been expanded past the cap
   expandedSubpages: new Set(),  // page ids whose nested subpages sub-list is expanded (collapsed by default)
+  collapsedSubpages: new Set(), // subpage expand-keys the user explicitly collapsed while a search was active --
+                                 // overrides search's force-expand default so a disclosure arrow always does
+                                 // what it says, even if that hides a subpage-only search hit (see renderPageLi)
 };
 
 // Rendering every descendant page as a DOM node is what's actually slow (there are
@@ -52,6 +55,7 @@ function selectCategory(catId) {
   state.selectedCatId = catId;
   state.searchQuery = "";
   state.searchExact = false;
+  state.collapsedSubpages.clear();  // leaving search discards its per-result collapse state
   const input = document.getElementById("searchInput");
   if (input) input.value = "";
   const exactToggle = document.getElementById("searchExactToggle");
@@ -508,9 +512,13 @@ function renderPageLi(p, ownPath) {
   // the enclosing category path so expanding one occurrence's subpage list
   // doesn't also expand every other occurrence of the same page elsewhere.
   const expandKey = (ownPath || []).join("␟") + "␟" + p.id;
-  // In search mode, a matched nested subpage must stay visible even if the user
-  // never manually expanded its parent -- force-expand rather than hide the hit.
-  const isExpanded = state.expandedSubpages.has(expandKey) || (isSearchActive() && hasSubpages);
+  // In search mode, subpages default to force-expanded so a match nested in a
+  // subpage stays visible even if the user never manually expanded its parent.
+  // But the disclosure arrow must never be inert: a manual collapse (recorded in
+  // collapsedSubpages) always wins over that default, even when it hides a
+  // subpage-only hit -- once results are on screen, the user drives the UI.
+  const searchDefaultExpanded = isSearchActive() && hasSubpages && !state.collapsedSubpages.has(expandKey);
+  const isExpanded = state.expandedSubpages.has(expandKey) || searchDefaultExpanded;
 
   const a = el("a", { href: p.url, target: "_blank", rel: "noreferrer" }, displayTitle(p.title, p.id));
 
@@ -526,8 +534,16 @@ function renderPageLi(p, ownPath) {
 
   const toggleSubpages = (ev) => {
     ev.preventDefault();
-    if (isExpanded) state.expandedSubpages.delete(expandKey);
-    else state.expandedSubpages.add(expandKey);
+    if (isExpanded) {
+      state.expandedSubpages.delete(expandKey);
+      // During search the row is expanded-by-default, so removing the manual
+      // expand isn't enough to collapse it -- record an explicit collapse that
+      // overrides the search default (see searchDefaultExpanded above).
+      if (isSearchActive()) state.collapsedSubpages.add(expandKey);
+    } else {
+      state.expandedSubpages.add(expandKey);
+      state.collapsedSubpages.delete(expandKey);
+    }
     renderMain();
   };
 
@@ -1129,6 +1145,9 @@ function initUI() {
 
   document.getElementById("searchInput").addEventListener("input", (ev) => {
     state.searchQuery = ev.target.value.toLowerCase().trim();
+    // A changed query is a fresh result set -- drop any manual in-search
+    // collapses so the new results start from the force-expanded default.
+    state.collapsedSubpages.clear();
     renderMain();
   });
 

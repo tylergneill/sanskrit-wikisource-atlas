@@ -29,8 +29,7 @@ PageNode (Main-namespace page, filed into this category via its own direct
   by its immediate parent, it additionally gets its own full, independently
   reachable PageNode under that category too -- same "no pointer/skip logic,
   dedup happens in stats rollup" treatment build_category already gives
-  multi-tagged top-level pages (see build_category's page_jsons loop and
-  notes/wikisource-editing-plan.md, "Silent subpage category divergence").
+  multi-tagged top-level pages (see build_category's page_jsons loop).
   source_indexes is present (non-empty) only when this page transcludes a
   range of पृष्ठम्:Title/N leaves belonging to one or more Index items, via
   <pages index="..." /> -- a link back to the source scan, since the mirror
@@ -541,9 +540,8 @@ def build_tree_json(
         # A breadcrumb-subpage (main_node.parent_title is not None) is
         # normally only reachable by nesting inside its parent's own page
         # node (see build_page_node's recursion below), not filed here
-        # directly -- its own direct tags are otherwise silently dropped for
-        # filing purposes (see notes/wikisource-editing-plan.md, "Silent
-        # subpage category divergence"). Surface it here too, exactly like a
+        # directly -- its own direct tags would otherwise be silently
+        # dropped for filing purposes. Surface it here too, exactly like a
         # top-level multi-tagged page, but only for tags its immediate
         # parent doesn't already carry -- a tag the parent also carries adds
         # no new discoverability, since browsing the parent's node already

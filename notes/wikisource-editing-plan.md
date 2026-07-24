@@ -11,8 +11,10 @@ breadcrumb syntax; parent pages lacking a Category shared by all
 subpages) are now surfaced live by `docs/about.html`'s audit section
 ("Data Quality: Structural Errors and Provenance Hints") — see that page
 for current counts/lists rather than this note, which would go stale. A
-third finding, silent subpage category divergence, is a separate open
-pipeline bug — see [[silent-subpage-category-divergence]].
+third finding, silent subpage category divergence, was a pipeline bug,
+already fixed (`35489f1`) — subpages with their own diverging category tag
+now get their own independently reachable page node, same treatment
+top-level multi-tagged pages get.
 
 ## Practical tooling / starting points for hand-editing
 

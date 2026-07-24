@@ -428,6 +428,69 @@ def _bullet(description: str, count: int, inner_html: str) -> str:
     )
 
 
+def _sub_bullet(description: str, count: int, inner_html: str) -> str:
+    """Same disclosure-triangle construction as _bullet, for a nested
+    <details> one level inside an outer audit finding (grouping a flat
+    candidate dump into collapsible sub-groups, e.g. by shared title prefix
+    or by external-repo domain). Reuses .audit-item/.audit-summary styling
+    so the triangle and spacing match the top-level findings exactly."""
+    return (
+        f'<li class="audit-item"><details>\n'
+        f'<summary class="audit-summary">{description} ({count})</summary>\n'
+        f"{inner_html}\n"
+        f"</details></li>"
+    )
+
+
+def _group_by_next_token(prefix: str, others: list[str]) -> tuple[str, str]:
+    """Renders a breadcrumb parent's flat candidate list as nested
+    collapsible groups instead of one long flat <ul> -- candidates sharing
+    the same next space-separated token after the parent prefix (e.g.
+    "ṛgvedaḥ maṇḍala 1" / "ṛgvedaḥ maṇḍala 10" both share "maṇḍala") are
+    grouped under a sub-<details> keyed by that token, recursing while a
+    group still has >1 further token to split on. Singleton groups (no
+    other candidate shares that next token) are left as plain <li> entries
+    rather than a pointless one-item dropdown. When an entire group shares
+    ANOTHER token beyond the one that formed it (e.g. all 10 members of
+    "uttarasthānam" also share "adhyāya" as their very next token), that
+    next level wouldn't split anything -- it would just repeat the same
+    member list one level deeper -- so the prefix is extended before
+    grouping. Returns (effective_prefix, inner_ul_html) so a caller
+    labeling the enclosing <summary> always names the level actually being
+    displayed, not the single token that triggered the recursive call.
+
+    A member can be exactly equal to the (possibly already-extended) prefix
+    -- nothing left to split on ("" remainder) -- if e.g. a redirect or
+    duplicate title collapses onto its own parent grouping token. That
+    member can never contribute a further shared token, so it must stop the
+    collapse loop rather than let a group of all-"" tokens look like a
+    single shared token and grow the prefix forever (infinite loop)."""
+    while all(other[len(prefix) + 1:] for other in others):
+        prefix_len = len(prefix) + 1
+        tokens = {other[prefix_len:].split(" ", 1)[0] for other in others}
+        if len(tokens) != 1:
+            break
+        prefix = f"{prefix} {next(iter(tokens))}"
+
+    prefix_len = len(prefix) + 1
+    groups: dict[str, list[str]] = defaultdict(list)
+    for other in others:
+        rest = other[prefix_len:]
+        token = rest.split(" ", 1)[0]
+        groups[token].append(other)
+
+    parts = []
+    for token in sorted(groups):
+        members = groups[token]
+        if len(members) == 1:
+            parts.append(f"<li>{_link(members[0])}</li>")
+            continue
+        effective_prefix, inner = _group_by_next_token(f"{prefix} {token}", members)
+        parts.append(_sub_bullet(_esc(effective_prefix), len(members), inner))
+    html_out = f'<ul style="margin-left: 1.6em; list-style: none; padding-left: 0;">{"".join(parts)}</ul>'
+    return prefix, html_out
+
+
 def render_audit_html(
     breadcrumb_candidates: dict[str, list[str]],
     inference_candidates: dict[str, set[str]],
@@ -449,12 +512,19 @@ def render_audit_html(
     breadcrumb_items = []
     for title in sorted(breadcrumb_candidates, key=lambda t: -len(breadcrumb_candidates[t])):
         others = breadcrumb_candidates[title]
-        sub = "".join(f"<li>{_link(o)}</li>" for o in others)
-        breadcrumb_items.append(f'{_link(title)} ({len(others)} candidate pages)<ul style="margin-left: 1.6em;">{sub}</ul>')
+        _effective_prefix, sub = _group_by_next_token(title, others)
+        breadcrumb_items.append(
+            f'<li class="audit-item"><details>\n'
+            f'<summary class="audit-summary">{_link(title)} ({len(others)} candidate pages)</summary>\n'
+            f"{sub}\n"
+            f"</details></li>"
+        )
     bullets.append(_bullet(
         'Pages that look like missed breadcrumb subpages (space-separated title instead of a "/")',
         len(breadcrumb_candidates),
-        _findings_list(breadcrumb_items),
+        f'          <ul style="margin-left: 1.6em; list-style: none; padding-left: 0;">\n'
+        + "\n".join(f"            {item}" for item in breadcrumb_items)
+        + "\n          </ul>",
     ))
 
     inference_items = [
@@ -509,14 +579,22 @@ def render_audit_html(
     body = "\n".join(bullets)
     correction_list = f'        <ul style="list-style: none; padding-left: 0;">\n{body}\n        </ul>'
 
-    bulk_items = [
-        f"{_link(title)} &rarr; {', '.join(sorted(domains))}"
-        for title, domains in sorted(bulk_import_candidates.items())
-    ]
+    by_domain: dict[str, list[str]] = defaultdict(list)
+    for title, domains in bulk_import_candidates.items():
+        for domain in domains:
+            by_domain[domain].append(title)
+
+    domain_items = []
+    for domain in sorted(by_domain, key=lambda d: (-len(by_domain[d]), d)):
+        titles = sorted(by_domain[domain])
+        sub = _findings_list([_link(t) for t in titles])
+        domain_items.append(_sub_bullet(html.escape(domain), len(titles), sub))
     bulk_bullet = _bullet(
         "Pages likely bulk-imported wholesale from an external digitized-text source",
         len(bulk_import_candidates),
-        _findings_list(bulk_items),
+        f'          <ul style="margin-left: 1.6em; list-style: none; padding-left: 0;">\n'
+        + "\n".join(f"            {item}" for item in domain_items)
+        + "\n          </ul>",
     )
     bulk_section = (
         '        <p>\n'

@@ -58,7 +58,13 @@ IDENTIFIER_PREFIX = "sawikisource-"
 
 LIVE_BASE_URL = "https://dumps.wikimedia.org/sawikisource"
 
-DEFAULT_OUT_DIR = Path(__file__).resolve().parent.parent / "dump" / "_legacy"
+# Two separate destinations since the two sources are practically distinct
+# eras (see module docstring): the live rolling window's floor drifts
+# forward over time, while the Internet Archive's coverage is permanently
+# fixed at whatever it already has. fetch_snapshot picks between these
+# based on dump.source when out_dir isn't explicitly overridden.
+DEFAULT_LIVE_OUT_DIR = Path(__file__).resolve().parent.parent / "dump" / "2_legacy_format_live"
+DEFAULT_ARCHIVE_OUT_DIR = Path(__file__).resolve().parent.parent / "dump" / "4_legacy_format_archive"
 
 USER_AGENT = (
     "sanskrit-wikisource-mirror/2.0 "
@@ -293,10 +299,15 @@ def _decompress(bz2_path: Path, force: bool = False) -> Path:
     return xml_path
 
 
-def fetch_snapshot(dump: LegacyDump, out_dir: Path = DEFAULT_OUT_DIR, force: bool = False) -> Path:
+def fetch_snapshot(dump: LegacyDump, out_dir: Path | None = None, force: bool = False) -> Path:
     """Download + verify dump's pages-meta-current.xml.bz2 into
     out_dir/<date>/, and decompress it. Returns the path to the decompressed
-    .xml."""
+    .xml. out_dir defaults to DEFAULT_LIVE_OUT_DIR or DEFAULT_ARCHIVE_OUT_DIR
+    based on dump.source, since the two sources are practically distinct
+    eras (see DEFAULT_LIVE_OUT_DIR/DEFAULT_ARCHIVE_OUT_DIR above) -- pass
+    out_dir explicitly to override."""
+    if out_dir is None:
+        out_dir = DEFAULT_LIVE_OUT_DIR if dump.source == "live" else DEFAULT_ARCHIVE_OUT_DIR
     item_dir = out_dir / dump.date
     bz2_path = download_and_verify(dump, item_dir, force=force)
     return _decompress(bz2_path, force=force)
@@ -309,8 +320,9 @@ def main() -> None:
                               "merged/deduped) and exit")
     parser.add_argument("--month", type=str, default=None,
                          help="fetch one specific month, e.g. 2022-01")
-    parser.add_argument("--out-dir", type=Path, default=DEFAULT_OUT_DIR,
-                         help=f"directory to download into (default: {DEFAULT_OUT_DIR})")
+    parser.add_argument("--out-dir", type=Path, default=None,
+                         help="directory to download into (default: DEFAULT_LIVE_OUT_DIR or "
+                              "DEFAULT_ARCHIVE_OUT_DIR based on which source served the month)")
     parser.add_argument("--force", action="store_true",
                          help="re-download and re-verify even if already present and verified locally")
     args = parser.parse_args()

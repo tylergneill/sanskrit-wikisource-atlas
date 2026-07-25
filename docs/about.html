@@ -114,12 +114,22 @@
           The main page of this mirror is regularly updated to reflect the latest monthly snapshot drawn from Wikimedia's own "Content File Export" dump for sa.wikisource.org.
         </p>
         <p>
-          By contrast, the historical changelog on this page (see "Data Quantity" section below) patches together three different source eras to cover as much of the wiki's history as possible: <ul>
-            <li class="small">2014-07 → 2022-05: convenient full dumps stored on Internet Archive</li>
-            <li class="small">2022-06 → 2025-10: synthetic dumps materialized from daily revision data stored on Wikimedia</li>
-            <li class="small">2025-11 → present: convenient full dumps stored on Wikimedia</li>
-          </ul>
-          For the materialized-era gap, no ready-made dump exists for those months at all — instead, a snapshot is reconstructed on demand from the full revision history: for a given cutoff date, each page's state is taken as its newest revision at or before that date.
+          By contrast, the historical changelog on this page (see "Data Quantity" section below) patches together five different source eras to cover as much of the wiki's history as possible, newest first:
+        </p>
+        <table class="sourceEraTable small">
+          <thead>
+            <tr><th>Era</th><th>From</th><th>To</th><th>Source</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>1</td><td>present</td><td><span id="era1Start">…</span> <span class="tag">rolling</span></td><td>newer Wikimedia "Content File" export format</td></tr>
+            <tr><td>2</td><td><span id="era2End">…</span> <span class="tag">rolling</span></td><td><span id="era2Start">…</span> <span class="tag">rolling</span></td><td>legacy Wikimedia export format</td></tr>
+            <tr><td>3</td><td><span id="era3Start">…</span> <span class="tag">rolling</span></td><td>2022-06 <span class="tag tag-fixed">fixed</span></td><td>synthetic, materialized from full Wikimedia revision history</td></tr>
+            <tr><td>4</td><td>2022-05 <span class="tag tag-fixed">fixed</span></td><td>2014-07 <span class="tag tag-fixed">fixed</span></td><td>legacy Wikimedia export format, stored on Internet Archive</td></tr>
+            <tr><td>5</td><td>2014-06 <span class="tag tag-fixed">fixed</span></td><td>2012-02 <span class="tag tag-fixed">fixed</span></td><td>synthetic, materialized from full Wikimedia revision history</td></tr>
+          </tbody>
+        </table>
+        <p>
+          For the two materialized-era gaps, no ready-made dump exists for those months at all — instead, a snapshot is reconstructed on demand from the full revision history: for a given cutoff date, each page's state is taken as its newest revision at or before that date. The changelog doesn't reach earlier than 2012-02, since sa.wikisource's category system (which this mirror's browsing structure depends on) didn't exist yet before 2012-01.
         </p>
 
         <h3>Pages, Texts, and Categories</h3>
@@ -1479,7 +1489,7 @@
       <details class="block collapsible">
         <summary><h2>Data Quantity: Historical Trends and Deltas</h2></summary>
         <p class="small">
-          Monthly deltas, patched together across three source eras — see "Snapshots" above for detail.
+          Monthly deltas, patched together across five source eras — see "Snapshots" above for detail.
         </p>
 
         <p class="small">

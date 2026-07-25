@@ -1,4 +1,5 @@
 const CHANGELOG_URL = "./data/changelog.json";
+const SOURCE_ERAS_URL = "./data/source_eras.json";
 
 const state = {
   scheme: "iast", // devanagari | iast | hk | itrans | slp1 | iso
@@ -563,6 +564,42 @@ function renderChangelogCharts() {
   });
 }
 
+// "YYYY-MM-01" -> "YYYY-MM-01" for the previous calendar month -- era 3
+// (materialized) ends the month before era 2's (legacy live-window) rolling
+// start, never the same month, since the two eras never overlap.
+function monthBefore(yyyyMmDd) {
+  const [y, m] = yyyyMmDd.split("-").map(Number);
+  const prevM = m === 1 ? 12 : m - 1;
+  const prevY = m === 1 ? y - 1 : y;
+  return `${prevY}-${String(prevM).padStart(2, "0")}-01`;
+}
+
+function fmtYearMonth(yyyyMmDd) {
+  return yyyyMmDd.slice(0, 7);
+}
+
+async function loadSourceEras() {
+  const era1El = document.getElementById("era1Start");
+  const era2StartEl = document.getElementById("era2Start");
+  const era2EndEl = document.getElementById("era2End");
+  const era3El = document.getElementById("era3Start");
+  if (!era1El && !era2StartEl && !era2EndEl && !era3El) return;
+  try {
+    const r = await fetch(SOURCE_ERAS_URL, { cache: "no-store" });
+    if (!r.ok) throw new Error(`${r.status}`);
+    const { era1_rolling_start, era2_rolling_start } = await r.json();
+    if (era1El && era1_rolling_start) era1El.textContent = fmtYearMonth(era1_rolling_start);
+    if (era2StartEl && era2_rolling_start) era2StartEl.textContent = fmtYearMonth(era2_rolling_start);
+    // era 2's newer end is where era 1 takes over, one month earlier -- the
+    // same boundary era 3's older end is computed from (see below), just
+    // read from the opposite side of the era-1/era-2 handoff.
+    if (era2EndEl && era1_rolling_start) era2EndEl.textContent = fmtYearMonth(monthBefore(era1_rolling_start));
+    if (era3El && era2_rolling_start) era3El.textContent = fmtYearMonth(monthBefore(era2_rolling_start));
+  } catch (e) {
+    console.log("Could not load source era boundaries:", e);
+  }
+}
+
 async function main() {
   const container = document.getElementById("changelog");
   const chartsContainer = document.getElementById("changelogCharts");
@@ -606,3 +643,4 @@ if (granularitySelect) {
 }
 
 main();
+loadSourceEras();

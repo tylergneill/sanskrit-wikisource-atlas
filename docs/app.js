@@ -244,12 +244,13 @@ function formatDate(iso) {
   return iso.slice(0, 7);
 }
 
-function formatStats(stats, { includeDate } = {}) {
+function formatStats(stats, { includeDate, includeCount } = {}) {
   if (!stats) return "";
   const size = formatBytes(contentSizeBytes(stats));
   if (!size) return "";
   const parts = [size];
   if (stats.text_count != null) parts.push(`${stats.text_count} ${stats.text_count === 1 ? "text" : "texts"}`);
+  if (includeCount && stats.count != null) parts.push(`${stats.count} ${stats.count === 1 ? "page" : "pages"}`);
   if (includeDate) {
     const date = formatDate(stats.last_changed);
     if (date) parts.push(date);
@@ -273,6 +274,8 @@ function renderSidebarTree() {
 
   const allRowEl = document.getElementById("allRow");
   if (allRowEl) {
+    const tooltipStatsText = formatStats(root.stats, { includeCount: true });
+    allRowEl.title = tooltipStatsText ? `All ${tooltipStatsText}` : "";
     allRowEl.classList.toggle("selected", state.selectedCatId == null || state.selectedCatId === root.id);
     allRowEl.onclick = (ev) => {
       if (isExpandAllGesture(ev)) {
@@ -346,7 +349,8 @@ function renderSidebarNode(catNode, depth) {
   const siblingLocations = siblings
     .map((sid) => (state.parentPath.get(sid) || []).map((t) => translitTextUncached(t)).join(" > "))
     .filter(Boolean);
-  const nameAndStats = statsText ? `${displayTitle(catNode.title, catNode.id)} ${statsText}` : displayTitle(catNode.title, catNode.id);
+  const tooltipStatsText = formatStats(catNode.stats, { includeCount: true });
+  const nameAndStats = tooltipStatsText ? `${displayTitle(catNode.title, catNode.id)} ${tooltipStatsText}` : displayTitle(catNode.title, catNode.id);
   const rowTitle = siblingLocations.length
     ? `Also filed under: ${siblingLocations.join("; ")}\n${nameAndStats}`
     : nameAndStats;

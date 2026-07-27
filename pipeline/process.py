@@ -400,6 +400,16 @@ def build_page_node(
 
     subpage_jsons = []
     for child in main_node.children:
+        if child.record.redirect_target is not None:
+            # A redirect stub isn't real content -- skip listing it, but its
+            # own real descendants (nested past it via "/", resolved through
+            # it by _resolve_redirect) still belong in the listing.
+            for grandchild in child.children:
+                grandchild_json, _ = build_page_node(
+                    grandchild, owning_cat_id, content_index, reverse_transclusion_map, index_ns_name,
+                )
+                subpage_jsons.append(grandchild_json)
+            continue
         child_json, _ = build_page_node(child, owning_cat_id, content_index, reverse_transclusion_map, index_ns_name)
         subpage_jsons.append(child_json)
 
@@ -551,6 +561,8 @@ def build_tree_json(
             main_node = main_nodes.get(page_title)
             if main_node is None:
                 continue  # not a Main record
+            if main_node.record.redirect_target is not None:
+                continue  # redirect stub -- a stray/incidental category tag doesn't make it real content
             if main_node.parent_title is not None:
                 parent_tags = content_index.main_categories.get(main_node.parent_title, set())
                 if title in parent_tags:
@@ -593,7 +605,14 @@ def build_tree_json(
     # itself reachable (in emitted_ids) -- unlike the old page-pointer scheme,
     # there's no "first-claimed-it" bookkeeping to consult here anymore, since
     # every reachable category independently re-emits its own direct tags.
-    orphan_main_titles = sorted(t for t, n in main_nodes.items() if n.parent_title is None)
+    # Redirect stubs are excluded here too, same reasoning as build_page_node's
+    # subpage skip above -- a redirect has no category tags of its own, so
+    # without this it would always be "reachable via zero tags" and get
+    # dumped into the orphan bucket as if it were real uncategorized content.
+    orphan_main_titles = sorted(
+        t for t, n in main_nodes.items()
+        if n.parent_title is None and n.record.redirect_target is None
+    )
     orphan_index_titles = sorted(
         t for t in content_index.index_categories if not is_transcluded(t, transclusion_map)
     )

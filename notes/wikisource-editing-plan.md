@@ -16,6 +16,34 @@ already fixed (`35489f1`) — subpages with their own diverging category tag
 now get their own independently reachable page node, same treatment
 top-level multi-tagged pages get.
 
+## Broken Commons transclusions (missing scan file)
+
+A separate, unrelated structural gap, now also surfaced live by
+`docs/about.html`'s audit section ("Transclusions broken due to removal of image file from Commons") — see that page for the current count/list.
+Found via manual spot-check (जातकपद्धतिः): the Index item's backing scan
+file (e.g. `File:जातकपद्धतिः.pdf`) has been deleted/lost from Commons, so
+the live wiki page renders completely empty (ProofreadPage's rendering
+depends on the file, not the already-stored leaf wikitext) even though the
+mirror still shows real content, since it reads leaf wikitext directly from
+the dump rather than depending on live file rendering. See
+`pipeline/audit.py`'s `find_broken_commons_transclusions` docstring for the
+detection mechanism (a live, batched Commons `action=query` check — not
+detectable from the dump alone).
+
+This is purely an on-wiki fix, not something the mirror pipeline can paper
+over:
+
+1. **Preferred**: someone re-uploads the missing scan file to Commons under
+   the same filename (a copy of the original PDF/DjVu may exist on
+   archive.org, in a personal backup, or via re-scanning the physical
+   source) — restores real transclusion immediately, with no wikitext
+   changes needed anywhere.
+2. **Fallback**, if the original file truly can't be recovered: manually
+   copy the stored leaf-page text into the Main page's own wikitext,
+   replacing the `<pages .../>` tag with the actual prose. Uglier and loses
+   page-by-page scan alignment (no more jumping to a specific scanned leaf
+   image), but preserves the readable text for visitors to the live wiki.
+
 ## Practical tooling / starting points for hand-editing
 
 - **Precedent to cite in edit summaries**: मनुस्मृतिः (Manusmṛti) is a

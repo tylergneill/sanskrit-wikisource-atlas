@@ -5,7 +5,7 @@ this tool never mutates wiki content, the dump, or docs/data/tree.json, and
 never applies any inference/correction of its own. See
 notes/wikisource-editing-plan.md for the editing campaign this feeds.
 
-Six independent checks, run over a single dump:
+Nine independent checks, run over a single dump:
 
 1. Breadcrumb-gap candidates: a top-level Main page T ("तन्त्रालोकः") that
    has other top-level pages sharing its title as a space-separated prefix
@@ -74,6 +74,20 @@ Six independent checks, run over a single dump:
    Panini-sutra links, or the puranastudy.*/vedastudy.* footnote-mirror
    farm) -- those aren't "this whole page came from there" signals.
 
+9. Broken Commons transclusions: an Index item transcluded into Main content
+   with real पृष्ठम्:Title/N leaf content in the dump, whose backing scan
+   file has been deleted/lost from Commons -- so the live wiki page renders
+   completely empty (ProofreadPage's rendering depends on the file, not the
+   already-stored leaf wikitext) even though the mirror shows real content,
+   since it reads leaf wikitext directly from the dump. See
+   notes/broken-transclusion-audit-research.md for the discovery (जातकपद्धतिः)
+   and why this is NOT detectable from the dump alone -- the file's absence
+   has zero footprint in stored wikitext, and MediaWiki's own live
+   maintenance category for it is injected at render time. The only check
+   in this module that hits the network: one batched Commons `action=query`
+   call per <=50 candidate Index titles, with retry/backoff since Commons
+   rate-limits back-to-back requests (confirmed live: HTTP 429).
+
 Usage:
     python -m pipeline.audit [xml_path]
     (defaults to the newest dump/sawikisource-*.xml, same convention as
@@ -98,8 +112,9 @@ from pipeline.build_tree import (
     orphaned_category_titles,
 )
 from pipeline.parse_dump import PageRecord, is_excluded_category, parse_dump
+from pipeline.process import _owning_index_title
 from pipeline.progress import to_iast
-from pipeline.transclusion import direct_categories, infer_root_categories
+from pipeline.transclusion import build_transclusion_map, direct_categories, infer_root_categories, is_transcluded
 
 # Domains confirmed (by manual spot-check against the 2026-07-01 dump) to host
 # machine-readable digitized Sanskrit text corpora, as opposed to sites that
@@ -290,6 +305,130 @@ def find_bulk_import_candidates(
     return candidates
 
 
+def find_broken_commons_transclusions(
+    dump_index,
+    main_records: list[PageRecord],
+) -> dict[str, tuple[int, str, str]]:
+    """Detects the "missing Commons file" pattern from
+    notes/broken-transclusion-audit-research.md: an Index item that IS
+    transcluded into Main-namespace content (so the mirror already folds its
+    leaves' real text into that Main page, per
+    process._augment_main_sizes_with_transclusion) and DOES have real
+    पृष्ठम्:Title/N leaf pages in the dump, but whose backing scan file no
+    longer exists on Commons -- so the live wiki renders the page as
+    completely empty (ProofreadPage's rendering depends on the file, not the
+    already-stored leaf wikitext) even though the mirror shows real content.
+
+    Confirmed (see the note) that this is NOT detectable from the dump alone:
+    resolve_transcluded_leaves() resolves such an Index's leaves just fine
+    (the file's absence has zero footprint in stored wikitext), and
+    MediaWiki's own live maintenance category for this is injected at render
+    time, invisible to a static XML dump. So this is the one check in this
+    module that hits the network: one batched Commons `action=query` call
+    per <=50 candidate Index titles (326 candidates on the 2026-07 dump ->
+    ~7 calls total), checking `missing` on the File: page, with retry/backoff
+    for Commons' rate limiting (confirmed live: HTTP 429 under back-to-back
+    requests).
+
+    Returns {index bare title: (leaf_count, first_leaf_title, last_leaf_title)}
+    for Index items confirmed to have a missing backing file. first ==
+    last when leaf_count == 1.
+    """
+    import time
+    import urllib.error
+    import urllib.parse
+    import urllib.request
+    import json as _json
+
+    page_ns_id = dump_index.page_ns_id()
+    if page_ns_id is None:
+        return {}
+    page_ns_name = dump_index.namespaces[page_ns_id]
+    all_page_records = dump_index.pages_by_ns.get(page_ns_id, [])
+
+    leaves_by_index: dict[str, list[str]] = {}
+    for rec in all_page_records:
+        owner = _owning_index_title(rec.title, page_ns_name)
+        if owner is not None:
+            leaves_by_index.setdefault(owner, []).append(rec.title)
+
+    transclusion_map = build_transclusion_map(main_records)
+    candidates = sorted(
+        idx for idx, leaves in leaves_by_index.items()
+        if leaves and is_transcluded(idx, transclusion_map)
+    )
+    if not candidates:
+        return {}
+
+    def leaf_sort_key(leaf_title: str) -> int:
+        suffix = leaf_title.rsplit("/", 1)[1] if "/" in leaf_title else ""
+        from pipeline.transclusion import leaf_number
+        n = leaf_number(suffix)
+        return n if n is not None else 0
+
+    missing_titles: set[str] = set()
+    batch_size = 50
+    for i in range(0, len(candidates), batch_size):
+        batch = candidates[i:i + batch_size]
+        titles_param = "|".join(f"File:{t}" for t in batch)
+        # POST, not GET: Devanagari titles URL-encode to ~3x their length, and
+        # a 50-title batch (this module's convention, matching the MediaWiki
+        # API's max titles-per-query) reliably blows past GET's URI-length
+        # limit (confirmed: HTTP 414 on real batches) -- POST puts the title
+        # list in the body instead, where there's no such limit.
+        body = urllib.parse.urlencode({
+            "action": "query",
+            "titles": titles_param,
+            "format": "json",
+            "formatversion": "2",
+        }).encode("utf-8")
+        req = urllib.request.Request(
+            "https://commons.wikimedia.org/w/api.php",
+            data=body,
+            headers={"User-Agent": (
+                "sanskrit-wikisource-mirror/2.0 "
+                "(https://github.com/tylergneill/sanskrit-wikisource-mirror; polite; research use)"
+            )},
+            method="POST",
+        )
+        # Commons rate-limits this endpoint (confirmed live: HTTP 429 under
+        # back-to-back batches with no delay) -- retried with backoff rather
+        # than silently skipped, since a skipped batch would silently
+        # undercount real hits (candidates in that batch never get checked
+        # at all) rather than just being slow.
+        data = None
+        for attempt in range(4):
+            try:
+                with urllib.request.urlopen(req, timeout=30) as resp:
+                    data = _json.load(resp)
+                break
+            except urllib.error.HTTPError as e:
+                if e.code == 429 and attempt < 3:
+                    time.sleep(2 ** attempt)
+                    continue
+                print(f"warning: Commons API request failed, skipping batch: {e}", file=sys.stderr)
+                break
+            except (urllib.error.URLError, TimeoutError) as e:
+                print(f"warning: Commons API request failed, skipping batch: {e}", file=sys.stderr)
+                break
+        if data is None:
+            continue
+        time.sleep(0.5)  # be polite to a shared public API even on success
+        for page in data.get("query", {}).get("pages", []):
+            if page.get("missing"):
+                title = page["title"]
+                if title.startswith("File:"):
+                    missing_titles.add(title[len("File:"):])
+
+    result = {}
+    for idx in missing_titles:
+        if idx not in leaves_by_index:
+            continue
+        ordered = sorted(leaves_by_index[idx], key=leaf_sort_key)
+        result[idx] = (len(ordered), ordered[0], ordered[-1])
+    return result
+
+
 def print_report(
     breadcrumb_candidates: dict[str, list[str]],
     inference_candidates: dict[str, set[str]],
@@ -299,6 +438,7 @@ def print_report(
     tagged_page_ns_items: dict[str, set[str]],
     multi_parented_categories: dict[str, list[str]],
     bulk_import_candidates: dict[str, set[str]],
+    broken_commons_transclusions: dict[str, tuple[int, str, str]],
 ) -> None:
     """All Devanagari data values (titles, category names) are transliterated
     to IAST before printing -- terminal-output-only, same convention as
@@ -398,6 +538,23 @@ def print_report(
     for title in sorted(bulk_import_candidates):
         domains = bulk_import_candidates[title]
         print(f"  {to_iast(title)}  -> {', '.join(sorted(domains))}")
+
+    print()
+    print("=" * 70)
+    print(f"BROKEN COMMONS TRANSCLUSIONS: {len(broken_commons_transclusions)}")
+    print("=" * 70)
+    print("(Index item is transcluded and has real leaf content in the dump,")
+    print(" but its backing scan file no longer exists on Commons -- the live")
+    print(" wiki page renders empty even though the mirror shows real content.)")
+    print()
+    for idx_title in sorted(broken_commons_transclusions):
+        leaf_count, first_leaf, last_leaf = broken_commons_transclusions[idx_title]
+        if leaf_count == 1:
+            print(f"  {to_iast(idx_title)}  -> 1 hidden leaf page, "
+                  f"{_wiki_url(first_leaf)}")
+        else:
+            print(f"  {to_iast(idx_title)}  -> {leaf_count} hidden leaf pages, "
+                  f"first: {_wiki_url(first_leaf)}, last: {_wiki_url(last_leaf)}")
 
 
 ABOUT_HTML_PATH = Path("docs/about.html")
@@ -526,7 +683,9 @@ def render_audit_html(
     category_cycles: list[list[str]],
     tagged_page_ns_items: dict[str, set[str]],
     bulk_import_candidates: dict[str, set[str]],
+    broken_commons_transclusions: dict[str, tuple[int, str, str]],
     cat_ns_name: str,
+    index_ns_name: str,
 ) -> str:
     """Renders the <ul> of dropdown bullets shown between the AUDIT markers
     in docs/about.html, one per pipeline.audit check, each populated with
@@ -600,6 +759,25 @@ def render_audit_html(
         "Page-namespace (पृष्ठम्) items wrongly carrying their own Category tag",
         len(tagged_page_ns_items),
         _findings_list(tagged_items),
+    ))
+
+    def _broken_commons_item(idx_title: str, leaf_count: int, first_leaf: str, last_leaf: str) -> str:
+        idx_link = _link(idx_title, f"{index_ns_name}:{idx_title}")
+        if leaf_count == 1:
+            leaf_link = f'<a href="{_wiki_url(first_leaf)}" target="_blank">1 hidden leaf page</a>'
+            return f"{idx_link} &rarr; {leaf_link}"
+        first_link = f'<a href="{_wiki_url(first_leaf)}" target="_blank">first</a>'
+        last_link = f'<a href="{_wiki_url(last_leaf)}" target="_blank">last</a>'
+        return f"{idx_link} &rarr; {leaf_count} hidden leaf pages, {first_link} and {last_link}"
+
+    broken_commons_items = [
+        _broken_commons_item(idx_title, leaf_count, first_leaf, last_leaf)
+        for idx_title, (leaf_count, first_leaf, last_leaf) in sorted(broken_commons_transclusions.items())
+    ]
+    bullets.append(_bullet(
+        "Transclusions broken due to removal of image file from Commons",
+        len(broken_commons_transclusions),
+        _findings_list(broken_commons_items),
     ))
 
     body = "\n".join(bullets)
@@ -678,6 +856,7 @@ def main() -> None:
     page_records = dump_index.pages_by_ns.get(page_ns_id, []) if page_ns_id is not None else []
     index_ns_id = dump_index.index_ns_id()
     index_records = dump_index.pages_by_ns.get(index_ns_id, []) if index_ns_id is not None else []
+    index_ns_name = dump_index.namespaces[index_ns_id] if index_ns_id is not None else ""
 
     main_nodes = build_main_tree(main_records)
 
@@ -706,17 +885,21 @@ def main() -> None:
     multi_parented_categories = find_multi_parented_categories(graph)
     bulk_import_candidates = find_bulk_import_candidates(main_records)
 
+    print("checking Commons for missing transcluded files...", file=sys.stderr)
+    broken_commons_transclusions = find_broken_commons_transclusions(dump_index, main_records)
+
     print_report(
         breadcrumb_candidates, inference_candidates,
         orphaned_categories, redlink_categories, category_cycles, tagged_page_ns_items,
         multi_parented_categories, bulk_import_candidates,
+        broken_commons_transclusions,
     )
 
     if args.update_about:
         new_ul_html = render_audit_html(
             breadcrumb_candidates, inference_candidates, multi_parented_categories,
             orphaned_categories, redlink_categories, category_cycles, tagged_page_ns_items,
-            bulk_import_candidates, cat_ns_name,
+            bulk_import_candidates, broken_commons_transclusions, cat_ns_name, index_ns_name,
         )
         update_about_html(new_ul_html)
         print(f"updated {ABOUT_HTML_PATH}", file=sys.stderr)

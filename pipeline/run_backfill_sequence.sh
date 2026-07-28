@@ -109,4 +109,14 @@ for ((i=0; i<${#REVERSED[@]}-1; i++)); do
   echo
 done
 
+# pipeline.update_source_eras (docs/data/source_eras.json, read by
+# docs/about.html's Snapshots section) does two live network lookups
+# against dumps.wikimedia.org/Internet Archive -- this used to run
+# unconditionally inside pipeline.backfill at the end of every step (~150+
+# times over a full sequence) even though neither rolling window's start
+# moves mid-sequence; it's a standalone concern now, run once here instead,
+# after the whole walk finishes.
+echo "updating source era boundaries..."
+python3 -m pipeline.update_source_eras
+
 echo "done."

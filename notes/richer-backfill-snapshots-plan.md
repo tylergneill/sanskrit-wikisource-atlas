@@ -112,14 +112,23 @@ largest/most expensive month by far — most historical months are smaller):
 the four `ContentIndex` fields (ints only, no text) plus a
 `redirect_target` map serialize to **4.8MB uncompressed / 0.7MB gzipped**
 as JSON. Compare to that same month's existing `tree-<date>.json` output
-snapshot (~34MB) and its source dump XML (~1.8GB). Across all 153 months
-(most far smaller than the current one), total added storage is on the
-order of a few hundred MB gzipped at the very most — trivial next to the
-~3.1GB `_backfill_snapshots/` already holds today.
+snapshot (~34MB) and its source dump XML (~1.8GB).
 
-(Category-namespace page bodies, if cached per option (a) above, would add
-very little — on the order of a few hundred KB per month given ~250
-categories total.)
+Both the new content cache AND the existing `tree-<date>.json` output
+snapshot are now written gzip-compressed by default (implemented — see
+"Implementation" below), so the actual per-month added cost is close to
+the gzipped figure, not the uncompressed one: ~0.7MB per month at the
+current/largest month, most historical months smaller. Across all 153
+months, that's on the order of ~50-100MB gzipped added — and since
+`tree-<date>.json` itself also now compresses (JSON with lots of repeated
+key names gzips well, typically 5-8x), gzipping BOTH file types nets out to
+a smaller `_backfill_snapshots/` + new cache dir combined footprint than
+the ~3.1GB `_backfill_snapshots/` alone held before this change,
+uncompressed.
+
+(Category-namespace page bodies, cached per option (a) above, add very
+little — on the order of a few hundred KB per month given ~250 categories
+total.)
 
 ### How this changes the fix-and-rebuild workflow
 
@@ -166,5 +175,73 @@ slow rebuild, and only for months actually affected.
 
 ## Status
 
-Plan only — nothing implemented yet. Revisit and turn into a task list
-when ready to build it.
+**Implemented.** Summary of what landed (differs from the plan sketch above
+in a few small ways, noted inline):
+
+- `pipeline/snapshot_io.py` (new): `write_json_gz`/`read_json_gz`/
+  `read_json_maybe_gz` — shared gzip-transparent JSON I/O used by both the
+  content cache and the tree snapshots.
+- `pipeline/content_cache.py` (new): `build_content_cache` (called right
+  after `compute_all_content_sizes`, while everything's still in memory) and
+  `rebuild_inputs_from_cache` (reconstructs `ContentIndex`, `CategoryGraph`,
+  `main_nodes`, and both transclusion maps purely from a cached
+  `content-<date>.json.gz`, no dump XML involved). Includes a
+  `schema_version` field (int, bumped on any structural change to the cache
+  shape) so a stale cache from before a future format change fails loudly
+  (`ValueError`) instead of silently miscomputing.
+  - Followed option (a) for the category graph: caches raw Category-namespace
+    page bodies (`{title: wikitext}`, ~250 entries) rather than pre-built
+    edges, so a future `build_category_graph`-level fix (not just
+    `build_tree_json`-level) can also replay from the same cache.
+  - Transclusion detection: rather than caching raw Main-page wikitext (which
+    the plan's own point was to avoid — that's the large stuff), each Main
+    page's cache entry stores the small *derived* result
+    (`transcluded_index_titles`, a regex scan) directly, alongside
+    `redirect_target` and `timestamp`. `_augment_main_sizes_with_transclusion`
+    (the `<pages from=/to=/>` byte-folding step) already ran before caching,
+    so its output is baked into the cached `main_sizes` — no need to redo it
+    on rebuild.
+- `pipeline/backfill.py`: `process_dump` now returns `(tree, content_cache)`.
+  `ensure_snapshot` writes both `tree-<date>.json.gz` and
+  `content-<date>.json.gz`. New `rebuild_tree_from_cache(date_str, ...)` does
+  the cheap-path rebuild (cache → `build_tree_json` → overwrite snapshot,
+  seconds not minutes). New `--rebuild-trees-only` CLI mode (implements the
+  "Scope not yet decided" question below in the affirmative): rebuilds trees
+  for `--months` (default: every month with an existing cache), then
+  recomputes every consecutive pair's diff and **overwrites in place** any
+  existing `docs/data/changelog.json` entry for that exact old/new date pair
+  (matched by `(old_date, date)`, same `id` preserved) — deliberately does
+  NOT skip-if-exists like a normal backfill run, since the whole point is
+  correcting stats already logged. Pairs with no existing changelog entry are
+  left alone (rebuilding trees doesn't invent new changelog transitions).
+  `_existing_snapshot_path` recognizes either `tree-<date>.json.gz` (new
+  default) or the older bare `tree-<date>.json` (already-backfilled months
+  from before this change) as "already built," so old snapshots aren't
+  silently reprocessed.
+- `pipeline/compare.py`: `build_report` reads via `read_json_maybe_gz`, so it
+  transparently diffs any mix of gzipped and legacy plain-JSON snapshots.
+- `pipeline/validate_materialization.py`: updated for `process_dump`'s new
+  tuple return and gzip-aware snapshot lookup (`_existing_snapshot_path`
+  instead of a hardcoded `.json` path).
+- Verified via a synthetic round-trip test (small hand-built `DumpIndex`
+  exercising a redirect chain, a multi-parent category, and
+  ProofreadPage transclusion): the tree built by the cache round-trip
+  (`build_content_cache` → gzip → `load_content_cache` →
+  `rebuild_inputs_from_cache` → `build_tree_json`) is byte-for-byte identical
+  to the tree built by the direct path. Also verified `--rebuild-trees-only`
+  end-to-end against a fake changelog entry seeded with wrong stats — the run
+  overwrote it in place with the correct recomputed diff, same `id`.
+
+Not yet done (still real work, left for whenever the fix that motivates it
+actually shows up):
+- **Retroactive cache build for the existing 153 already-backfilled months.**
+  They only have `tree-<date>.json` (uncompressed, no `.json.gz`, no content
+  cache) until a full backfill re-run passes over them again. Nothing forces
+  that re-run now — it only needs to happen once, whenever the next
+  `build_tree_json`-level fix actually lands and someone wants to propagate
+  it cheaply. Until then, `--rebuild-trees-only` simply has nothing to do for
+  those months (skipped with a warning, per `rebuild_tree_from_cache`'s
+  `FileNotFoundError` handling).
+- Re-verify `pipeline/validate_materialization.py`'s comparison logic end-to-
+  end against a real (non-synthetic) dump pair, since only the synthetic
+  round-trip test above has actually run so far.

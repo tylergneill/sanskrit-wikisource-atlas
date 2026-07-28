@@ -18,6 +18,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Dict, Tuple
 
+from pipeline.snapshot_io import read_json_maybe_gz
+
 STAT_KEYS = ("raw_bytes", "content_bytes", "transliterated_bytes")
 
 ORPHAN_BUCKET_TITLE = "असम्बद्धवर्गीकृतम्"
@@ -114,8 +116,8 @@ def added_removed(old_items: Dict[str, dict], new_items: Dict[str, dict]) -> Tup
 
 
 def build_report(old_path: Path, new_path: Path) -> dict:
-    old_data = json.loads(old_path.read_text())
-    new_data = json.loads(new_path.read_text())
+    old_data = read_json_maybe_gz(old_path)
+    new_data = read_json_maybe_gz(new_path)
 
     old_stats = old_data["root"].get("stats", {}) or {}
     new_stats = new_data["root"].get("stats", {}) or {}

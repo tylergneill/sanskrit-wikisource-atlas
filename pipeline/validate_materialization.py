@@ -27,6 +27,7 @@ from pathlib import Path
 from pipeline.backfill import (
     DEFAULT_MATERIALIZE_SRC_DIR,
     DEFAULT_SNAPSHOT_DIR,
+    _existing_snapshot_path,
     _ensure_materialized_month,
     process_dump,
 )
@@ -39,9 +40,9 @@ def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--dates", required=True,
                      help="comma-separated YYYY-MM-01 dates to validate, each of which must already "
-                          "have a real snapshot at --snapshot-dir/tree-<date>.json to diff against")
+                          "have a real snapshot at --snapshot-dir/tree-<date>.json[.gz] to diff against")
     ap.add_argument("--snapshot-dir", type=Path, default=DEFAULT_SNAPSHOT_DIR,
-                     help="where real (non-materialized) tree-<date>.json snapshots already live")
+                     help="where real (non-materialized) tree-<date>.json[.gz] snapshots already live")
     ap.add_argument("--validation-dir", type=Path, default=DEFAULT_VALIDATION_DIR,
                      help="scratch directory for materialized XML, processed snapshots, and reports "
                           "(gitignored; not cleaned up automatically, since these runs are infrequent "
@@ -66,13 +67,14 @@ def main() -> None:
         else:
             xml_path = _ensure_materialized_month(date_str, args.validation_dir, args.materialize_src_dir)
             print(f"processing materialized dump: {xml_path}")
-            tree_json = process_dump(xml_path, workers=args.workers)  # already {"root": ...}
+            tree_json, _content_cache = process_dump(xml_path, workers=args.workers)  # already {"root": ...}
             materialized_path.write_text(json.dumps(tree_json), encoding="utf-8")
             print(f"wrote {materialized_path}")
 
-        real_path = args.snapshot_dir / f"tree-{date_str}.json"
-        if not real_path.exists():
-            print(f"!! no real snapshot found at {real_path} -- skipping comparison", file=sys.stderr)
+        real_path = _existing_snapshot_path(date_str, args.snapshot_dir)
+        if real_path is None:
+            print(f"!! no real snapshot found for {date_str} under {args.snapshot_dir} -- skipping comparison",
+                  file=sys.stderr)
             continue
 
         print(f"comparing materialized vs real ({real_path})...")

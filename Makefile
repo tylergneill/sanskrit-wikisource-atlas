@@ -1,4 +1,4 @@
-.PHONY: refresh-dump refresh-dump-force process serve ngrok backfill audit audit-update-about
+.PHONY: refresh-dump refresh-dump-force process serve ngrok backfill rebuild-trees audit audit-update-about
 
 # Resolve the latest complete monthly dump export on dumps.wikimedia.org and
 # compare it against dump/: download/verify/decompress whatever's missing or
@@ -38,6 +38,19 @@ audit-update-about:
 # and already-logged changelog transitions are all skipped, not redone.
 backfill:
 	bash pipeline/run_backfill_sequence.sh --workers 10
+
+# Re-run build_tree_json against every month's already-cached content
+# (dump/_backfill_content_cache/content-<date>.json.gz) instead of
+# re-fetching/re-parsing dumps or re-running content-size computation --
+# for propagating a tree-assembly-logic fix (build_tree_json/
+# build_category_graph) into already-backfilled months cheaply. Also
+# re-diffs and overwrites the affected docs/data/changelog.json entries in
+# place. Months with no content cache yet (never backfilled since the cache
+# was introduced) are skipped with a warning, not erred on. Override which
+# months with e.g. `make rebuild-trees MONTHS="2022-06-01 2022-07-01"`
+# (default: every month with an existing content cache).
+rebuild-trees:
+	python -m pipeline.backfill --rebuild-trees-only $(if $(MONTHS),--months $(MONTHS))
 
 # Serve the frontend (docs/) locally, on port 8000 (http.server's default).
 serve:

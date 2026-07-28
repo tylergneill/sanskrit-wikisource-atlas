@@ -31,6 +31,7 @@ make refresh-dump         # download/verify/decompress the current monthly dump 
 make refresh-dump-force   # same, but force re-download/re-verify/re-decompress
 make process               # build docs/data/tree.json from the downloaded dump
 make backfill               # walk the full historical range, append to docs/data/changelog.json
+make rebuild-trees           # rebuild tree snapshots from cache + redo changelog, skipping dump reprocessing (MONTHS="..." to scope)
 make serve                 # serve docs/ locally on port 8000
 make ngrok                 # expose the local server via a public ngrok tunnel (for mobile testing)
 ```
@@ -115,6 +116,26 @@ For each month, `ensure_month` resolves an exact date to the right era (material
 `pipeline/run_backfill_sequence.sh` drives `pipeline.backfill` one month-pair at a time (so a failure on one pair doesn't lose earlier progress), starting from the newest anchored current-era month and walking backward through every legacy + materialized month. Safe to interrupt and rerun — already-fetched/materialized dumps, already-built snapshots, and already-logged changelog transitions are all skipped, not redone.
 
 `pipeline/backfill.py` deliberately does NOT write `docs/data/tree.json` or `docs/VERSION` — those reflect the live, current-month pipeline state, not a historical replay.
+
+`docs/data/source_eras.json` (read by `about.html`'s Snapshots section, to describe era 1/era 2's current live-rolling-window start dates) is refreshed by a separate module, `pipeline/update_source_eras.py`, not by `pipeline.backfill` itself — it does two live network lookups (~1 minute total) that have nothing to do with any particular month-pair, so folding it into every `pipeline.backfill` invocation would mean paying that cost on every one of `run_backfill_sequence.sh`'s 150+ per-step calls for no reason. `run_backfill_sequence.sh` runs it once, standalone, after its whole walk finishes.
+
+`pipeline/fetch_legacy.py`'s `list_available_months()` (merged live-rolling-window + Internet Archive month listing, used by `_ensure_legacy_month`, `default_months()`, `update_source_eras`, and `run_backfill_sequence.sh`'s own upfront `--list` call) is genuinely expensive — 2 listing requests plus one more request *per date* in each listing, dozens total, not just 2. Since `run_backfill_sequence.sh` spawns a fresh `python -m pipeline.backfill` subprocess per step, an in-memory cache wouldn't help; it's cached to disk instead (`dump/_fetch_legacy_months_cache.json`, 24h TTL — see `LIST_AVAILABLE_MONTHS_CACHE`/`LIST_AVAILABLE_MONTHS_CACHE_TTL`), so every caller across an entire `run_backfill_sequence.sh` walk shares one query instead of re-deriving the identical listing on every step. Pass `use_cache=False` (or `fetch_legacy --list --no-cache`) to force a fresh query.
+
+### Two on-disk layers per month, and what deleting each one triggers
+
+For each backfilled month, `ensure_snapshot` writes two separate gitignored, gzipped files under `dump/`, plus one shared, git-tracked output:
+
+- **`dump/_backfill_content_cache/content-<date>.json.gz`** (the *input* layer) — the small, cheap-to-derive-but-annoying-to-lose inputs `build_tree_json` needs: per-page byte counts (raw/content/transliterated — the output of `compute_all_content_sizes`, the genuinely slow step: `mwparserfromhell` parsing, template expansion, `skrutable` transliteration), category tags, redirect targets, timestamps, and transclusion results. See `pipeline/content_cache.py`.
+- **`dump/_backfill_snapshots/tree-<date>.json.gz`** (the *output* layer) — the fully assembled `tree.json`-shaped snapshot, same schema as `docs/data/tree.json`. What `pipeline/compare.py` actually diffs pairwise.
+- **`docs/data/changelog.json`** (git-tracked, not gitignored) — the append-only pairwise diffs between consecutive snapshots, keyed by `(old_date, date)`. This is the only one of the three that's committed and deployed.
+
+`ensure_snapshot` skips a month entirely (both the cache and the tree snapshot) if `tree-<date>.json[.gz]` already exists — so **deleting only the changelog does not trigger any dump reprocessing or snapshot rebuilding**: the next `pipeline.backfill` run (or the next still-running step of `run_backfill_sequence.sh`, since each step re-reads the changelog fresh) will instantly reuse every existing snapshot and just recompute+re-append the pairwise diffs from them (cheap — no XML parsing). One consequence worth knowing: since a missing changelog means `next_id` restarts at 1, entries added after the file was deleted/moved get id numbering that doesn't continue the old sequence — harmless for display (the changelog viewer sorts by `date`, not `id`), but a prior range of months whose entries were in the deleted file needs to be explicitly re-diffed to reappear (see `make rebuild-trees`, or a plain backfill run scoped with `--months` over that range — both cheap, since the snapshots those entries depend on already exist).
+
+Deleting `dump/_backfill_snapshots/*` (tree snapshots) forces a full reprocess for those months on the next plain `pipeline.backfill` run — it does NOT know to consult the content cache automatically; a bare rerun re-fetches and re-parses the dump from scratch regardless of whether a cache file is sitting right next to the deleted snapshot. To make it use the cache instead, pass `--rebuild-trees-only` (or `make rebuild-trees`, optionally scoped via `MONTHS="..."`) — this reads `content-<date>.json.gz`, re-runs only `build_tree_json` (seconds, not minutes), overwrites `tree-<date>.json.gz`, and then re-diffs and **overwrites in place** (matched by `(old_date, date)`, same `id` preserved) any existing changelog entry for that transition — deliberately not skip-if-exists, since the point is picking up corrected stats. This is the fast path for propagating a `build_tree_json`/`build_category_graph`-level logic fix (a rollup/dedup/assembly bug, e.g. the redirect-parenting or subpage-category-divergence fixes) across all 153+ already-backfilled months without waiting 8-10 hours.
+
+Only deleting `dump/_backfill_content_cache/*` (or a month simply predating this cache's introduction) forces the expensive path — `compute_all_content_sizes` reruns from a re-parsed dump XML. This is the one case there's no shortcut for; it's only actually needed for a bug in content-size computation itself (a byte-counting or transliteration defect), not a tree-assembly bug.
+
+In short: **to redo the changelog or the tree snapshots, delete them and rerun** (`--rebuild-trees-only`/`make rebuild-trees` for snapshots, to skip the slow step) — but if you delete tree snapshots and want the cheap rebuild, you must pass `--rebuild-trees-only` explicitly, since a bare rerun won't infer that from the cache's mere presence.
 
 ## Notes
 

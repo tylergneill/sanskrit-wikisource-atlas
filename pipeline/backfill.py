@@ -130,9 +130,11 @@ from typing import Callable
 from pipeline import fetch as fetch_mod
 from pipeline import fetch_legacy
 from pipeline.build_tree import build_category_graph, build_main_tree, refile_category
+from pipeline.content_cache import build_content_cache, load_content_cache, rebuild_inputs_from_cache, write_content_cache
 from pipeline.parse_dump import parse_dump
 from pipeline.process import build_tree_json, compute_all_content_sizes
-from pipeline.transclusion import build_transclusion_map
+from pipeline.snapshot_io import write_json_gz
+from pipeline.transclusion import build_reverse_transclusion_map, build_transclusion_map
 from pipeline.compare import build_report, print_summary
 
 # Below this date, months are fetched from the Internet Archive
@@ -142,27 +144,6 @@ from pipeline.compare import build_report, print_summary
 # even as the window itself slides forward -- see current_era_months() below
 # for the part that actually tracks "what's live right now".
 LEGACY_CUTOVER = "2026-05-01"
-
-
-def source_era_boundaries() -> dict[str, str]:
-    """Queries both live-rolling-window sources (mediawiki_content_current
-    via current_era_months, and fetch_legacy's live-window branch via
-    list_available_months) for their current rolling-start months --
-    docs/about.html's Snapshots section needs these two dates (era 1's and
-    era 2's own rolling starts) to describe the changelog's source eras
-    accurately, but neither is recoverable from changelog.json's entries
-    themselves (no per-entry provenance is recorded there), and neither is a
-    fixed date (both windows slide forward over time) -- so this is queried
-    fresh on every backfill run and written to a small sidecar file
-    (DEFAULT_SOURCE_ERAS, see main()) rather than guessed client-side."""
-    era1_months = current_era_months()
-    era1_start = min(era1_months) if era1_months else None
-
-    by_month = fetch_legacy.list_available_months()
-    live_months = [f"{ym}-01" for ym, dump in by_month.items() if dump.source == "live"]
-    era2_start = min(live_months) if live_months else None
-
-    return {"era1_rolling_start": era1_start, "era2_rolling_start": era2_start}
 
 
 def current_era_months() -> list[str]:
@@ -250,8 +231,8 @@ DEFAULT_LEGACY_ARCHIVE_DUMP_ROOT = Path(__file__).resolve().parent.parent / "dum
 DEFAULT_MATERIALIZED_GAP_B_ROOT = Path(__file__).resolve().parent.parent / "dump" / "5_materialized_2012_2014"
 DEFAULT_MATERIALIZE_SRC_DIR = Path(__file__).resolve().parent.parent / "dump" / "_materialize_src"
 DEFAULT_SNAPSHOT_DIR = Path(__file__).resolve().parent.parent / "dump" / "_backfill_snapshots"
+DEFAULT_CONTENT_CACHE_DIR = Path(__file__).resolve().parent.parent / "dump" / "_backfill_content_cache"
 DEFAULT_CHANGELOG = Path(__file__).resolve().parent.parent / "docs" / "data" / "changelog.json"
-DEFAULT_SOURCE_ERAS = Path(__file__).resolve().parent.parent / "docs" / "data" / "source_eras.json"
 
 
 def _is_gap_a(date_str: str) -> bool:
@@ -303,18 +284,23 @@ class RootCategoryMissing(Exception):
     snapshot for," skipping the month rather than crashing the whole run."""
 
 
-def process_dump(xml_path: Path, workers: int | None = None) -> dict:
-    """Same sequence as process.py's main(), minus writing docs/tree.json
-    or stamping docs/VERSION -- returns the tree dict in memory instead."""
+def process_dump(xml_path: Path, workers: int | None = None) -> tuple[dict, dict]:
+    """Same sequence as process.py's main(), minus writing docs/tree.json or
+    stamping docs/VERSION -- returns (tree, content_cache) in memory instead.
+    content_cache is the small cache of build_tree_json's inputs (see
+    pipeline.content_cache) that lets a future build_tree_json-only logic fix
+    skip re-running the expensive steps below (parse_dump, compute_all_content_sizes)."""
     print(f"parsing {xml_path}", file=sys.stderr)
     dump_index = parse_dump(xml_path)
     cat_ns_name = dump_index.namespaces[dump_index.category_ns_id()]
 
     print("building Main-namespace tree...", file=sys.stderr)
-    main_nodes = build_main_tree(dump_index.pages_by_ns[0])
+    main_records = dump_index.pages_by_ns[0]
+    main_nodes = build_main_tree(main_records)
 
     print("building category graph...", file=sys.stderr)
-    graph = build_category_graph(dump_index.pages_by_ns[14], cat_ns_name)
+    category_records = dump_index.pages_by_ns[14]
+    graph = build_category_graph(category_records, cat_ns_name)
     if graph.root_title not in graph.nodes:
         raise RootCategoryMissing(
             f"root category '{graph.root_title}' not found in {xml_path} -- "
@@ -324,7 +310,8 @@ def process_dump(xml_path: Path, workers: int | None = None) -> dict:
     refile_category(graph, "धर्मशास्त्रम्", new_parent_title="ग्रन्थाः", old_parent_title=graph.root_title)
 
     print("building transclusion map...", file=sys.stderr)
-    transclusion_map = build_transclusion_map(dump_index.pages_by_ns[0])
+    transclusion_map = build_transclusion_map(main_records)
+    reverse_transclusion_map = build_reverse_transclusion_map(main_records)
 
     print("computing content sizes (this is the slow step)...", file=sys.stderr)
     content_index = compute_all_content_sizes(
@@ -332,7 +319,9 @@ def process_dump(xml_path: Path, workers: int | None = None) -> dict:
     )
 
     print("assembling tree...", file=sys.stderr)
-    return build_tree_json(dump_index, graph, main_nodes, transclusion_map, content_index)
+    tree = build_tree_json(dump_index, graph, main_nodes, transclusion_map, content_index, reverse_transclusion_map)
+    content_cache = build_content_cache(dump_index, content_index, main_records, category_records)
+    return tree, content_cache
 
 
 def default_months() -> list[str]:
@@ -442,6 +431,25 @@ def _ensure_materialize_source(materialize_src_dir: Path) -> Path:
     return dest
 
 
+def _is_complete_materialized_xml(path: Path) -> bool:
+    """A materialize_snapshots.py output is only trustworthy if it was fully
+    written -- SnapshotWriter.close() now writes to the real path via an
+    atomic rename (see that class), but a file materialized before that fix
+    landed could still be sitting on disk, truncated (interrupted mid-write,
+    file present but incomplete). Cheap check: the closing </mediawiki> tag
+    is only ever written by close(), right before the rename, so its
+    presence at the tail of the file is a reliable completeness signal
+    without re-parsing the whole XML."""
+    try:
+        size = path.stat().st_size
+        with open(path, "rb") as f:
+            f.seek(max(0, size - 64))
+            tail = f.read()
+        return b"</mediawiki>" in tail
+    except OSError:
+        return False
+
+
 def _ensure_materialized_month(
     date_str: str, materialized_dump_root: Path, materialize_src_dir: Path
 ) -> Path:
@@ -451,13 +459,22 @@ def _ensure_materialized_month(
     cleanup_raw_dump deletes it right after its tree.json snapshot is
     written (see module docstring). Returns the existing output directly if
     this date was already materialized and not yet cleaned up (e.g. a
-    resumed run)."""
+    resumed run) AND it looks complete (see _is_complete_materialized_xml)
+    -- an incomplete file found on disk (e.g. from before
+    SnapshotWriter's atomic-rename fix) is deleted and regenerated rather
+    than silently reused, since a truncated file merely being present used
+    to pass this check and crash pipeline.parse_dump much later, deep into
+    a backfill sequence."""
     day8 = date_str.replace("-", "")
     item_dir = materialized_dump_root / date_str
     existing = sorted(item_dir.glob(f"sawikisource-{day8}-pages-articles.synth.xml")) if item_dir.exists() else []
     if existing:
-        print(f"{date_str}: already materialized -> {existing[0]}", file=sys.stderr)
-        return existing[0]
+        if _is_complete_materialized_xml(existing[0]):
+            print(f"{date_str}: already materialized -> {existing[0]}", file=sys.stderr)
+            return existing[0]
+        print(f"{date_str}: found incomplete materialized XML at {existing[0]} -- deleting and regenerating",
+              file=sys.stderr)
+        existing[0].unlink()
 
     src_bz2 = _ensure_materialize_source(materialize_src_dir)
     item_dir.mkdir(parents=True, exist_ok=True)
@@ -519,35 +536,144 @@ def cleanup_raw_dump(
             print(f"{date_str}: deleted raw dump -> {d}", file=sys.stderr)
 
 
+def _existing_snapshot_path(date_str: str, snapshot_dir: Path) -> Path | None:
+    """A month's snapshot may exist as either tree-<date>.json.gz (current
+    default) or the older, uncompressed tree-<date>.json (written before
+    gzip-by-default landed) -- either counts as "already built" for resume
+    purposes. Prefers the gzipped path if somehow both exist."""
+    gz_path = snapshot_dir / f"tree-{date_str}.json.gz"
+    if gz_path.exists():
+        return gz_path
+    plain_path = snapshot_dir / f"tree-{date_str}.json"
+    if plain_path.exists():
+        return plain_path
+    return None
+
+
 def ensure_snapshot(
     date_str: str,
     get_xml_path: Callable[[], Path],
     snapshot_dir: Path,
     workers: int | None,
+    content_cache_dir: Path = DEFAULT_CONTENT_CACHE_DIR,
 ) -> Path:
     """get_xml_path is called (triggering ensure_month's fetch/decompress)
     only if a snapshot doesn't already exist and can't be reused from the
     live tree either -- so an already-completed month's raw dump, which
     cleanup_raw_dump deletes right after its snapshot is written, is never
-    re-fetched on a resumed run just to be thrown away again."""
-    snapshot_path = snapshot_dir / f"tree-{date_str}.json"
-    if snapshot_path.exists():
-        print(f"{date_str}: snapshot already built -> {snapshot_path}", file=sys.stderr)
-        return snapshot_path
+    re-fetched on a resumed run just to be thrown away again.
+
+    Writes both tree-<date>.json.gz (the assembled tree, what pipeline.compare
+    diffs) and content-<date>.json.gz (see pipeline.content_cache -- the
+    small cache of build_tree_json's inputs, letting a future
+    build_tree_json-only fix skip re-parsing the dump and re-running
+    compute_all_content_sizes). Both are gzipped by default -- see
+    notes/richer-backfill-snapshots-plan.md -- since 153 months of either
+    adds up at full size and neither is ever read partially."""
+    existing = _existing_snapshot_path(date_str, snapshot_dir)
+    if existing is not None:
+        print(f"{date_str}: snapshot already built -> {existing}", file=sys.stderr)
+        return existing
+
+    snapshot_path = snapshot_dir / f"tree-{date_str}.json.gz"
     if date_str == _live_content_version() and LIVE_TREE_JSON.exists():
         print(f"{date_str}: matches live docs/data/tree.json's __content_version__, reusing it "
               f"instead of reprocessing", file=sys.stderr)
-        snapshot_dir.mkdir(parents=True, exist_ok=True)
-        snapshot_path.write_text(LIVE_TREE_JSON.read_text(encoding="utf-8"), encoding="utf-8")
+        tree = json.loads(LIVE_TREE_JSON.read_text(encoding="utf-8"))
+        write_json_gz(snapshot_path, tree)
         return snapshot_path
+
     xml_path = get_xml_path()
-    tree = process_dump(xml_path, workers=workers)
-    snapshot_dir.mkdir(parents=True, exist_ok=True)
-    with open(snapshot_path, "w", encoding="utf-8") as f:
-        json.dump(tree, f, ensure_ascii=False, separators=(",", ":"))
+    tree, content_cache = process_dump(xml_path, workers=workers)
+    write_json_gz(snapshot_path, tree)
     print(f"{date_str}: wrote snapshot -> {snapshot_path}", file=sys.stderr)
     print(f"{date_str}: root stats: {tree['root']['stats']}", file=sys.stderr)
+
+    content_cache_path = content_cache_dir / f"content-{date_str}.json.gz"
+    write_content_cache(content_cache_path, content_cache)
+    print(f"{date_str}: wrote content cache -> {content_cache_path}", file=sys.stderr)
     return snapshot_path
+
+
+def rebuild_tree_from_cache(date_str: str, snapshot_dir: Path, content_cache_dir: Path) -> Path:
+    """Rebuilds tree-<date>.json.gz from its cached content-<date>.json.gz,
+    skipping parse_dump and compute_all_content_sizes entirely -- for
+    propagating a build_tree_json/build_category_graph-level logic fix into
+    already-backfilled months without a full slow rebuild. Overwrites
+    whatever snapshot already exists (that's the point). Raises FileNotFoundError
+    if no content cache exists for this month (never backfilled since the
+    cache was introduced -- needs a full `ensure_snapshot` run instead)."""
+    content_cache_path = content_cache_dir / f"content-{date_str}.json.gz"
+    if not content_cache_path.exists():
+        raise FileNotFoundError(
+            f"no content cache for {date_str} at {content_cache_path} -- "
+            f"run a full backfill for this month first"
+        )
+    cache = load_content_cache(content_cache_path)
+    inputs = rebuild_inputs_from_cache(cache)
+    refile_category(inputs.graph, "धर्मशास्त्रम्", new_parent_title="ग्रन्थाः", old_parent_title=inputs.graph.root_title)
+
+    tree = build_tree_json(
+        inputs.dump_index, inputs.graph, inputs.main_nodes,
+        inputs.transclusion_map, inputs.content_index, inputs.reverse_transclusion_map,
+    )
+    snapshot_path = snapshot_dir / f"tree-{date_str}.json.gz"
+    write_json_gz(snapshot_path, tree)
+    print(f"{date_str}: rebuilt snapshot from content cache -> {snapshot_path}", file=sys.stderr)
+    print(f"{date_str}: root stats: {tree['root']['stats']}", file=sys.stderr)
+    return snapshot_path
+
+
+def _main_rebuild_trees_only(args: argparse.Namespace) -> None:
+    """--rebuild-trees-only entry point: rebuild tree-<date>.json.gz for each
+    requested month from its cached content-<date>.json.gz (see
+    rebuild_tree_from_cache), then recompute every consecutive pair's diff
+    among those months and OVERWRITE (not skip) any existing changelog entry
+    for that exact old/new date pair -- the whole point is picking up
+    corrected stats for transitions already in the changelog. Months with no
+    content cache are skipped with a warning (never backfilled since the
+    cache was introduced)."""
+    content_cache_dir: Path = args.content_cache_dir
+    months = args.months if args.months is not None else sorted(
+        p.name.removeprefix("content-").removesuffix(".json.gz")
+        for p in content_cache_dir.glob("content-*.json.gz")
+    )
+
+    rebuilt_by_date: dict[str, Path] = {}
+    for date_str in sorted(months):
+        try:
+            rebuilt_by_date[date_str] = rebuild_tree_from_cache(date_str, args.snapshot_dir, content_cache_dir)
+        except FileNotFoundError as e:
+            print(f"{date_str}: {e} -- skipping", file=sys.stderr)
+
+    ordered_months = sorted(rebuilt_by_date)
+    if args.changelog.exists():
+        log = json.loads(args.changelog.read_text())
+    else:
+        log = []
+    entries_by_pair = {(e.get("old_date"), e.get("date")): e for e in log}
+
+    for old_date, new_date in zip(ordered_months, ordered_months[1:]):
+        old_iso, new_iso = f"{old_date}T00:00:00Z", f"{new_date}T00:00:00Z"
+        pair = (old_iso, new_iso)
+        if pair not in entries_by_pair:
+            # Not a transition the changelog tracks (e.g. these two months
+            # aren't actually adjacent in the full backfilled sequence) --
+            # rebuilding trees doesn't imply inventing new changelog entries.
+            continue
+
+        print(f"\n=== recomputing {old_date} -> {new_date} ===", file=sys.stderr)
+        report = build_report(rebuilt_by_date[old_date], rebuilt_by_date[new_date])
+        print_summary(report)
+
+        existing_entry = entries_by_pair[pair]
+        existing_entry.update(report)
+        print(f"updated changelog entry #{existing_entry.get('id')}", file=sys.stderr)
+
+    log.sort(key=lambda e: e["date"])
+    args.changelog.parent.mkdir(parents=True, exist_ok=True)
+    args.changelog.write_text(json.dumps(log, indent=2, ensure_ascii=False) + "\n")
+    print(f"\nwrote {args.changelog}", file=sys.stderr)
 
 
 def main() -> None:
@@ -578,17 +704,30 @@ def main() -> None:
                           "in, auto-downloaded once on first need and reused for every materialized month")
     ap.add_argument("--snapshot-dir", type=Path, default=DEFAULT_SNAPSHOT_DIR,
                      help="where to write per-month tree.json-shaped snapshots (gitignored, throwaway)")
+    ap.add_argument("--content-cache-dir", type=Path, default=DEFAULT_CONTENT_CACHE_DIR,
+                     help="where to write/read per-month content caches (see pipeline.content_cache) -- "
+                          "gitignored, lets a build_tree_json-only fix skip re-parsing the dump and "
+                          "re-running the slow content-size computation")
     ap.add_argument("--changelog", type=Path, default=DEFAULT_CHANGELOG,
                      help="changelog.json to append pairwise diffs to")
-    ap.add_argument("--source-eras", type=Path, default=DEFAULT_SOURCE_ERAS,
-                     help="sidecar JSON to write era 1/2's live rolling-start dates to, for "
-                          "docs/about.html's Snapshots section (see source_era_boundaries)")
     ap.add_argument("--workers", type=int, default=None, help="worker processes for content-size computation")
     ap.add_argument("--keep-raw-dumps", action="store_true",
                      help="don't delete each month's raw dump (.xml/.bz2) after its snapshot is written -- "
                           "by default, raw dumps are deleted immediately since the snapshot is all that's "
                           "ever needed afterward (see cleanup_raw_dump)")
+    ap.add_argument("--rebuild-trees-only", action="store_true",
+                     help="for each of --months (default: every month with an existing content cache), "
+                          "rebuild tree-<date>.json.gz from its cached content-<date>.json.gz instead of "
+                          "fetching/reparsing anything -- for propagating a build_tree_json/"
+                          "build_category_graph-level logic fix into already-backfilled months. Then "
+                          "re-diffs and rewrites docs/data/changelog.json from the corrected snapshots, "
+                          "same as a normal run. Months with no cached content (backfilled before the "
+                          "cache existed) are skipped with a warning, not erred on.")
     args = ap.parse_args()
+
+    if args.rebuild_trees_only:
+        _main_rebuild_trees_only(args)
+        return
 
     months = args.months if args.months is not None else default_months()
 
@@ -607,7 +746,7 @@ def main() -> None:
             args.materialized_gap_a_root, args.materialized_gap_b_root, args.materialize_src_dir,
         )
         try:
-            snapshot_path = ensure_snapshot(date_str, get_xml_path, args.snapshot_dir, args.workers)
+            snapshot_path = ensure_snapshot(date_str, get_xml_path, args.snapshot_dir, args.workers, args.content_cache_dir)
         except RootCategoryMissing as e:
             # Too early in sa.wikisource's history for this mirror's tree
             # model (see RootCategoryMissing) -- skip this month rather than
@@ -660,11 +799,6 @@ def main() -> None:
         args.changelog.parent.mkdir(parents=True, exist_ok=True)
         args.changelog.write_text(json.dumps(log, indent=2, ensure_ascii=False) + "\n")
         print(f"appended changelog entry #{next_id}", file=sys.stderr)
-
-    boundaries = source_era_boundaries()
-    args.source_eras.parent.mkdir(parents=True, exist_ok=True)
-    args.source_eras.write_text(json.dumps(boundaries, indent=2, ensure_ascii=False) + "\n")
-    print(f"wrote source era boundaries -> {args.source_eras}: {boundaries}", file=sys.stderr)
 
 
 if __name__ == "__main__":

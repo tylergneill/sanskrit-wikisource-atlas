@@ -167,14 +167,26 @@ def serialize(elem: ET.Element) -> str:
 
 
 class SnapshotWriter:
-    """One output file per cutoff; header written lazily, footer on close."""
+    """One output file per cutoff; header written lazily, footer on close.
+
+    Writes to a .tmp sibling of the final path and only renames it into
+    place inside close(), once the closing </mediawiki> tag has actually
+    been written -- so a run interrupted (killed, crashed, machine sleep)
+    anywhere between __init__ and close() leaves at most a stray .tmp file
+    at the real output path, never a truncated file that LOOKS finished.
+    Confirmed live: a truncated 2023-01-01 materialized XML (cut off
+    mid-page, no closing tag) was silently reused by a later
+    _ensure_materialized_month run (it only checks file existence, not
+    completeness) and crashed pipeline.parse_dump 42 steps into a backfill
+    sequence."""
 
     def __init__(self, cutoff: datetime, outdir: Path, dbname: str, compress: bool):
         self.cutoff = cutoff
         stem = f"{dbname}-{cutoff.strftime('%Y%m%d')}-pages-articles.synth.xml"
         self.path = outdir / (stem + (".bz2" if compress else ""))
-        self._fh = (bz2.open(self.path, "wt", encoding="utf-8") if compress
-                    else open(self.path, "w", encoding="utf-8"))
+        self._tmp_path = self.path.with_suffix(self.path.suffix + ".tmp")
+        self._fh = (bz2.open(self._tmp_path, "wt", encoding="utf-8") if compress
+                    else open(self._tmp_path, "w", encoding="utf-8"))
         self.pages = 0
 
     def write_header(self, mediawiki_open: str, siteinfo_xml: str):
@@ -189,6 +201,7 @@ class SnapshotWriter:
     def close(self):
         self._fh.write("</mediawiki>\n")
         self._fh.close()
+        self._tmp_path.rename(self.path)
 
 
 def build_page_xml(title, ns, page_id, rev_elem, ns_uri) -> str:

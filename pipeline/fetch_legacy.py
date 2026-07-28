@@ -44,10 +44,12 @@ from __future__ import annotations
 import argparse
 import bz2
 import hashlib
+import json
 import re
 import shutil
 import sys
-from dataclasses import dataclass
+import time
+from dataclasses import asdict, dataclass
 from pathlib import Path
 
 import requests
@@ -65,6 +67,23 @@ LIVE_BASE_URL = "https://dumps.wikimedia.org/sawikisource"
 # based on dump.source when out_dir isn't explicitly overridden.
 DEFAULT_LIVE_OUT_DIR = Path(__file__).resolve().parent.parent / "dump" / "2_legacy_format_live"
 DEFAULT_ARCHIVE_OUT_DIR = Path(__file__).resolve().parent.parent / "dump" / "4_legacy_format_archive"
+
+# list_available_months() is genuinely expensive -- 2 listing requests plus
+# one more find_*_snapshot request PER DATE in each listing (each fetching
+# that date's own md5sums.txt or IA metadata JSON for its digest), dozens of
+# requests total. It used to be re-run from scratch by every caller: once
+# up front by run_backfill_sequence.sh (`fetch_legacy --list`), again inside
+# EVERY per-step `python -m pipeline.backfill` subprocess (_ensure_legacy_month,
+# whenever that step's month wasn't already fetched -- fresh process each
+# time, so no in-memory cache survives between steps), and again by
+# pipeline.update_source_eras at the end -- all computing the identical
+# by_month dict, since neither source's listing changes meaningfully within
+# one backfill run. Cached to disk (not just in-process) so it survives
+# across the many separate subprocesses a full run_backfill_sequence.sh walk
+# spawns. TTL is short enough that a rerun the next day (a genuinely new
+# month may have appeared) still refreshes for free.
+LIST_AVAILABLE_MONTHS_CACHE = Path(__file__).resolve().parent.parent / "dump" / "_fetch_legacy_months_cache.json"
+LIST_AVAILABLE_MONTHS_CACHE_TTL = 24 * 3600  # seconds -- a run_backfill_sequence.sh walk can span this long
 
 USER_AGENT = (
     "sanskrit-wikisource-mirror/2.0 "
@@ -214,12 +233,41 @@ def one_per_month(dates: list[str]) -> dict[str, str]:
     return by_month
 
 
-def list_available_months() -> dict[str, LegacyDump]:
+def _load_months_cache() -> dict[str, LegacyDump] | None:
+    if not LIST_AVAILABLE_MONTHS_CACHE.exists():
+        return None
+    try:
+        payload = json.loads(LIST_AVAILABLE_MONTHS_CACHE.read_text(encoding="utf-8"))
+    except (json.JSONDecodeError, OSError):
+        return None
+    if time.time() - payload.get("cached_at", 0) > LIST_AVAILABLE_MONTHS_CACHE_TTL:
+        return None
+    return {ym: LegacyDump(**fields) for ym, fields in payload.get("by_month", {}).items()}
+
+
+def _write_months_cache(by_month: dict[str, LegacyDump]) -> None:
+    LIST_AVAILABLE_MONTHS_CACHE.parent.mkdir(parents=True, exist_ok=True)
+    payload = {"cached_at": time.time(), "by_month": {ym: asdict(d) for ym, d in by_month.items()}}
+    LIST_AVAILABLE_MONTHS_CACHE.write_text(json.dumps(payload, ensure_ascii=False), encoding="utf-8")
+
+
+def list_available_months(use_cache: bool = True) -> dict[str, LegacyDump]:
     """Query both sources and return one LegacyDump per available month
     ({"YYYY-MM": LegacyDump}), live-rolling-window preferred over Internet
     Archive when both have an entry for the same month (see module
     docstring). This is the single entry point pipeline.backfill should use
-    -- it never needs to know which underlying source served a given month."""
+    -- it never needs to know which underlying source served a given month.
+
+    Genuinely expensive (dozens of requests, not just the 2 listing calls --
+    see LIST_AVAILABLE_MONTHS_CACHE above), so results are cached to disk by
+    default across the many separate subprocesses one run_backfill_sequence.sh
+    walk spawns. Pass use_cache=False to force a fresh query (e.g. `fetch_legacy
+    --list --no-cache` when you specifically want up-to-the-minute results)."""
+    if use_cache:
+        cached = _load_months_cache()
+        if cached is not None:
+            return cached
+
     live_dates = [_identifier_to_date(f"{IDENTIFIER_PREFIX}{d}") for d in list_live_snapshots()]
     archive_identifiers = list_archive_snapshots()
     archive_dates = [_identifier_to_date(i) for i in archive_identifiers]
@@ -238,6 +286,8 @@ def list_available_months() -> dict[str, LegacyDump]:
         if dump is not None:
             by_month[ym] = dump  # overwrite: live wins over archive for the same month
 
+    if use_cache:
+        _write_months_cache(by_month)
     return by_month
 
 
@@ -325,10 +375,13 @@ def main() -> None:
                               "DEFAULT_ARCHIVE_OUT_DIR based on which source served the month)")
     parser.add_argument("--force", action="store_true",
                          help="re-download and re-verify even if already present and verified locally")
+    parser.add_argument("--no-cache", action="store_true",
+                         help="bypass the disk cache (dump/_fetch_legacy_months_cache.json, "
+                              f"TTL {LIST_AVAILABLE_MONTHS_CACHE_TTL // 3600}h) and query both sources fresh")
     args = parser.parse_args()
 
     if args.list:
-        by_month = list_available_months()
+        by_month = list_available_months(use_cache=not args.no_cache)
         for ym in sorted(by_month):
             dump = by_month[ym]
             print(f"{ym}\t{dump.date}\t{dump.source}")
@@ -338,7 +391,7 @@ def main() -> None:
     if args.month is None:
         parser.error("--month is required unless --list is given")
 
-    by_month = list_available_months()
+    by_month = list_available_months(use_cache=not args.no_cache)
     dump = by_month.get(args.month)
     if dump is None:
         raise RuntimeError(f"no legacy snapshot found for month {args.month}")

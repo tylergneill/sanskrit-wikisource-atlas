@@ -10,6 +10,11 @@
   --row-selected: rgba(102,163,255,0.18);
   --row-shared-highlight: rgba(255,196,102,0.18);
   --row-shared-highlight-strong: rgba(255,196,102,0.4);
+  --series-1: #3987e5;
+  --series-2: #d95926;
+  --series-3: #199e70;
+  --series-4: #c98500;
+  --surface-uncovered: #222b36;
 }
 
 :root[data-theme="light"]{
@@ -24,6 +29,11 @@
   --row-selected: rgba(36,100,199,0.14);
   --row-shared-highlight: rgba(199,130,36,0.16);
   --row-shared-highlight-strong: rgba(199,130,36,0.4);
+  --series-1: #2a78d6;
+  --series-2: #eb6834;
+  --series-3: #1baf7a;
+  --series-4: #eda100;
+  --surface-uncovered: #d7dde3;
 }
 
 * { box-sizing: border-box; }
@@ -826,38 +836,88 @@ a[target="_blank"]::after{
 .chart-wrap{
   position: relative;
 }
-.sourceEraTable{
-  border-collapse: collapse;
-  width: auto;
-  margin: 10px 0;
-  border: 1px solid var(--border);
+.sourceTimeline{
+  position: relative;
+  margin: 14px 0 10px;
+  max-width: 100%;
 }
-.sourceEraTable th, .sourceEraTable td{
-  text-align: left !important;
-  vertical-align: top;
-  padding: 8px 14px;
-  border: 1px solid var(--border);
-  white-space: nowrap;
+.sourceTimelineRow{
+  display: flex;
+  align-items: stretch;
 }
-.sourceEraTable th{
-  color: var(--muted);
-  font-weight: 600;
+.sourceTimelinePre{
+  flex: none;
+  width: 28px;
+  height: 28px;
+  margin-right: 2px; /* surface gap, same as between two real segments */
+  border-radius: 4px 0 0 4px;
+  background: var(--surface-uncovered);
+  cursor: default;
+}
+.sourceTimelineBar{
+  position: relative;
+  display: flex;
+  flex: 1 1 auto;
+  min-width: 0;
+  height: 28px;
+  border-radius: 0 4px 4px 0;
+  overflow: hidden;
   background: var(--panel2);
 }
-.sourceEraTable td:last-child, .sourceEraTable th:last-child{
-  white-space: normal;
+.sourceTimelineSeg{
+  position: relative;
+  height: 100%;
+  margin-right: 2px; /* surface gap between touching segments */
+  cursor: default;
 }
-.sourceEraTable .tag{
-  display: inline-block;
-  font-size: 11px;
+.sourceTimelineSeg:last-child{ margin-right: 0; }
+.sourceTimelineAxis{
+  position: relative;
+  height: 16px;
+  margin-top: 4px;
+  font-size: 12px;
   color: var(--muted);
-  border: 1px solid var(--border);
-  border-radius: 4px;
-  padding: 0 5px;
-  margin-left: 4px;
 }
-.sourceEraTable .tag-fixed{
+.sourceTimelineAxis span{
+  position: absolute;
+  transform: translateX(-50%);
+  white-space: nowrap;
+}
+.sourceTimelineAxis span:first-child{ transform: translateX(0); }
+.sourceTimelineAxis span:last-child{ transform: translateX(-100%); }
+.sourceTimelineLegend{
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 16px;
+  margin-top: 10px;
+  font-size: 14px;
   color: var(--text);
-  background: var(--border);
-  border-color: var(--border);
 }
+.legendItem{
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.legendSwatch{
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  flex: none;
+}
+.sourceTimelineTooltip{
+  position: absolute;
+  z-index: 20;
+  pointer-events: none;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 6px 10px;
+  font-size: 13px;
+  color: var(--text);
+  box-shadow: 0 4px 16px rgba(0,0,0,0.25);
+  white-space: normal;
+  width: max-content;
+  max-width: min(360px, calc(100vw - 48px));
+}
+.sourceTimelineTooltip .ttLabel{ color: var(--muted); }

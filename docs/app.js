@@ -16,7 +16,7 @@ const state = {
   includeOrphans: localStorage.getItem("includeOrphans") !== "0", // when true (default), the "All"
                              // headline stats use data.all_stats (root + असम्बद्धवर्गीकृतम्, the orphan
                              // bucket) instead of root.stats (the central, well-categorized tree only) --
-                             // user-toggleable via the "include asambaddhavargikrta" pill, persisted like theme.
+                             // user-toggleable via the "include asambaddhavargīkṛta" pill, persisted like theme.
   scheme: "iast",           // devanagari | iast | hk | itrans | slp1
   expanded: new Set(),      // node ids expanded in sidebar
   searchQuery: "",
@@ -274,7 +274,7 @@ function renderSidebarTree() {
   // "All" defaults to the true total -- root.stats alone (central/ग्रन्थाः
   // only) silently excludes असम्बद्धवर्गीकृतम् (the orphan bucket), which is a
   // real sibling right there in root.children with its own real stats.
-  // "include asambaddhavargikrta" toggle lets a reader switch back to the
+  // "include asambaddhavargīkṛta" toggle lets a reader switch back to the
   // central-only view. Falls back to root.stats if all_stats is absent
   // (older tree.json) or the toggle is off.
   const allStats = (state.includeOrphans && state.data.all_stats) || root.stats;

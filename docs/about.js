@@ -605,9 +605,10 @@ function renderChangelogCharts() {
   });
 }
 
-// "YYYY-MM-01" -> "YYYY-MM-01" for the previous calendar month -- era 3
-// (materialized) ends the month before era 2's (legacy live-window) rolling
-// start, never the same month, since the two eras never overlap.
+// "YYYY-MM-01" -> "YYYY-MM-01" for the previous calendar month -- the
+// legacy-format live window ends the month before the current-format live
+// window's rolling start takes over, never the same month (the two never
+// overlap).
 function monthBefore(yyyyMmDd) {
   const [y, m] = yyyyMmDd.split("-").map(Number);
   const prevM = m === 1 ? 12 : m - 1;
@@ -619,23 +620,203 @@ function fmtYearMonth(yyyyMmDd) {
   return yyyyMmDd.slice(0, 7);
 }
 
+function fmtDateRanges(ranges) {
+  return ranges
+    .map(([start, end]) => (start === end ? fmtYearMonth(start) : `${fmtYearMonth(start)} to ${fmtYearMonth(end)}`))
+    .join(", ");
+}
+
+// "YYYY-MM-01" -> integer month index (months since 0000-01), for subtracting/
+// comparing dates and computing proportional segment widths along the timeline.
+function monthIndex(yyyyMmDd) {
+  const [y, m] = yyyyMmDd.split("-").map(Number);
+  return y * 12 + (m - 1);
+}
+
+function monthIndexToDate(idx) {
+  const y = Math.floor(idx / 12);
+  const m = (idx % 12) + 1;
+  return `${y}-${String(m).padStart(2, "0")}-01`;
+}
+
+// Subtracts a sorted, non-overlapping list of [start, end] ranges (inclusive,
+// month-granularity) from a [start, end] span, returning the leftover pieces
+// in chronological order. Used to derive the Internet Archive's own real
+// coverage (its span minus its interior gaps) without hand-listing it
+// separately from archive_gap_ranges.
+function subtractRanges(spanStart, spanEnd, ranges) {
+  let cursor = monthIndex(spanStart);
+  const spanEndIdx = monthIndex(spanEnd);
+  const pieces = [];
+  for (const [gapStart, gapEnd] of ranges) {
+    const gapStartIdx = monthIndex(gapStart);
+    const gapEndIdx = monthIndex(gapEnd);
+    if (gapStartIdx > cursor) pieces.push([monthIndexToDate(cursor), monthIndexToDate(gapStartIdx - 1)]);
+    cursor = Math.max(cursor, gapEndIdx + 1);
+  }
+  if (cursor <= spanEndIdx) pieces.push([monthIndexToDate(cursor), monthIndexToDate(spanEndIdx)]);
+  return pieces;
+}
+
+// This mirror's tree-building depends on वर्गसर्वस्वम् (created 2012-01-20),
+// so no month before this floor could ever produce a usable snapshot --
+// regardless of whether a dump file happens to exist for it (Internet
+// Archive has 2011-09/2011-10, but both hit RootCategoryMissing and are
+// skipped, same as any other pre-floor month -- see pipeline/backfill.py's
+// MATERIALIZED_FLOOR and RootCategoryMissing). Everything before this floor
+// is folded into the separate #sourceTimelinePre block instead of being
+// miscolored as usable coverage in the real bar.
+const TIMELINE_FLOOR = "2012-02-01"; // first month with a real changelog snapshot (Jan straddles the category's creation)
+
+// Builds the full chronological list of {start, end, kind} segments covering
+// TIMELINE_FLOOR through the present, for the source-type timeline bar. kind
+// is one of "current-live" / "legacy-live" / "archive" / "materialized" /
+// "uncovered" (a genuine hole -- e.g. 2015-01 -- with no real dump AND no
+// materialization, because it isn't reachable through either legacy source
+// as an interior gap; see archive_gap_ranges vs materialized_ranges).
+function buildTimelineSegments(eras) {
+  const { era1_rolling_start, era2_rolling_start, archive_start, archive_end, archive_gap_ranges, materialized_ranges } = eras;
+  const floorIdx = monthIndex(TIMELINE_FLOOR);
+  const segments = [];
+
+  const clip = (start, end) => (monthIndex(end) < floorIdx ? null : [monthIndex(start) < floorIdx ? TIMELINE_FLOOR : start, end]);
+
+  const archiveCoverage = subtractRanges(archive_start, archive_end, archive_gap_ranges);
+  for (const [start, end] of archiveCoverage) {
+    const clipped = clip(start, end);
+    if (clipped) segments.push({ start: clipped[0], end: clipped[1], kind: "archive" });
+  }
+  for (const [start, end] of materialized_ranges) {
+    const clipped = clip(start, end);
+    if (clipped) segments.push({ start: clipped[0], end: clipped[1], kind: "materialized" });
+  }
+
+  // Any interior span archive_gap_ranges carries that materialized_ranges
+  // doesn't also fill is a real, currently-unfillable hole (not a rendering
+  // bug) -- e.g. 2015-01/2015-05 are both, so no "uncovered" segment results
+  // for those; a genuinely un-materialized interior gap would show here.
+  const materializedSet = new Set();
+  for (const [s, e] of materialized_ranges) {
+    for (let i = monthIndex(s); i <= monthIndex(e); i++) materializedSet.add(i);
+  }
+  for (const [gapStart, gapEnd] of archive_gap_ranges) {
+    const clipped = clip(gapStart, gapEnd);
+    if (!clipped) continue;
+    const [cStart, cEnd] = clipped;
+    let runStart = null;
+    for (let i = monthIndex(cStart); i <= monthIndex(cEnd); i++) {
+      const covered = materializedSet.has(i);
+      if (!covered && runStart === null) runStart = i;
+      if (covered && runStart !== null) {
+        segments.push({ start: monthIndexToDate(runStart), end: monthIndexToDate(i - 1), kind: "uncovered" });
+        runStart = null;
+      }
+    }
+    if (runStart !== null) segments.push({ start: monthIndexToDate(runStart), end: cEnd, kind: "uncovered" });
+  }
+
+  segments.push({ start: era2_rolling_start, end: monthBefore(era1_rolling_start), kind: "legacy-live" });
+
+  const now = new Date();
+  const presentDate = `${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, "0")}-01`;
+  segments.push({ start: era1_rolling_start, end: presentDate, kind: "current-live" });
+
+  segments.sort((a, b) => monthIndex(a.start) - monthIndex(b.start));
+  return segments;
+}
+
+const TIMELINE_KIND_INFO = {
+  "current-live": { color: "var(--series-1)", label: "Current-format live", desc: "newer Wikimedia “Content File” export format" },
+  "legacy-live": { color: "var(--series-2)", label: "Legacy-format live", desc: "legacy Wikimedia export format" },
+  "archive": { color: "var(--series-3)", label: "Internet Archive", desc: "legacy Wikimedia export format, stored on Internet Archive" },
+  "materialized": { color: "var(--series-4)", label: "Materialized", desc: "synthetic, reconstructed on demand from full Wikimedia revision history" },
+  "uncovered": { color: "var(--surface-uncovered)", label: "No coverage", desc: "no dump and no revision history old enough to reconstruct from" },
+};
+
+const TIMELINE_PRE_TOOLTIP_HTML =
+  `<span class="ttLabel">Before this changelog</span><br>` +
+  `sa.wikisource's actual edit history goes back to 2004-07-23, roughly 7.5 years ` +
+  `before वर्गसर्वस्वम् (the root category this mirror's tree-building depends on) was ` +
+  `created on 2012-01-20. The changelog can't reach earlier than 2012-02, not because ` +
+  `the underlying revision data runs out, but because there's no category structure ` +
+  `to build a tree from before then.`;
+
+function renderSourceTimeline(eras) {
+  const preEl = document.getElementById("sourceTimelinePre");
+  const barEl = document.getElementById("sourceTimelineBar");
+  const axisEl = document.getElementById("sourceTimelineAxis");
+  const tooltipEl = document.getElementById("sourceTimelineTooltip");
+  if (!barEl) return;
+
+  if (preEl) {
+    preEl.addEventListener("mouseenter", () => {
+      tooltipEl.innerHTML = TIMELINE_PRE_TOOLTIP_HTML;
+      tooltipEl.hidden = false;
+    });
+    preEl.addEventListener("mousemove", (ev) => positionTimelineTooltip(ev));
+    preEl.addEventListener("mouseleave", () => { tooltipEl.hidden = true; });
+  }
+
+  const segments = buildTimelineSegments(eras);
+  const spanStart = monthIndex(segments[0].start);
+  const spanEnd = monthIndex(segments[segments.length - 1].end);
+  const totalMonths = spanEnd - spanStart + 1;
+
+  barEl.innerHTML = "";
+  for (const seg of segments) {
+    const info = TIMELINE_KIND_INFO[seg.kind];
+    const months = monthIndex(seg.end) - monthIndex(seg.start) + 1;
+    const pct = (months / totalMonths) * 100;
+    const el = document.createElement("div");
+    el.className = "sourceTimelineSeg";
+    el.style.width = `${pct}%`;
+    el.style.background = info.color;
+    el.addEventListener("mouseenter", () => showTimelineTooltip(el, seg, info));
+    el.addEventListener("mousemove", (ev) => positionTimelineTooltip(ev));
+    el.addEventListener("mouseleave", () => { tooltipEl.hidden = true; });
+    barEl.appendChild(el);
+  }
+
+  axisEl.innerHTML = "";
+  const startYear = Number(segments[0].start.slice(0, 4));
+  const endYear = Number(segments[segments.length - 1].end.slice(0, 4));
+  const tickYears = new Set([startYear, endYear]);
+  // Skip a generated tick that would land within 2 years of either edge label
+  // (e.g. startYear 2011 + the next multiple-of-4 being 2012) -- they'd
+  // overlap since both compete for the same left-aligned corner.
+  for (let y = Math.ceil(startYear / 4) * 4; y < endYear; y += 4) {
+    if (y - startYear < 2 || endYear - y < 2) continue;
+    tickYears.add(y);
+  }
+  for (const y of [...tickYears].sort((a, b) => a - b)) {
+    const idx = monthIndex(`${y}-01-01`);
+    const leftPct = ((Math.max(idx, spanStart) - spanStart) / totalMonths) * 100;
+    const span = document.createElement("span");
+    span.style.left = `${leftPct}%`;
+    span.textContent = y;
+    axisEl.appendChild(span);
+  }
+
+  function showTimelineTooltip(el, seg, info) {
+    const range = seg.start === seg.end ? fmtYearMonth(seg.start) : `${fmtYearMonth(seg.start)} to ${fmtYearMonth(seg.end)}`;
+    tooltipEl.innerHTML = `<span class="ttLabel">${info.label}</span><br>${range}`;
+    tooltipEl.hidden = false;
+  }
+  function positionTimelineTooltip(ev) {
+    const rootRect = document.getElementById("sourceTimeline").getBoundingClientRect();
+    tooltipEl.style.left = `${ev.clientX - rootRect.left + 12}px`;
+    tooltipEl.style.top = `${ev.clientY - rootRect.top + 16}px`;
+  }
+}
+
 async function loadSourceEras() {
-  const era1El = document.getElementById("era1Start");
-  const era2StartEl = document.getElementById("era2Start");
-  const era2EndEl = document.getElementById("era2End");
-  const era3El = document.getElementById("era3Start");
-  if (!era1El && !era2StartEl && !era2EndEl && !era3El) return;
+  const container = document.getElementById("sourceTimeline");
+  if (!container) return;
   try {
     const r = await fetch(SOURCE_ERAS_URL, { cache: "no-store" });
     if (!r.ok) throw new Error(`${r.status}`);
-    const { era1_rolling_start, era2_rolling_start } = await r.json();
-    if (era1El && era1_rolling_start) era1El.textContent = fmtYearMonth(era1_rolling_start);
-    if (era2StartEl && era2_rolling_start) era2StartEl.textContent = fmtYearMonth(era2_rolling_start);
-    // era 2's newer end is where era 1 takes over, one month earlier -- the
-    // same boundary era 3's older end is computed from (see below), just
-    // read from the opposite side of the era-1/era-2 handoff.
-    if (era2EndEl && era1_rolling_start) era2EndEl.textContent = fmtYearMonth(monthBefore(era1_rolling_start));
-    if (era3El && era2_rolling_start) era3El.textContent = fmtYearMonth(monthBefore(era2_rolling_start));
+    const eras = await r.json();
+    renderSourceTimeline(eras);
   } catch (e) {
     console.log("Could not load source era boundaries:", e);
   }

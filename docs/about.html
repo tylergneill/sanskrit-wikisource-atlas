@@ -114,22 +114,25 @@
           The main page of this mirror is regularly updated to reflect the latest monthly snapshot drawn from Wikimedia's own "Content File Export" dump for sa.wikisource.org.
         </p>
         <p>
-          By contrast, the historical changelog on this page (see "Data Quantity" section below) patches together five different source eras to cover as much of the wiki's history as possible, newest first:
+          By contrast, the historical changelog on this About page (see <a href="/about.html#data-quantity">Data Quantity</a> section below) patches together four different source types to cover as much of the wiki's history as possible. Two are live rolling windows that together reach right up to the present; one is an archive with real historical depth but interior gaps; and the fourth reconstructs every gap the other three leave behind:
         </p>
-        <table class="sourceEraTable small">
-          <thead>
-            <tr><th>Era</th><th>From</th><th>To</th><th>Source</th></tr>
-          </thead>
-          <tbody>
-            <tr><td>1</td><td>present</td><td><span id="era1Start">…</span> <span class="tag">rolling</span></td><td>newer Wikimedia "Content File" export format</td></tr>
-            <tr><td>2</td><td><span id="era2End">…</span> <span class="tag">rolling</span></td><td><span id="era2Start">…</span> <span class="tag">rolling</span></td><td>legacy Wikimedia export format</td></tr>
-            <tr><td>3</td><td><span id="era3Start">…</span> <span class="tag">rolling</span></td><td>2022-06 <span class="tag tag-fixed">fixed</span></td><td>synthetic, materialized from full Wikimedia revision history</td></tr>
-            <tr><td>4</td><td>2022-05 <span class="tag tag-fixed">fixed</span></td><td>2014-07 <span class="tag tag-fixed">fixed</span></td><td>legacy Wikimedia export format, stored on Internet Archive</td></tr>
-            <tr><td>5</td><td>2014-06 <span class="tag tag-fixed">fixed</span></td><td>2012-02 <span class="tag tag-fixed">fixed</span></td><td>synthetic, materialized from full Wikimedia revision history</td></tr>
-          </tbody>
-        </table>
+        <div class="viz-root sourceTimeline" id="sourceTimeline" data-palette="#2a78d6,#eb6834,#1baf7a,#eda100">
+          <div class="sourceTimelineRow">
+            <div class="sourceTimelinePre" id="sourceTimelinePre" role="img" aria-label="Wiki founded 2004, before this mirror's changelog begins"></div>
+            <div class="sourceTimelineBar" id="sourceTimelineBar" role="img" aria-label="Timeline of source types covering the historical changelog, 2012 to present"></div>
+          </div>
+          <div class="sourceTimelineAxis" id="sourceTimelineAxis"></div>
+          <div class="sourceTimelineLegend">
+            <span class="legendItem"><span class="legendSwatch" style="background:var(--series-1)"></span>current-format live</span>
+            <span class="legendItem"><span class="legendSwatch" style="background:var(--series-2)"></span>legacy-format live</span>
+            <span class="legendItem"><span class="legendSwatch" style="background:var(--series-3)"></span>Internet Archive</span>
+            <span class="legendItem"><span class="legendSwatch" style="background:var(--series-4)"></span>materialized (synthetic)</span>
+            <span class="legendItem"><span class="legendSwatch" style="background:var(--surface-uncovered)"></span>no coverage</span>
+          </div>
+          <div class="sourceTimelineTooltip" id="sourceTimelineTooltip" hidden></div>
+        </div>
         <p>
-          For the two materialized-era gaps, no ready-made dump exists for those months at all — instead, a snapshot is reconstructed on demand from the full revision history: for a given cutoff date, each page's state is taken as its newest revision at or before that date. The changelog doesn't reach earlier than 2012-02, since sa.wikisource's category system (which this mirror's browsing structure depends on) didn't exist yet before 2012-01.
+          For a materialized month, no ready-made dump exists at all — instead, a snapshot is reconstructed on demand from the full revision history: for a given cutoff date, each page's state is taken as its newest revision at or before that date.
         </p>
 
         <h3>Pages, Texts, and Categories</h3>
@@ -1524,7 +1527,7 @@
       <details class="block collapsible">
         <summary><h2 id="data-quantity">Data Quantity: Historical Trends and Deltas</h2></summary>
         <p class="small">
-          Monthly deltas, patched together across five source eras — see "Snapshots" above for detail.
+          Monthly deltas, patched together across four source types — see "Snapshots" above for detail.
         </p>
 
         <p class="small">
@@ -1536,7 +1539,7 @@
           </select>
           <label class="navlabel" for="changelogIncludeOrphans" style="margin-left:16px;" title="Include असम्बद्धवर्गीकृतम् (pages/Index items not reachable from the main category tree) in the trends below">
             <input type="checkbox" id="changelogIncludeOrphans" />
-            include asambaddhavargikrta (असम्बद्धवर्गीकृतम्)
+            include asambaddhavargīkṛta (असम्बद्धवर्गीकृतम्)
           </label>
         </p>
 

@@ -13,6 +13,10 @@ const state = {
                              // this is purely a UI hint, not a dedup mechanism) -- powers the "also filed under..." button
   multiCatLocations: new Map(), // page/index-item title -> [{path, stats}] over every occurrence, for the hover tooltip/highlight
   selectedCatId: null,
+  includeOrphans: localStorage.getItem("includeOrphans") !== "0", // when true (default), the "All"
+                             // headline stats use data.all_stats (root + असम्बद्धवर्गीकृतम्, the orphan
+                             // bucket) instead of root.stats (the central, well-categorized tree only) --
+                             // user-toggleable via the "include uncategorized" pill, persisted like theme.
   scheme: "iast",           // devanagari | iast | hk | itrans | slp1
   expanded: new Set(),      // node ids expanded in sidebar
   searchQuery: "",
@@ -267,14 +271,22 @@ function renderSidebarTree() {
     host.appendChild(renderSidebarNode(ch, 0));
   }
 
+  // "All" defaults to the true total -- root.stats alone (central/ग्रन्थाः
+  // only) silently excludes असम्बद्धवर्गीकृतम् (the orphan bucket), which is a
+  // real sibling right there in root.children with its own real stats.
+  // "include uncategorized" toggle lets a reader switch back to the
+  // central-only view. Falls back to root.stats if all_stats is absent
+  // (older tree.json) or the toggle is off.
+  const allStats = (state.includeOrphans && state.data.all_stats) || root.stats;
+
   const allStatsEl = document.getElementById("allStats");
   if (allStatsEl) {
-    allStatsEl.textContent = formatStats(root.stats);
+    allStatsEl.textContent = formatStats(allStats);
   }
 
   const allRowEl = document.getElementById("allRow");
   if (allRowEl) {
-    const tooltipStatsText = formatStats(root.stats, { includeCount: true });
+    const tooltipStatsText = formatStats(allStats, { includeCount: true });
     allRowEl.title = tooltipStatsText ? `All ${tooltipStatsText}` : "";
     allRowEl.classList.toggle("selected", state.selectedCatId == null || state.selectedCatId === root.id);
     allRowEl.onclick = (ev) => {
@@ -1162,6 +1174,20 @@ function initUI() {
   document.getElementById("searchExactToggle").addEventListener("change", (ev) => {
     state.searchExact = ev.target.checked;
     renderMain();
+  });
+
+  const includeOrphansCheckbox = document.getElementById("includeOrphansCheckbox");
+  includeOrphansCheckbox.checked = state.includeOrphans;
+  includeOrphansCheckbox.addEventListener("change", (ev) => {
+    state.includeOrphans = ev.target.checked;
+    localStorage.setItem("includeOrphans", state.includeOrphans ? "1" : "0");
+    renderSidebarTree();
+  });
+  // Stop the click from also bubbling to allRowEl's onclick (which selects
+  // the root category) -- this label sits inside #allRow but toggling it
+  // shouldn't also change the current selection.
+  document.getElementById("includeOrphansToggle").addEventListener("click", (ev) => {
+    ev.stopPropagation();
   });
 
   updateThemeToggleLabel();

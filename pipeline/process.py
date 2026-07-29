@@ -786,6 +786,7 @@ def build_tree_json(
     # scrape.py kept its equivalent अवर्गीकृतम्/OCR buckets as siblings of
     # the ग्रन्थाः-rooted tree the same way).
     granth = next((c for c in root["children"] if c["title"] == "ग्रन्थाः" and c["type"] == "category"), None)
+    all_stats = root.get("stats") or _empty_stats()  # true total: every root child, orphan bucket included
     if granth is not None:
         other_siblings = [c for c in root["children"] if c is not granth]
         root = {
@@ -795,15 +796,17 @@ def build_tree_json(
             "children": granth["children"] + other_siblings,
             "pages": granth["pages"],
             "index_items": granth["index_items"],
-            # Root's headline stats intentionally cover only the central,
+            # root's own stats intentionally cover only the central,
             # well-categorized tree (ग्रन्थाः) -- same convention scrape.py
             # used (attach_stats ran on the central tree before अवर्गीकृतम्/
             # OCR buckets were appended as siblings). The orphan bucket's
-            # own stats are still real and shown on its own node.
+            # own stats are still real and shown on its own node. The true
+            # total across every root child (including the orphan bucket)
+            # is `all_stats`, computed above before this splice discards it.
             "stats": granth["stats"],
         }
 
-    return {"root": root}
+    return {"root": root, "all_stats": all_stats}
 
 
 def main() -> None:

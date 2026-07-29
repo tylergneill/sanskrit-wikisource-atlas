@@ -115,19 +115,11 @@ def added_removed(old_items: Dict[str, dict], new_items: Dict[str, dict]) -> Tup
     return added, removed
 
 
-def build_report(old_path: Path, new_path: Path) -> dict:
-    old_data = read_json_maybe_gz(old_path)
-    new_data = read_json_maybe_gz(new_path)
-
-    old_stats = old_data["root"].get("stats", {}) or {}
-    new_stats = new_data["root"].get("stats", {}) or {}
-
-    old_items = collect_items(old_data["root"])
-    new_items = collect_items(new_data["root"])
-
-    changed_ts = diff_timestamps(old_items, new_items)
-    added, removed = added_removed(old_items, new_items)
-
+def _stats_report(old_stats: dict, new_stats: dict) -> dict:
+    """Builds the old/new/sizes/delta portion of a report for one stats pair
+    (either root.stats -- central/ग्रन्थाः-only -- or the true, orphan-bucket-
+    inclusive total). Shared so build_report can compute both without
+    duplicating the count/text_count/size-delta arithmetic."""
     old_count = old_stats.get("count", 0) or 0
     new_count = new_stats.get("count", 0) or 0
     delta_count = new_count - old_count
@@ -157,6 +149,38 @@ def build_report(old_path: Path, new_path: Path) -> dict:
             "text_count": delta_text_count,
             "text_count_pct": pct(delta_text_count, old_text_count),
         },
+    }
+
+
+def build_report(old_path: Path, new_path: Path) -> dict:
+    old_data = read_json_maybe_gz(old_path)
+    new_data = read_json_maybe_gz(new_path)
+
+    old_stats = old_data["root"].get("stats", {}) or {}
+    new_stats = new_data["root"].get("stats", {}) or {}
+
+    # all_stats (root + orphan bucket, the true total) is only present on
+    # tree.json snapshots built after its introduction -- older cached
+    # snapshots fall back to root.stats so pre-existing changelog entries
+    # still get an "all" section, just identical to their central-only one.
+    old_all_stats = old_data.get("all_stats") or old_stats
+    new_all_stats = new_data.get("all_stats") or new_stats
+
+    old_items = collect_items(old_data["root"])
+    new_items = collect_items(new_data["root"])
+
+    changed_ts = diff_timestamps(old_items, new_items)
+    added, removed = added_removed(old_items, new_items)
+
+    old_all_items = collect_items(old_data["root"], include_orphan_bucket=True)
+    new_all_items = collect_items(new_data["root"], include_orphan_bucket=True)
+    added_all, removed_all = added_removed(old_all_items, new_all_items)
+
+    old_count = old_stats.get("count", 0) or 0
+
+    report = _stats_report(old_stats, new_stats)
+    report["all"] = _stats_report(old_all_stats, new_all_stats)
+    report.update({
         "items_added": added,
         "items_removed": removed,
         "items_with_changed_timestamp": changed_ts,
@@ -165,7 +189,10 @@ def build_report(old_path: Path, new_path: Path) -> dict:
         "items_changed_count": len(changed_ts),
         "items_added_pct": pct(len(added), old_count),
         "items_removed_pct": pct(len(removed), old_count),
-    }
+        "items_added_count_all": len(added_all),
+        "items_removed_count_all": len(removed_all),
+    })
+    return report
 
 
 def print_summary(report: dict) -> None:
@@ -193,6 +220,18 @@ def print_summary(report: dict) -> None:
         print(f"  {entry['id']}: {entry['old']} -> {entry['new']}")
     if report["items_changed_count"] > 20:
         print(f"  ... and {report['items_changed_count'] - 20} more")
+
+    all_report = report["all"]
+    ao, an, ad = all_report["old"], all_report["new"], all_report["delta"]
+    print()
+    print("--- all (including असम्बद्धवर्गीकृतम्, the orphan bucket) ---")
+    for key in STAT_KEYS:
+        s = all_report["sizes"][key]
+        print(f"{key}: {s['old']:,} -> {s['new']:,}  ({s['delta']:+,}, {fmt_pct(s['delta_pct'])})")
+    print(f"count: {ao['count']:,} -> {an['count']:,}  ({ad['count']:+,}, {fmt_pct(ad['count_pct'])})")
+    if ao['text_count'] is not None and an['text_count'] is not None:
+        print(f"text_count: {ao['text_count']:,} -> {an['text_count']:,}  ({ad['text_count']:+,}, {fmt_pct(ad['text_count_pct'])})")
+    print(f"items added: {report['items_added_count_all']}, items removed: {report['items_removed_count_all']}")
 
 
 def main() -> None:

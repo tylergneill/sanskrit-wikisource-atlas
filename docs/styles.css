@@ -241,6 +241,36 @@ a.topbar-link:hover { text-decoration: underline; }
 .allRow:hover{ background: var(--row-hover); }
 .allRow.selected{ background: var(--row-selected); }
 .allDivider{ border: none; border-top: 1px solid var(--border); margin: 6px 0 10px; }
+.includeOrphansToggle{
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-left: 10px;
+  padding: 3px 9px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  font-size: 13px;
+  font-weight: normal;
+  color: var(--muted);
+  cursor: pointer;
+  user-select: none;
+  white-space: nowrap;
+  background: var(--panel2);
+  flex: 0 0 auto;
+}
+.includeOrphansToggle input{
+  margin: 0;
+  width: 13px;
+  height: 13px;
+}
+.includeOrphansToggle:hover{
+  border-color: var(--accent);
+}
+.includeOrphansToggle:has(input:checked){
+  color: var(--bg);
+  background: var(--accent);
+  border-color: var(--accent);
+}
 
 .mainpane{
   overflow:auto;

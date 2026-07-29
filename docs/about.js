@@ -5,6 +5,9 @@ const state = {
   scheme: "iast", // devanagari | iast | hk | itrans | slp1 | iso
   log: null,
   granularity: 12, // months per group: 1 = monthly, 3 = quarterly, 12 = yearly
+  includeOrphans: false, // when true, trend charts use each entry's "all" total
+                          // (central + असम्बद्धवर्गीकृतम्, the orphan bucket) instead
+                          // of the central-only old/new/sizes.
 };
 
 function translitText(s) {
@@ -159,6 +162,26 @@ function reduceGroup(entries) {
     sizes[key] = { old: oldV, new: newV, delta: deltaV, delta_pct: oldV === 0 ? null : (100 * deltaV) / oldV };
   }
 
+  // entry.all (true total, including असम्बद्धवर्गीकृतम्) is only present on
+  // changelog entries generated after that field was introduced -- older
+  // entries fall back to their own central-only old/new/sizes, same as
+  // compare.py's build_report does for individual snapshots that predate it.
+  const firstAll = first.all || { old: first.old, sizes: first.sizes };
+  const lastAll = last.all || { new: last.new, sizes: last.sizes };
+  const oldCountAll = firstAll.old?.count ?? 0;
+  const newCountAll = lastAll.new?.count ?? 0;
+  const oldTextCountAll = firstAll.old?.text_count;
+  const newTextCountAll = lastAll.new?.text_count;
+  const hasTextCountAll = oldTextCountAll != null && newTextCountAll != null;
+  const deltaTextCountAll = hasTextCountAll ? newTextCountAll - oldTextCountAll : null;
+  const sizesAll = {};
+  for (const key of ["raw_bytes", "content_bytes", "transliterated_bytes"]) {
+    const oldV = firstAll.sizes?.[key]?.old ?? 0;
+    const newV = lastAll.sizes?.[key]?.new ?? 0;
+    const deltaV = newV - oldV;
+    sizesAll[key] = { old: oldV, new: newV, delta: deltaV, delta_pct: oldV === 0 ? null : (100 * deltaV) / oldV };
+  }
+
   return {
     id: last.id,
     date: last.date,
@@ -171,6 +194,17 @@ function reduceGroup(entries) {
       count_pct: oldCount === 0 ? null : (100 * deltaCount) / oldCount,
       text_count: deltaTextCount,
       text_count_pct: !hasTextCount || oldTextCount === 0 ? null : (100 * deltaTextCount) / oldTextCount,
+    },
+    all: {
+      old: firstAll.old,
+      new: lastAll.new,
+      sizes: sizesAll,
+      delta: {
+        count: newCountAll - oldCountAll,
+        count_pct: oldCountAll === 0 ? null : (100 * (newCountAll - oldCountAll)) / oldCountAll,
+        text_count: deltaTextCountAll,
+        text_count_pct: !hasTextCountAll || oldTextCountAll === 0 ? null : (100 * deltaTextCountAll) / oldTextCountAll,
+      },
     },
     items_added,
     items_removed,
@@ -520,19 +554,26 @@ function renderChangelogCharts() {
     container.textContent = "No data yet.";
     return;
   }
+  // includeOrphans switches every point to each entry's "all" total (central
+  // + असम्बद्धवर्गीकृतम्, the orphan bucket) instead of the central-only figures --
+  // falls back to the central old/new/sizes on entries that predate "all".
+  const first0 = state.includeOrphans ? (sorted[0].all || sorted[0]) : sorted[0];
   const points = [
     {
       date: sorted[0].old_date,
-      count: sorted[0].old?.count ?? 0,
-      textCount: sorted[0].old?.text_count ?? null,
-      bytes: sorted[0].sizes?.transliterated_bytes?.old ?? 0,
+      count: first0.old?.count ?? 0,
+      textCount: first0.old?.text_count ?? null,
+      bytes: first0.sizes?.transliterated_bytes?.old ?? 0,
     },
-    ...sorted.map((e) => ({
-      date: e.date,
-      count: e.new?.count ?? 0,
-      textCount: e.new?.text_count ?? null,
-      bytes: e.sizes?.transliterated_bytes?.new ?? 0,
-    })),
+    ...sorted.map((e) => {
+      const src = state.includeOrphans ? (e.all || e) : e;
+      return {
+        date: e.date,
+        count: src.new?.count ?? 0,
+        textCount: src.new?.text_count ?? null,
+        bytes: src.sizes?.transliterated_bytes?.new ?? 0,
+      };
+    }),
   ];
 
   renderTrendChart(container, points, {
@@ -638,6 +679,15 @@ if (granularitySelect) {
   granularitySelect.addEventListener("change", (ev) => {
     state.granularity = Number(ev.target.value);
     renderChangelog();
+    renderChangelogCharts();
+  });
+}
+
+const includeOrphansCheckbox = document.getElementById("changelogIncludeOrphans");
+if (includeOrphansCheckbox) {
+  includeOrphansCheckbox.checked = state.includeOrphans;
+  includeOrphansCheckbox.addEventListener("change", (ev) => {
+    state.includeOrphans = ev.target.checked;
     renderChangelogCharts();
   });
 }

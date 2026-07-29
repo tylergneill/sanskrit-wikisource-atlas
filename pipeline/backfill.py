@@ -580,9 +580,10 @@ def ensure_snapshot(
         return existing
 
     snapshot_path = snapshot_dir / f"tree-{date_str}.json.gz"
-    if date_str == _live_content_version() and LIVE_TREE_JSON.exists():
-        print(f"{date_str}: matches live docs/data/tree.json's __content_version__, reusing it "
-              f"instead of reprocessing", file=sys.stderr)
+    content_cache_path = content_cache_dir / f"content-{date_str}.json.gz"
+    if date_str == _live_content_version() and LIVE_TREE_JSON.exists() and content_cache_path.exists():
+        print(f"{date_str}: matches live docs/data/tree.json's __content_version__ and its content "
+              f"cache already exists, reusing both instead of reprocessing", file=sys.stderr)
         tree = json.loads(LIVE_TREE_JSON.read_text(encoding="utf-8"))
         write_json_gz(snapshot_path, tree)
         return snapshot_path
@@ -593,7 +594,6 @@ def ensure_snapshot(
     print(f"{date_str}: wrote snapshot -> {snapshot_path}", file=sys.stderr)
     print(f"{date_str}: root stats: {tree['root']['stats']}", file=sys.stderr)
 
-    content_cache_path = content_cache_dir / f"content-{date_str}.json.gz"
     write_content_cache(content_cache_path, content_cache)
     print(f"{date_str}: wrote content cache -> {content_cache_path}", file=sys.stderr)
     return snapshot_path

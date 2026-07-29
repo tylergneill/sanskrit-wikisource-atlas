@@ -877,6 +877,22 @@ def main() -> None:
 
     _stamp_data_version(dump_date)
 
+    # Also cache build_tree_json's inputs, same as pipeline.backfill does for
+    # every other month -- otherwise pipeline.backfill's "reuse live
+    # docs/data/tree.json" shortcut (ensure_snapshot, when the requested date
+    # matches this run's __content_version__) has no content-<date>.json.gz
+    # to fall back on, and would need to fully reprocess the dump just to
+    # get one, defeating the point of the shortcut.
+    if dump_date:
+        from pipeline.content_cache import build_content_cache, write_content_cache
+
+        content_cache = build_content_cache(dump_index, content_index, dump_index.pages_by_ns[0], dump_index.pages_by_ns[14])
+        content_cache_dir = Path("dump") / "_backfill_content_cache"
+        content_cache_dir.mkdir(parents=True, exist_ok=True)
+        content_cache_path = content_cache_dir / f"content-{dump_date}.json.gz"
+        write_content_cache(content_cache_path, content_cache)
+        print(f"wrote content cache -> {content_cache_path}", file=sys.stderr)
+
     elapsed = time.time() - run_start
     print(f"total run time: {elapsed:.0f}s ({elapsed / 60:.1f}m)", file=sys.stderr)
 

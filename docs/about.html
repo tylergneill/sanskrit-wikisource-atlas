@@ -114,7 +114,7 @@
           The main page of this mirror is regularly updated to reflect the latest monthly snapshot drawn from Wikimedia's own "Content File Export" dump for sa.wikisource.org.
         </p>
         <p>
-          By contrast, the historical changelog on this About page (see <a href="/about.html#data-quantity">Data Quantity</a> section below) patches together four different source types to cover as much of the wiki's history as possible. Two are live rolling windows that together reach right up to the present; one is an archive with real historical depth but interior gaps; and the fourth reconstructs every gap the other three leave behind:
+          By contrast, the historical changelog on this About page (see <a href="#data-quantity">Data Quantity</a> section below) patches together four different source types to cover as much of the wiki's history as possible. Two are live rolling windows that together reach right up to the present; one is an archive with real historical depth but interior gaps; and the fourth reconstructs every gap the other three leave behind:
         </p>
         <div class="viz-root sourceTimeline" id="sourceTimeline" data-palette="#2a78d6,#eb6834,#1baf7a,#eda100">
           <div class="sourceTimelineRow">
@@ -1587,7 +1587,11 @@
   </script>
   <script type="module">
     import { initStaticTranslit } from "./translit-static.js";
+    import { initAnchorDetails } from "./anchor-details.js";
+    import { initTopbarHeight } from "./topbar-height.js";
+    initTopbarHeight();
     initStaticTranslit("iast");
+    initAnchorDetails();
   </script>
   <script type="module" src="./about.js"></script>
 </body>

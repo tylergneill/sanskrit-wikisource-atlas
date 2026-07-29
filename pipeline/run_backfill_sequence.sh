@@ -14,9 +14,13 @@
 # nothing needs to be pre-generated before running this script. Each step is
 # a separate `python -m pipeline.backfill --months OLDER NEWER` invocation,
 # so progress/output is visible per-step and a failure on one month doesn't
-# lose earlier progress (already-appended changelog entries and
-# already-fetched/materialized dumps are skipped/reused on rerun -- see
-# ensure_month/ensure_snapshot in pipeline/backfill.py).
+# lose earlier progress. Already-fetched/materialized dumps and already-built
+# snapshots are skipped/reused on rerun (see ensure_month/ensure_snapshot in
+# pipeline/backfill.py). docs/data/changelog.json itself is deleted at the
+# start of every run and rebuilt from scratch -- cheap, since every entry is
+# just a diff of two already-cached snapshots -- so a rerun always reflects
+# the current tree-assembly logic, never a stale entry from a prior schema
+# or a since-fixed bug.
 #
 # This script ONLY walks backward, never forward -- per standing project
 # convention, backfill must never process an older month before a newer
@@ -40,6 +44,13 @@
 
 set -euo pipefail
 cd "$(dirname "$0")/.."
+
+# Always start this walk from a clean changelog -- every transition gets
+# recomputed from its (reused-if-present) snapshots below regardless, so
+# there's nothing a stale changelog.json preserves that this run wouldn't
+# reproduce anyway, and deleting it up front guarantees no leftover entry
+# from a prior run/schema survives unrecomputed.
+rm -f docs/data/changelog.json
 
 WORKERS_ARGS=()
 if [[ "${1:-}" == "--workers" ]]; then

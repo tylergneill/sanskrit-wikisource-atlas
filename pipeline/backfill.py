@@ -131,7 +131,7 @@ from typing import Callable
 from pipeline import fetch as fetch_mod
 from pipeline import fetch_legacy
 from pipeline.build_tree import build_category_graph, build_main_tree, refile_category
-from pipeline.content_cache import build_content_cache, load_content_cache, rebuild_inputs_from_cache, write_content_cache
+from pipeline.content_cache import build_content_cache, write_content_cache
 from pipeline.parse_dump import parse_dump
 from pipeline.process import build_tree_json, compute_all_content_sizes
 from pipeline.snapshot_io import write_json_gz
@@ -599,87 +599,6 @@ def ensure_snapshot(
     return snapshot_path
 
 
-def rebuild_tree_from_cache(date_str: str, snapshot_dir: Path, content_cache_dir: Path) -> Path:
-    """Rebuilds tree-<date>.json.gz from its cached content-<date>.json.gz,
-    skipping parse_dump and compute_all_content_sizes entirely -- for
-    propagating a build_tree_json/build_category_graph-level logic fix into
-    already-backfilled months without a full slow rebuild. Overwrites
-    whatever snapshot already exists (that's the point). Raises FileNotFoundError
-    if no content cache exists for this month (never backfilled since the
-    cache was introduced -- needs a full `ensure_snapshot` run instead)."""
-    content_cache_path = content_cache_dir / f"content-{date_str}.json.gz"
-    if not content_cache_path.exists():
-        raise FileNotFoundError(
-            f"no content cache for {date_str} at {content_cache_path} -- "
-            f"run a full backfill for this month first"
-        )
-    cache = load_content_cache(content_cache_path)
-    inputs = rebuild_inputs_from_cache(cache)
-    refile_category(inputs.graph, "धर्मशास्त्रम्", new_parent_title="ग्रन्थाः", old_parent_title=inputs.graph.root_title)
-
-    tree = build_tree_json(
-        inputs.dump_index, inputs.graph, inputs.main_nodes,
-        inputs.transclusion_map, inputs.content_index, inputs.reverse_transclusion_map,
-    )
-    snapshot_path = snapshot_dir / f"tree-{date_str}.json.gz"
-    write_json_gz(snapshot_path, tree)
-    print(f"{date_str}: rebuilt snapshot from content cache -> {snapshot_path}", file=sys.stderr)
-    print(f"{date_str}: root stats: {tree['root']['stats']}", file=sys.stderr)
-    return snapshot_path
-
-
-def _main_rebuild_trees_only(args: argparse.Namespace) -> None:
-    """--rebuild-trees-only entry point: rebuild tree-<date>.json.gz for each
-    requested month from its cached content-<date>.json.gz (see
-    rebuild_tree_from_cache), then recompute every consecutive pair's diff
-    among those months and OVERWRITE (not skip) any existing changelog entry
-    for that exact old/new date pair -- the whole point is picking up
-    corrected stats for transitions already in the changelog. Months with no
-    content cache are skipped with a warning (never backfilled since the
-    cache was introduced)."""
-    content_cache_dir: Path = args.content_cache_dir
-    months = args.months if args.months is not None else sorted(
-        p.name.removeprefix("content-").removesuffix(".json.gz")
-        for p in content_cache_dir.glob("content-*.json.gz")
-    )
-
-    rebuilt_by_date: dict[str, Path] = {}
-    for date_str in sorted(months):
-        try:
-            rebuilt_by_date[date_str] = rebuild_tree_from_cache(date_str, args.snapshot_dir, content_cache_dir)
-        except FileNotFoundError as e:
-            print(f"{date_str}: {e} -- skipping", file=sys.stderr)
-
-    ordered_months = sorted(rebuilt_by_date)
-    if args.changelog.exists():
-        log = json.loads(args.changelog.read_text())
-    else:
-        log = []
-    entries_by_pair = {(e.get("old_date"), e.get("date")): e for e in log}
-
-    for old_date, new_date in zip(ordered_months, ordered_months[1:]):
-        old_iso, new_iso = f"{old_date}T00:00:00Z", f"{new_date}T00:00:00Z"
-        pair = (old_iso, new_iso)
-        if pair not in entries_by_pair:
-            # Not a transition the changelog tracks (e.g. these two months
-            # aren't actually adjacent in the full backfilled sequence) --
-            # rebuilding trees doesn't imply inventing new changelog entries.
-            continue
-
-        print(f"\n=== recomputing {old_date} -> {new_date} ===", file=sys.stderr)
-        report = build_report(rebuilt_by_date[old_date], rebuilt_by_date[new_date])
-        print_summary(report)
-
-        existing_entry = entries_by_pair[pair]
-        existing_entry.update(report)
-        print(f"updated changelog entry #{existing_entry.get('id')}", file=sys.stderr)
-
-    log.sort(key=lambda e: e["date"])
-    args.changelog.parent.mkdir(parents=True, exist_ok=True)
-    args.changelog.write_text(json.dumps(log, indent=2, ensure_ascii=False) + "\n")
-    print(f"\nwrote {args.changelog}", file=sys.stderr)
-
-
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--months", nargs="+", default=None,
@@ -715,19 +634,7 @@ def main() -> None:
                      help="don't delete each month's raw dump (.xml/.bz2) after its snapshot is written -- "
                           "by default, raw dumps are deleted immediately since the snapshot is all that's "
                           "ever needed afterward (see cleanup_raw_dump)")
-    ap.add_argument("--rebuild-trees-only", action="store_true",
-                     help="for each of --months (default: every month with an existing content cache), "
-                          "rebuild tree-<date>.json.gz from its cached content-<date>.json.gz instead of "
-                          "fetching/reparsing anything -- for propagating a build_tree_json/"
-                          "build_category_graph-level logic fix into already-backfilled months. Then "
-                          "re-diffs and rewrites docs/data/changelog.json from the corrected snapshots, "
-                          "same as a normal run. Months with no cached content (backfilled before the "
-                          "cache existed) are skipped with a warning, not erred on.")
     args = ap.parse_args()
-
-    if args.rebuild_trees_only:
-        _main_rebuild_trees_only(args)
-        return
 
     months = args.months if args.months is not None else default_months()
 
@@ -768,37 +675,46 @@ def main() -> None:
         log = json.loads(args.changelog.read_text())
     else:
         log = []
-    existing_transitions = {(e.get("old_date"), e.get("date")) for e in log}
+    entries_by_pair = {(e.get("old_date"), e.get("date")): e for e in log}
 
     for (old_date, old_snap), (new_date, new_snap) in zip(snapshots, snapshots[1:]):
         old_iso, new_iso = f"{old_date}T00:00:00Z", f"{new_date}T00:00:00Z"
-        if (old_iso, new_iso) in existing_transitions:
-            print(f"\n=== {old_date} -> {new_date}: already in changelog, skipping ===", file=sys.stderr)
-            continue
+        pair = (old_iso, new_iso)
 
         print(f"\n=== comparing {old_date} -> {new_date} ===", file=sys.stderr)
         report = build_report(old_snap, new_snap)
         print_summary(report)
 
-        next_id = max((e.get("id", 0) for e in log), default=0) + 1
-        entry = {
-            "id": next_id,
-            "date": new_iso,
-            "old_date": old_iso,
-            **report,
-        }
-        log.append(entry)
-        existing_transitions.add((old_iso, new_iso))
-        # Sort by date on every write (not just append) -- entries are
-        # computed/appended in whatever order --months was given, and a
+        existing_entry = entries_by_pair.get(pair)
+        if existing_entry is not None:
+            # Overwrite in place, same id -- both snapshots are cheap to
+            # rebuild/reuse (see ensure_snapshot's reuse-if-present check
+            # above), so re-diffing an already-logged transition is trivial
+            # and the point is always picking up corrected stats, not
+            # skipping work.
+            existing_entry.update(report)
+            print(f"updated changelog entry #{existing_entry.get('id')}", file=sys.stderr)
+        else:
+            next_id = max((e.get("id", 0) for e in log), default=0) + 1
+            entry = {
+                "id": next_id,
+                "date": new_iso,
+                "old_date": old_iso,
+                **report,
+            }
+            log.append(entry)
+            entries_by_pair[pair] = entry
+            print(f"appended changelog entry #{next_id}", file=sys.stderr)
+
+        # Sort by date and write on every entry (not just at the end) --
+        # entries are computed in whatever order --months was given, and a
         # backfill run mixing legacy and current-era months would otherwise
         # leave the file (and about.js's newest-first reversal of it) out
-        # of chronological order. `id` stays a stable append-order identifier,
-        # untouched by this re-sort.
+        # of chronological order. `id` stays a stable identifier, untouched
+        # by this re-sort.
         log.sort(key=lambda e: e["date"])
         args.changelog.parent.mkdir(parents=True, exist_ok=True)
         args.changelog.write_text(json.dumps(log, indent=2, ensure_ascii=False) + "\n")
-        print(f"appended changelog entry #{next_id}", file=sys.stderr)
 
 
 if __name__ == "__main__":

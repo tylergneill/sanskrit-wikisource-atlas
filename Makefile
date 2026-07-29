@@ -1,4 +1,4 @@
-.PHONY: refresh-dump refresh-dump-force process serve ngrok backfill rebuild-trees audit audit-update-about
+.PHONY: refresh-dump refresh-dump-force process serve ngrok backfill regen-changelog audit audit-update-about
 
 # Resolve the latest complete monthly dump export on dumps.wikimedia.org and
 # compare it against dump/: download/verify/decompress whatever's missing or
@@ -28,30 +28,21 @@ audit:
 audit-update-about:
 	python -m pipeline.audit --update-about
 
-# Walk backward through every available historical month (Internet Archive
-# legacy dumps, the live rolling window, and every interior hole neither
-# covers -- detected automatically and reconstructed on demand one month at a
-# time via pipeline/materialize_snapshots.py, see pipeline/backfill.py's
-# compute_materialized_months/MATERIALIZED_MONTHS/_ensure_materialized_month),
-# one pairwise comparison at a time, appending each to docs/data/changelog.json.
-# Safe to interrupt and rerun -- already-fetched/materialized dumps,
-# already-built snapshots, and already-logged changelog transitions are all
-# skipped, not redone.
+# Walk the full historical range and rebuild docs/data/changelog.json from
+# scratch. Safe to interrupt and rerun; already-downloaded/materialized
+# months are reused, not redone. Takes hours on a full run. See CLAUDE.md
+# for how this works internally.
 backfill:
 	bash pipeline/run_backfill_sequence.sh --workers 10
 
-# Re-run build_tree_json against every month's already-cached content
-# (dump/_backfill_content_cache/content-<date>.json.gz) instead of
-# re-fetching/re-parsing dumps or re-running content-size computation --
-# for propagating a tree-assembly-logic fix (build_tree_json/
-# build_category_graph) into already-backfilled months cheaply. Also
-# re-diffs and overwrites the affected docs/data/changelog.json entries in
-# place. Months with no content cache yet (never backfilled since the cache
-# was introduced) are skipped with a warning, not erred on. Override which
-# months with e.g. `make rebuild-trees MONTHS="2022-06-01 2022-07-01"`
-# (default: every month with an existing content cache).
-rebuild-trees:
-	python -m pipeline.backfill --rebuild-trees-only $(if $(MONTHS),--months $(MONTHS))
+# Rebuild docs/data/changelog.json from the historical snapshots already on
+# disk, with no downloading and no network access at all -- fast (under a
+# minute). Use this instead of `make backfill` when you trust the existing
+# snapshots and just want the changelog regenerated, e.g. after a fix to how
+# entries are diffed/compared.
+regen-changelog:
+	rm -f docs/data/changelog.json
+	python -m pipeline.backfill --months $(shell ls dump/_backfill_snapshots | sed -E 's/^tree-(.+)\.json(\.gz)?$$/\1/' | sort -u)
 
 # Serve the frontend (docs/) locally, on port 8000 (http.server's default).
 serve:

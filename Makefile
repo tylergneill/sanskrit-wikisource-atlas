@@ -29,13 +29,14 @@ audit-update-about:
 	python -m pipeline.audit --update-about
 
 # Walk backward through every available historical month (Internet Archive
-# legacy dumps, the live rolling window, and the materialized gap neither
-# covers -- 2022-06 through 2025-10, reconstructed on demand one month at a
+# legacy dumps, the live rolling window, and every interior hole neither
+# covers -- detected automatically and reconstructed on demand one month at a
 # time via pipeline/materialize_snapshots.py, see pipeline/backfill.py's
-# MATERIALIZED_MONTHS/_ensure_materialized_month), one pairwise comparison
-# at a time, appending each to docs/data/changelog.json. Safe to interrupt
-# and rerun -- already-fetched/materialized dumps, already-built snapshots,
-# and already-logged changelog transitions are all skipped, not redone.
+# compute_materialized_months/MATERIALIZED_MONTHS/_ensure_materialized_month),
+# one pairwise comparison at a time, appending each to docs/data/changelog.json.
+# Safe to interrupt and rerun -- already-fetched/materialized dumps,
+# already-built snapshots, and already-logged changelog transitions are all
+# skipped, not redone.
 backfill:
 	bash pipeline/run_backfill_sequence.sh --workers 10
 

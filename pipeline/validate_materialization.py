@@ -56,9 +56,9 @@ def main() -> None:
     args.validation_dir.mkdir(parents=True, exist_ok=True)
 
     # Materialize each date into its own subdir of validation_dir (not
-    # backfill.py's own DEFAULT_MATERIALIZED_GAP_A_ROOT/GAP_B_ROOT) so a
-    # validation run never collides with, or gets cleaned up by, a real
-    # backfill run using the same date.
+    # backfill.py's own DEFAULT_MATERIALIZED_ROOT) so a validation run never
+    # collides with, or gets cleaned up by, a real backfill run using the
+    # same date.
     for date_str in dates:
         print(f"\n=== {date_str} ===")
         materialized_path = args.validation_dir / f"tree-{date_str}.materialized.json"

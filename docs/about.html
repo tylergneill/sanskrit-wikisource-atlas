@@ -42,7 +42,7 @@
       <div class="block">
         <h2 style="margin-top:0;">About</h2>
         <p>
-          This mirror offers a better way to explore the Sanskrit e-text content at <a href="https://sa.wikisource.org/" target="_blank">sa.wikisource.org</a>, with transliteration support, dynamic display of categories (see <a href="https://sa.wikisource.org/wiki/वर्गः:वर्गसर्वस्वम्" target="_blank">"वर्गसर्वस्वम्"</a>), and clear size and date information. It also surfaces insights that will help to gradually improve the source collection itself. The data snapshot is refreshed semi-automatically on a monthly basis.
+          This mirror offers a better way to explore the Sanskrit e-text content at <a href="https://sa.wikisource.org/" target="_blank">sa.wikisource.org</a>, with transliteration support, dynamic display of categories (see <a href="https://sa.wikisource.org/wiki/वर्गः:वर्गसर्वस्वम्" target="_blank">"<span class="sa">वर्गसर्वस्वम्</span>"</a>), and clear size and date information. It also surfaces insights that will help to gradually improve the source collection itself. The data snapshot is refreshed semi-automatically on a monthly basis.
         </p>
         <p>
           code: <span id="appVersion"></span>, <a href="https://github.com/tylergneill/sanskrit-wikisource-mirror" target="_blank">on GitHub</a>
@@ -65,12 +65,12 @@
 
         <h3>Breadcrumbs</h3>
         <p>
-          Pages that are conceptually a "child" or "subpage" can be made to automatically link back to the relevant "parent" page, namely by carefully constructing the child page name so that it consists of the parent's name, then a slash, then the unique child page name. For example, Wikisource will automatically parse the page name "<a href="https://sa.wikisource.org/wiki/अग्निपुराणम्/अध्यायः_१" target="_blank">अग्निपुराणम्/अध्यायः १</a>" and place at the top of that page a link to the related page "अग्निपुराणम्." In Wikisource, these auto-generated links are called "breadcrumbs."
+          Pages that are conceptually a "child" or "subpage" can be made to automatically link back to the relevant "parent" page, namely by carefully constructing the child page name so that it consists of the parent's name, then a slash, then the unique child page name. For example, Wikisource will automatically parse the page name "<a href="https://sa.wikisource.org/wiki/अग्निपुराणम्/अध्यायः_१" target="_blank"><span class="sa">अग्निपुराणम्/अध्यायः १</span></a>" and place at the top of that page a link to the related page "<span class="sa">अग्निपुराणम्</span>." In Wikisource, these auto-generated links are called "breadcrumbs."
         </p>
 
         <h3>Categories: Another Graph</h3>
         <p>
-          The next basic ontological unit is the Category. Pages can be labeled with any number of Categories. For each Category, Wikisource creates a display page that shows all associated items, e.g., <a href="https://sa.wikisource.org/wiki/वर्गः%3Aनाटकानि" target="_blank">नाटकानि</a>.
+          The next basic ontological unit is the Category. Pages can be labeled with any number of Categories. For each Category, Wikisource creates a display page that shows all associated items, e.g., <a href="https://sa.wikisource.org/wiki/वर्गः%3Aनाटकानि" target="_blank"><span class="sa">नाटकानि</span></a>.
         </p>
         <p>
           Categories of course also relate to each other, creating their own directed graph. By convention, this graph should be constructed as a simple tree, with a single root, exactly one parent per node, and nothing left out. However, since categorization is done manually, this is not guaranteed; one Category may have multiple parents, and there can even be cycles.
@@ -83,7 +83,7 @@
 
         <h3>OCR "Proofreading" Workflow</h3>
         <p>
-          Filling in the text content of a Mainspace page is often done manually. Another option provided by Wikisource is the "Proofreading" workflow which is based on OCR. A user uploads an image file, which gets stored as part of a central "Index" item (namespace 106, Sanskrit "अनुक्रमणिका"). For example, <a href="https://sa.wikisource.org/wiki/अनुक्रमणिका%3Aकाठकोपनिषत्.djvu" target="_blank">काठकोपनिषत्</a>. Based on file metadata, Wikisource then creates a table with links for each page.
+          Filling in the text content of a Mainspace page is often done manually. Another option provided by Wikisource is the "Proofreading" workflow which is based on OCR. A user uploads an image file, which gets stored as part of a central "Index" item (namespace 106, Sanskrit "<span class="sa">अनुक्रमणिका</span>"). For example, <a href="https://sa.wikisource.org/wiki/अनुक्रमणिका%3Aकाठकोपनिषत्.djvu" target="_blank"><span class="sa">काठकोपनिषत्</span></a>. Based on file metadata, Wikisource then creates a table with links for each page.
         </p>
 
         <p>
@@ -100,7 +100,7 @@
         </p>
 
         <p>
-          Note that nothing guarantees that transclusion is used in this way. Instead, an editor may well copy-paste the content of OCR-workflow Pages into Mainspace pages, in which case proofreading corrections will no longer propagate. Mainspace pages visually indicate active transclusion with special marginal links to respective Pages (e.g., this <a href="https://sa.wikisource.org/wiki/अमरकोषः_%28अमरविवेकव्याख्यासहितः%29" target="_blank">Amarakośa</a> item).
+          Note that nothing guarantees that transclusion is used in this way. Instead, an editor may well copy-paste the content of OCR-workflow Pages into Mainspace pages, in which case proofreading corrections will no longer propagate. Mainspace pages visually indicate active transclusion with special marginal links to respective Pages (e.g., this <a href="https://sa.wikisource.org/wiki/अमरकोषः_%28अमरविवेकव्याख्यासहितः%29" target="_blank"><span class="sa">अमरकोषः</span></a> item).
         </p>
 
 
@@ -141,7 +141,7 @@
         </p>
 
         <p>
-          On Mainspace pages, breadcrumbs are mined to establish parent/child relationships. These back-connections allow rolling up child subpages for more concise display. Redirects are followed for this purpose, e.g., the effective parent of <a href="https://sa.wikisource.org/wiki/रामायणम्/बालकाण्डम्" target="_blank">रामायणम्/बालकाण्डम्</a> is <a href="https://sa.wikisource.org/wiki/वाल्मीकिरामायणम्" target="_blank">वाल्मीकिरामायणम्</a>.
+          On Mainspace pages, breadcrumbs are mined to establish parent/child relationships. These back-connections allow rolling up child subpages for more concise display. Redirects are followed for this purpose, e.g., the effective parent of <a href="https://sa.wikisource.org/wiki/रामायणम्/बालकाण्डम्" target="_blank"><span class="sa">रामायणम्/बालकाण्डम्</span></a> is <a href="https://sa.wikisource.org/wiki/वाल्मीकिरामायणम्" target="_blank"><span class="sa">वाल्मीकिरामायणम्</span></a>.
         </p>
 
         <p>
@@ -149,11 +149,11 @@
         </p>
 
         <p>
-          Category parent/child relationships are read from Category pages, and the mirror's top-level category display is created from children of the Category वर्गसर्वस्वम्/ग्रन्थाः (plus the miscategorized वर्गसर्वस्वम्/धर्मशास्त्रम्). Other children of वर्गसर्वस्वम् serve Wikisource housekeeping functions and are excluded here entirely.
+          Category parent/child relationships are read from Category pages, and the mirror's top-level category display is created from children of the Category <span class="sa">वर्गसर्वस्वम्/ग्रन्थाः</span> (plus the miscategorized <span class="sa">वर्गसर्वस्वम्/धर्मशास्त्रम्</span>). Other children of <span class="sa">वर्गसर्वस्वम्</span> serve Wikisource housekeeping functions and are excluded here entirely.
         </p>
 
         <p>
-          Any Categories not part of the ग्रन्थाः (+ धर्मशास्त्रम्) central community are placed into an artificial category called असम्बद्धवर्गीकृतम् ("improperly categorized"), which can gradually serve to improve the Category structure of sa.wikisource itself.
+          Any Categories not part of the <span class="sa">ग्रन्थाः</span> (+ <span class="sa">धर्मशास्त्रम्</span>) central community are placed into an artificial category called <span class="sa">असम्बद्धवर्गीकृतम्</span> ("improperly categorized"), which can gradually serve to improve the Category structure of sa.wikisource itself.
         </p>
 
         <p>
@@ -179,7 +179,7 @@
         </p>
 
         <p>
-          An item filed in multiple places risks being double-counted in the mirror's size and text-count stats. Special care avoids this: each item is credited to a category's rollup exactly once, at whichever ancestor its various paths first converge. For example, काश्यपसंहिता is filed under both धर्मशास्त्रम् (> काश्यपरचनाः) and वेदाः (> उपवेदाः > आयुर्वेदः > काश्यपरचनाः), so its size and text count contribute to both धर्मशास्त्रम् and वेदाः, but the top-level "All" aggregation still only counts it once.
+          An item filed in multiple places risks being double-counted in the mirror's size and text-count stats. Special care avoids this: each item is credited to a category's rollup exactly once, at whichever ancestor its various paths first converge. For example, <span class="sa">काश्यपसंहिता</span> is filed under both <span class="sa">धर्मशास्त्रम्</span> (&gt; <span class="sa">काश्यपरचनाः</span>) and <span class="sa">वेदाः</span> (&gt; <span class="sa">उपवेदाः</span> &gt; <span class="sa">आयुर्वेदः</span> &gt; <span class="sa">काश्यपरचनाः</span>), so its size and text count contribute to both <span class="sa">धर्मशास्त्रम्</span> and <span class="sa">वेदाः</span>, but the top-level "All" aggregation still only counts it once.
         </p>
 
         <h3>Calculating Size</h3>
@@ -194,7 +194,7 @@
 
         <h3>Opportunities for Correction</h3>
         <p>
-          In addition to the artificial असम्बद्धवर्गीकृतम् category shown on the mirror website, the codebase also includes an audit pipeline for detecting and concisely indicating problems that should be fixed on sa.wikisource.org:
+          In addition to the artificial <span class="sa">असम्बद्धवर्गीकृतम्</span> category shown on the mirror website, the codebase also includes an audit pipeline for detecting and concisely indicating problems that should be fixed on sa.wikisource.org:
         </p>
 
         <!-- AUDIT:START -- generated by `python -m pipeline.audit --update-about`; do not hand-edit between these markers -->
@@ -1537,9 +1537,9 @@
             <option value="3">Quarter</option>
             <option value="12" selected>Year</option>
           </select>
-          <label class="navlabel" for="changelogIncludeOrphans" style="margin-left:16px;" title="Include असम्बद्धवर्गीकृतम् (pages/Index items not reachable from the main category tree) in the trends below">
+          <label class="navlabel" for="changelogIncludeOrphans" style="margin-left:16px;" data-sa-title="Include असम्बद्धवर्गीकृतम् (pages/Index items not reachable from the main category tree) in the trends below">
             <input type="checkbox" id="changelogIncludeOrphans" />
-            include asambaddhavargīkṛta (असम्बद्धवर्गीकृतम्)
+            include <span class="sa">असम्बद्धवर्गीकृतम्</span>
           </label>
         </p>
 
@@ -1584,6 +1584,10 @@
     }
 
     loadVersion();
+  </script>
+  <script type="module">
+    import { initStaticTranslit } from "./translit-static.js";
+    initStaticTranslit("iast");
   </script>
   <script type="module" src="./about.js"></script>
 </body>

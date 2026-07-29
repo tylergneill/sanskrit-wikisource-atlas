@@ -65,9 +65,9 @@
       <div id="allRow" class="row allRow">
         <span class="title topLevel">All</span>
         <span id="allStats" class="small topLevel allStats"></span>
-        <label id="includeOrphansToggle" class="includeOrphansToggle" title="Include असम्बद्धवर्गीकृतम् (pages/Index items not reachable from the main category tree) in the &quot;All&quot; totals">
+        <label id="includeOrphansToggle" class="includeOrphansToggle" data-sa-title="Include असम्बद्धवर्गीकृतम् (pages/Index items not reachable from the main category tree) in the &quot;All&quot; totals">
           <input type="checkbox" id="includeOrphansCheckbox" checked />
-          include asambaddhavargīkṛta
+          include <span class="sa">असम्बद्धवर्गीकृतम्</span>
         </label>
       </div>
       <hr class="allDivider" />
@@ -84,6 +84,10 @@
     </main>
   </div>
 
+  <script type="module">
+    import { initStaticTranslit } from "./translit-static.js";
+    initStaticTranslit("iast");
+  </script>
   <script type="module" src="./app.js"></script>
 </body>
 </html>

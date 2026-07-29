@@ -55,3 +55,6 @@ serve:
 # Expose the local server (port 8000) via a public ngrok tunnel.
 ngrok:
 	ngrok http 8000
+
+free-server-port:
+	kill $$(lsof -ti tcp:8000)

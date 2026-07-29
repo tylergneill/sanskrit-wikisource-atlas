@@ -232,7 +232,9 @@ a.topbar-link:hover { text-decoration: underline; }
 .loadingHint{ font-size: 14px; color: var(--muted); padding: 10px 4px; }
 .allRow{
   display:flex;
+  flex-wrap: wrap;
   align-items:center;
+  justify-content: space-between;
   gap: 6px;
   padding: 3px 2px;
   border-radius: 6px;
@@ -240,12 +242,28 @@ a.topbar-link:hover { text-decoration: underline; }
 }
 .allRow:hover{ background: var(--row-hover); }
 .allRow.selected{ background: var(--row-selected); }
+/* "All" itself must never shrink/truncate -- unlike nested category rows,
+   which legitimately compete with a long title for space, this row's title
+   is a fixed 3-character word and the thing actually short on space is
+   everything else (toggle pill, stats). DOM order is All / stats / toggle
+   (so the toggle wraps to its own line last on mobile, see the narrow
+   breakpoint below), but visually the toggle sits right before stats on
+   desktop, both pushed together to the row's right edge -- `order` plus
+   the toggle's own margin-left:auto (below) decouples visual placement
+   from DOM position. */
+.allRow .title.topLevel{ flex: 0 0 auto; order: 1; }
+.allStats{
+  order: 3;
+  padding-left: 10px;
+  opacity: 0.7;
+}
 .allDivider{ border: none; border-top: 1px solid var(--border); margin: 6px 0 10px; }
 .includeOrphansToggle{
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  margin-left: 10px;
+  order: 2;
+  margin-left: auto;
   padding: 3px 9px;
   border-radius: 999px;
   border: 1px solid var(--border);
@@ -708,6 +726,20 @@ a[target="_blank"]::after{
 
   .mainpane{
     height: 100%;
+  }
+
+  /* At phone widths, "All" + stats share line 1 (flex-wrap's per-line
+     justify-content:space-between still pushes stats to the right edge of
+     that line) and the toggle pill drops to its own line 2 below, right-
+     aligned and sized to its own content (not stretched full-width) --
+     swap desktop's stats/toggle order so stats (not the toggle) stays
+     adjacent to All on line 1. */
+  .allStats{
+    order: 2;
+  }
+  .includeOrphansToggle{
+    order: 3;
+    margin-left: auto;
   }
 }
 

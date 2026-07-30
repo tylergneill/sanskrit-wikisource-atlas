@@ -1,0 +1,222 @@
+{
+  "2011-01-01": {
+    "raw_bytes": 15646648,
+    "content_bytes": 14529824,
+    "transliterated_bytes": 7536827,
+    "pages": 1810,
+    "texts": 1703,
+    "untranscluded_index_items": 0,
+    "categories_on_site": 1,
+    "proofreadpage_enabled": true,
+    "main_records_incl_redirects": 1811
+  },
+  "2011-02-01": {
+    "raw_bytes": 15646648,
+    "content_bytes": 14529824,
+    "transliterated_bytes": 7536827,
+    "pages": 1810,
+    "texts": 1703,
+    "untranscluded_index_items": 0,
+    "categories_on_site": 1,
+    "proofreadpage_enabled": true,
+    "main_records_incl_redirects": 1811
+  },
+  "2011-03-01": {
+    "raw_bytes": 15646794,
+    "content_bytes": 14529832,
+    "transliterated_bytes": 7536827,
+    "pages": 1810,
+    "texts": 1703,
+    "untranscluded_index_items": 0,
+    "categories_on_site": 1,
+    "proofreadpage_enabled": true,
+    "main_records_incl_redirects": 1811
+  },
+  "2011-04-01": {
+    "raw_bytes": 15664321,
+    "content_bytes": 14536021,
+    "transliterated_bytes": 7540713,
+    "pages": 1811,
+    "texts": 1704,
+    "untranscluded_index_items": 0,
+    "categories_on_site": 2,
+    "proofreadpage_enabled": true,
+    "main_records_incl_redirects": 1812
+  },
+  "2011-05-01": {
+    "raw_bytes": 15677833,
+    "content_bytes": 14537139,
+    "transliterated_bytes": 7541433,
+    "pages": 1812,
+    "texts": 1705,
+    "untranscluded_index_items": 0,
+    "categories_on_site": 2,
+    "proofreadpage_enabled": true,
+    "main_records_incl_redirects": 1813
+  },
+  "2011-06-01": {
+    "raw_bytes": 15786818,
+    "content_bytes": 14643348,
+    "transliterated_bytes": 7597137,
+    "pages": 1819,
+    "texts": 1711,
+    "untranscluded_index_items": 0,
+    "categories_on_site": 2,
+    "proofreadpage_enabled": true,
+    "main_records_incl_redirects": 1820
+  },
+  "2011-07-01": {
+    "raw_bytes": 20196897,
+    "content_bytes": 18994813,
+    "transliterated_bytes": 9819028,
+    "pages": 1948,
+    "texts": 1840,
+    "untranscluded_index_items": 0,
+    "categories_on_site": 2,
+    "proofreadpage_enabled": true,
+    "main_records_incl_redirects": 1949
+  },
+  "2011-08-01": {
+    "raw_bytes": 20842500,
+    "content_bytes": 19635183,
+    "transliterated_bytes": 10157607,
+    "pages": 1999,
+    "texts": 1891,
+    "untranscluded_index_items": 0,
+    "categories_on_site": 2,
+    "proofreadpage_enabled": true,
+    "main_records_incl_redirects": 2018
+  },
+  "2011-09-01": {
+    "raw_bytes": 35082188,
+    "content_bytes": 32715300,
+    "transliterated_bytes": 17935295,
+    "pages": 3021,
+    "texts": 2901,
+    "untranscluded_index_items": 1,
+    "categories_on_site": 2,
+    "proofreadpage_enabled": true,
+    "main_records_incl_redirects": 3044
+  },
+  "2011-10-01": {
+    "raw_bytes": 56411322,
+    "content_bytes": 52407316,
+    "transliterated_bytes": 29418920,
+    "pages": 4370,
+    "texts": 4158,
+    "untranscluded_index_items": 1,
+    "categories_on_site": 2,
+    "proofreadpage_enabled": true,
+    "main_records_incl_redirects": 4396
+  },
+  "2011-11-01": {
+    "raw_bytes": 59784337,
+    "content_bytes": 55634054,
+    "transliterated_bytes": 31223306,
+    "pages": 4666,
+    "texts": 4174,
+    "untranscluded_index_items": 1,
+    "categories_on_site": 2,
+    "proofreadpage_enabled": true,
+    "main_records_incl_redirects": 4713
+  },
+  "2011-12-01": {
+    "raw_bytes": 69143698,
+    "content_bytes": 63448524,
+    "transliterated_bytes": 35278101,
+    "pages": 5256,
+    "texts": 4188,
+    "untranscluded_index_items": 2,
+    "categories_on_site": 2,
+    "proofreadpage_enabled": true,
+    "main_records_incl_redirects": 5344
+  },
+  "2012-01-01": {
+    "raw_bytes": 81718401,
+    "content_bytes": 75937701,
+    "transliterated_bytes": 41862335,
+    "pages": 6067,
+    "texts": 4235,
+    "untranscluded_index_items": 2,
+    "categories_on_site": 2,
+    "proofreadpage_enabled": true,
+    "main_records_incl_redirects": 6170
+  },
+  "2012-02-01": {
+    "raw_bytes": 89160865,
+    "content_bytes": 83104507,
+    "transliterated_bytes": 45605614,
+    "pages": 6546,
+    "texts": 4256,
+    "untranscluded_index_items": 2,
+    "categories_on_site": 29,
+    "proofreadpage_enabled": true,
+    "main_records_incl_redirects": 6686
+  },
+  "2012-03-01": {
+    "raw_bytes": 100220831,
+    "content_bytes": 95111408,
+    "transliterated_bytes": 51952941,
+    "pages": 7191,
+    "texts": 3951,
+    "untranscluded_index_items": 6,
+    "categories_on_site": 41,
+    "proofreadpage_enabled": true,
+    "main_records_incl_redirects": 7724
+  },
+  "2012-04-01": {
+    "raw_bytes": 104851297,
+    "content_bytes": 99656712,
+    "transliterated_bytes": 54337478,
+    "pages": 7532,
+    "texts": 3983,
+    "untranscluded_index_items": 6,
+    "categories_on_site": 42,
+    "proofreadpage_enabled": true,
+    "main_records_incl_redirects": 8067
+  },
+  "2012-05-01": {
+    "raw_bytes": 107999074,
+    "content_bytes": 102796089,
+    "transliterated_bytes": 55866975,
+    "pages": 7543,
+    "texts": 3986,
+    "untranscluded_index_items": 6,
+    "categories_on_site": 42,
+    "proofreadpage_enabled": true,
+    "main_records_incl_redirects": 8078
+  },
+  "2012-06-01": {
+    "raw_bytes": 107999067,
+    "content_bytes": 102796083,
+    "transliterated_bytes": 55866974,
+    "pages": 7543,
+    "texts": 3986,
+    "untranscluded_index_items": 6,
+    "categories_on_site": 42,
+    "proofreadpage_enabled": true,
+    "main_records_incl_redirects": 8078
+  },
+  "2012-07-01": {
+    "raw_bytes": 119405555,
+    "content_bytes": 113989574,
+    "transliterated_bytes": 61967096,
+    "pages": 7925,
+    "texts": 4142,
+    "untranscluded_index_items": 6,
+    "categories_on_site": 54,
+    "proofreadpage_enabled": true,
+    "main_records_incl_redirects": 8497
+  },
+  "2012-08-01": {
+    "raw_bytes": 123237445,
+    "content_bytes": 117748256,
+    "transliterated_bytes": 63894212,
+    "pages": 8059,
+    "texts": 4147,
+    "untranscluded_index_items": 5,
+    "categories_on_site": 57,
+    "proofreadpage_enabled": true,
+    "main_records_incl_redirects": 8645
+  }
+}

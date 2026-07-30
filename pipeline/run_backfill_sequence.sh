@@ -31,14 +31,16 @@
 # NEWER` for whichever specific newer months are needed), not something
 # this script does automatically as a side effect.
 #
-# The walk eventually reaches Internet Archive dumps too early for this
-# mirror's tree model (वर्गसर्वस्वम् didn't exist yet on sa.wikisource) --
-# pipeline.backfill.main() already catches RootCategoryMissing and skips
-# those months rather than crashing (see that exception's docstring), so
-# this script doesn't need its own cutoff for "too early": it can safely
-# keep walking all the way back to the oldest Internet Archive snapshot,
-# and every month before real historical coverage begins (currently
-# 2014-07, per docs/data/changelog.json) is simply skipped, not erred on.
+# The walk is floored at pipeline.backfill.MATERIALIZED_FLOOR (2012-02, the
+# first month whose cutoff lands after वर्गसर्वस्वम् was created on
+# 2012-01-20). Internet Archive really does serve older dumps (2011-09,
+# 2011-10), and they're real files this script would otherwise pass as
+# explicit --months -- bypassing default_months()'s own floor and paying a
+# full download + parse per run for months that can only ever raise
+# RootCategoryMissing. main() still catches that exception (see its
+# docstring) as the backstop for anything unexpected at or above the floor;
+# the floor here just avoids the known-futile work rather than rediscovering
+# it from the network every time.
 #
 # Usage: bash pipeline/run_backfill_sequence.sh [--workers N]
 
@@ -75,7 +77,11 @@ echo "newest current-era month: ${NEWEST_ANCHORED}"
 # etc.), that error must be visible rather than silently yielding an empty
 # MONTHS and a script that looks like it did nothing.
 echo "querying available legacy months..."
-LEGACY_MONTHS=$(python3 -m pipeline.fetch_legacy --list | cut -f1 | sed 's/$/-01/' | awk -v cutover="$NEWEST_ANCHORED" '$0 < cutover')
+FLOOR=$(python3 -c "
+from pipeline.backfill import MATERIALIZED_FLOOR
+print(MATERIALIZED_FLOOR)
+")
+LEGACY_MONTHS=$(python3 -m pipeline.fetch_legacy --list | cut -f1 | sed 's/$/-01/' | awk -v cutover="$NEWEST_ANCHORED" -v floor="$FLOOR" '$0 >= floor && $0 < cutover')
 if [[ -z "$LEGACY_MONTHS" ]]; then
   echo "error: pipeline.fetch_legacy --list returned no months -- aborting" >&2
   exit 1

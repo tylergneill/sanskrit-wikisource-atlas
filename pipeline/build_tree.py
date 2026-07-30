@@ -143,6 +143,17 @@ def build_category_graph(records: list[PageRecord], category_ns_name: str) -> Ca
     node, just with no stats/content of its own.
     Excluded (maintenance/junk) categories per is_excluded_category are
     dropped entirely, from both nodes and any edges naming them.
+
+    Records are iterated in sorted title order rather than the caller's
+    order. The category graph is not a tree (a category can be filed under
+    several parents), so when build_tree_json later walks it depth-first,
+    whichever occurrence it reaches first holds the real content and the
+    rest become category-pointers -- a choice that's arbitrary but must at
+    least be *stable*. Callers supply records in genuinely different orders:
+    dump order from parse_dump (process.py, backfill.process_dump) vs. JSON
+    dict order from a content cache (content_cache.rebuild_inputs_from_cache),
+    which otherwise made the same month build a differently-shaped (though
+    statistically identical) tree depending on which path produced it.
     """
     nodes: dict[str, CategoryNode] = {}
 
@@ -151,7 +162,7 @@ def build_category_graph(records: list[PageRecord], category_ns_name: str) -> Ca
             nodes[title] = CategoryNode(title=title, record=None)
         return nodes[title]
 
-    for rec in records:
+    for rec in sorted(records, key=lambda r: r.title):
         title = rec.title.split(":", 1)[1].strip() if ":" in rec.title else rec.title.strip()
         if is_excluded_category(title):
             continue

@@ -36,10 +36,11 @@ Four source eras, all handled here:
    -- computed by compute_materialized_months() scanning
    fetch_legacy.list_available_months() for months with no entry at all,
    between the earliest and latest months either source ever covers, at or
-   after MATERIALIZED_FLOOR (2012-01, since वर्गसर्वस्वम् -- this mirror's
-   tree model's root category -- doesn't exist before that; see
-   RootCategoryMissing). As of this writing that scan finds five such holes:
-   2012-01 through 2014-06 (the earlier archival hole between Internet
+   after MATERIALIZED_FLOOR (2012-02, the first month whose cutoff is after
+   वर्गसर्वस्वम् -- this mirror's tree model's root category -- first existed
+   at 2012-01-20T10:18:19Z; see RootCategoryMissing). As of this writing that
+   scan finds five such holes:
+   2012-02 through 2014-06 (the earlier archival hole between Internet
    Archive's last dump before वर्गसर्वस्वम् existed and its first dump after
    real legacy coverage resumes), 2015-01, 2015-05, 2018-04 through 2018-07,
    2019-04 through 2020-06 (four further Internet-Archive-only-era holes),
@@ -131,7 +132,7 @@ from typing import Callable
 from pipeline import fetch as fetch_mod
 from pipeline import fetch_legacy
 from pipeline.build_tree import build_category_graph, build_main_tree, refile_category
-from pipeline.content_cache import build_content_cache, write_content_cache
+from pipeline.content_cache import build_content_cache, load_content_cache, rebuild_inputs_from_cache, write_content_cache
 from pipeline.parse_dump import parse_dump
 from pipeline.process import build_tree_json, compute_all_content_sizes
 from pipeline.snapshot_io import write_json_gz
@@ -210,7 +211,15 @@ def current_era_months() -> list[str]:
 # month's cutoff. See that script's module docstring for the known
 # deviations from a "real" dump of that month (deleted-page handling,
 # title/namespace drift, heuristic redirect re-derivation).
-MATERIALIZED_FLOOR = "2012-01-01"
+# The earliest month whose cutoff is after वर्गसर्वस्वम् (this mirror's root
+# category) first existed: its very first revision is 2012-01-20T10:18:19Z,
+# verified against the cached meta-history dump. A 2012-01-01 cutoff predates
+# that by 19 days, so process_dump could only ever raise RootCategoryMissing
+# on it -- the floor sits at 2012-02-01 so that month is never fetched,
+# materialized, or parsed just to be skipped. (Consistent with the historical
+# record: 2012-01-01 is the one month in range with no content cache and no
+# snapshot, and docs/data/changelog.json starts at 2012-02-01.)
+MATERIALIZED_FLOOR = "2012-02-01"
 
 
 def compute_materialized_months(use_cache: bool = True) -> list[str]:
@@ -241,7 +250,35 @@ def compute_materialized_months(use_cache: bool = True) -> list[str]:
     return months
 
 
-MATERIALIZED_MONTHS = compute_materialized_months()
+_MATERIALIZED_MONTHS_CACHE: list[str] | None = None
+
+
+def materialized_months() -> list[str]:
+    """MATERIALIZED_MONTHS, resolved on first use and memoized for the rest of
+    the process.
+
+    Deliberately not computed at import time: compute_materialized_months()
+    calls fetch_legacy.list_available_months(), which is a live network query
+    (disk-cached with a 24h TTL, so this is invisible whenever that cache
+    happens to be warm). Doing it at module scope meant *importing*
+    pipeline.backfill hit the network before argparse ran, so even a run that
+    never materializes anything -- `make regen-changelog`, which passes an
+    explicit --months list built from already-cached snapshots and is
+    documented as fully offline -- blocked on it, and failed outright once the
+    TTL lapsed and the query timed out."""
+    global _MATERIALIZED_MONTHS_CACHE
+    if _MATERIALIZED_MONTHS_CACHE is None:
+        _MATERIALIZED_MONTHS_CACHE = compute_materialized_months()
+    return _MATERIALIZED_MONTHS_CACHE
+
+
+def __getattr__(name: str):
+    """Keep `MATERIALIZED_MONTHS` working as a module attribute (including
+    `from pipeline.backfill import MATERIALIZED_MONTHS`, which
+    run_backfill_sequence.sh does) now that it's resolved lazily."""
+    if name == "MATERIALIZED_MONTHS":
+        return materialized_months()
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
 
 MATERIALIZE_SOURCE_URL = (
     "https://dumps.wikimedia.org/sawikisource/latest/"
@@ -342,10 +379,19 @@ def default_months() -> list[str]:
     current-era month queried live (current_era_months() -- NOT a hardcoded
     count, since the live rolling window's contents shift forward over
     time), oldest first -- the full available range absent an explicit
-    --months override."""
+    --months override.
+
+    Legacy months before MATERIALIZED_FLOOR are dropped here rather than
+    left to fail later: Internet Archive genuinely has 2011-09/2011-10
+    dumps, but they predate वर्गसर्वस्वम् entirely, so process_dump can only
+    raise RootCategoryMissing on them (see that exception's docstring) --
+    after a full download and parse spent to rediscover a fact the floor
+    already encodes. The floor is the same one compute_materialized_months
+    applies; these months just reach the month list by the other route, as
+    real dumps rather than materialized holes."""
     legacy_months = sorted(fetch_legacy.list_available_months())
-    legacy_dates = [f"{ym}-01" for ym in legacy_months]
-    materialized_dates = [d for d in MATERIALIZED_MONTHS if d not in legacy_dates]
+    legacy_dates = [f"{ym}-01" for ym in legacy_months if f"{ym}-01" >= MATERIALIZED_FLOOR]
+    materialized_dates = [d for d in materialized_months() if d not in legacy_dates]
     return sorted(set(legacy_dates) | set(materialized_dates)) + current_era_months()
 
 
@@ -367,7 +413,7 @@ def ensure_month(
     based on which source served the month) or pipeline.fetch (current era,
     mediawiki_content_current, dump_root/<date>/) based on LEGACY_CUTOVER,
     unchanged from before."""
-    if date_str in MATERIALIZED_MONTHS:
+    if date_str in materialized_months():
         return _ensure_materialized_month(date_str, materialized_root, materialize_src_dir)
 
     if date_str < LEGACY_CUTOVER:
@@ -520,7 +566,7 @@ def cleanup_raw_dump(
     _ensure_materialize_source), so there's no reason to keep it around
     after its snapshot exists -- unlike the cached meta-history .bz2 itself,
     which this function never touches."""
-    if date_str in MATERIALIZED_MONTHS:
+    if date_str in materialized_months():
         d = materialized_root / date_str
         if d.is_dir():
             shutil.rmtree(d)
@@ -554,26 +600,73 @@ def _existing_snapshot_path(date_str: str, snapshot_dir: Path) -> Path | None:
     return None
 
 
+def rebuild_tree_from_cache(date_str: str, snapshot_dir: Path, content_cache_dir: Path) -> Path:
+    """Rebuilds tree-<date>.json.gz from its cached content-<date>.json.gz,
+    skipping parse_dump and compute_all_content_sizes entirely -- for
+    propagating a build_tree_json/build_category_graph-level logic fix into
+    already-backfilled months without a full slow rebuild. Overwrites
+    whatever snapshot already exists (that's the point). Raises FileNotFoundError
+    if no content cache exists for this month (never backfilled since the
+    cache was introduced -- needs a full `ensure_snapshot` run instead)."""
+    content_cache_path = content_cache_dir / f"content-{date_str}.json.gz"
+    if not content_cache_path.exists():
+        raise FileNotFoundError(
+            f"no content cache for {date_str} at {content_cache_path} -- "
+            f"run a full backfill for this month first"
+        )
+    cache = load_content_cache(content_cache_path)
+    inputs = rebuild_inputs_from_cache(cache)
+    refile_category(inputs.graph, "धर्मशास्त्रम्", new_parent_title="ग्रन्थाः", old_parent_title=inputs.graph.root_title)
+
+    tree = build_tree_json(
+        inputs.dump_index, inputs.graph, inputs.main_nodes,
+        inputs.transclusion_map, inputs.content_index, inputs.reverse_transclusion_map,
+    )
+    snapshot_path = snapshot_dir / f"tree-{date_str}.json.gz"
+    write_json_gz(snapshot_path, tree)
+    print(f"{date_str}: rebuilt snapshot from content cache -> {snapshot_path}", file=sys.stderr)
+    print(f"{date_str}: root stats: {tree['root']['stats']}", file=sys.stderr)
+    return snapshot_path
+
+
 def ensure_snapshot(
     date_str: str,
     get_xml_path: Callable[[], Path],
     snapshot_dir: Path,
     workers: int | None,
     content_cache_dir: Path = DEFAULT_CONTENT_CACHE_DIR,
+    force_reprocess: bool = False,
 ) -> Path:
-    """get_xml_path is called (triggering ensure_month's fetch/decompress)
-    only if a snapshot doesn't already exist and can't be reused from the
-    live tree either -- so an already-completed month's raw dump, which
-    cleanup_raw_dump deletes right after its snapshot is written, is never
-    re-fetched on a resumed run just to be thrown away again.
+    """Resolves a month's snapshot by the cheapest route that works, trying
+    in order:
+
+    1. An existing tree-<date>.json.gz -- reused as-is.
+    2. The live docs/data/tree.json, when date_str is the current month
+       (matches docs/VERSION's __content_version__) -- copied into a snapshot.
+    3. The cached content-<date>.json.gz -- reassembled via
+       rebuild_tree_from_cache (build_tree_json only, no network, seconds).
+    4. A full fetch + process_dump -- the slow path (download, parse_dump,
+       compute_all_content_sizes), the only one that needs the raw dump.
+
+    Step 3 is what makes deleting a snapshot cheap: a tree-assembly fix
+    (build_tree_json/build_category_graph/rollup/dedup) can be propagated
+    across every already-backfilled month by deleting the snapshots and
+    rerunning, without re-downloading or re-running the slow content-size
+    computation. Pass force_reprocess=True to skip steps 2 and 3 and go
+    straight to the dump -- for when the cached inputs themselves are
+    suspect, not just the assembly logic built from them.
+
+    get_xml_path is called (triggering ensure_month's fetch/decompress) only
+    if every cheaper route above is unavailable -- so an already-completed
+    month's raw dump, which cleanup_raw_dump deletes right after its snapshot
+    is written, is never re-fetched on a resumed run just to be thrown away
+    again.
 
     Writes both tree-<date>.json.gz (the assembled tree, what pipeline.compare
     diffs) and content-<date>.json.gz (see pipeline.content_cache -- the
-    small cache of build_tree_json's inputs, letting a future
-    build_tree_json-only fix skip re-parsing the dump and re-running
-    compute_all_content_sizes). Both are gzipped by default -- see
-    notes/richer-backfill-snapshots-plan.md -- since 153 months of either
-    adds up at full size and neither is ever read partially."""
+    small cache of build_tree_json's inputs). Both are gzipped by default
+    since 153 months of either adds up at full size and neither is ever read
+    partially."""
     existing = _existing_snapshot_path(date_str, snapshot_dir)
     if existing is not None:
         print(f"{date_str}: snapshot already built -> {existing}", file=sys.stderr)
@@ -581,12 +674,19 @@ def ensure_snapshot(
 
     snapshot_path = snapshot_dir / f"tree-{date_str}.json.gz"
     content_cache_path = content_cache_dir / f"content-{date_str}.json.gz"
-    if date_str == _live_content_version() and LIVE_TREE_JSON.exists() and content_cache_path.exists():
-        print(f"{date_str}: matches live docs/data/tree.json's __content_version__ and its content "
-              f"cache already exists, reusing both instead of reprocessing", file=sys.stderr)
+
+    # Each cheap route degrades independently into the next -- a missing
+    # content cache must not force a full re-download when the live
+    # tree.json for this exact month is sitting right there, and vice versa.
+    if not force_reprocess and date_str == _live_content_version() and LIVE_TREE_JSON.exists():
+        print(f"{date_str}: matches live docs/data/tree.json's __content_version__, "
+              f"reusing it instead of reprocessing", file=sys.stderr)
         tree = json.loads(LIVE_TREE_JSON.read_text(encoding="utf-8"))
         write_json_gz(snapshot_path, tree)
         return snapshot_path
+
+    if not force_reprocess and content_cache_path.exists():
+        return rebuild_tree_from_cache(date_str, snapshot_dir, content_cache_dir)
 
     xml_path = get_xml_path()
     tree, content_cache = process_dump(xml_path, workers=workers)
@@ -634,6 +734,12 @@ def main() -> None:
                      help="don't delete each month's raw dump (.xml/.bz2) after its snapshot is written -- "
                           "by default, raw dumps are deleted immediately since the snapshot is all that's "
                           "ever needed afterward (see cleanup_raw_dump)")
+    ap.add_argument("--force-reprocess", action="store_true",
+                     help="rebuild every requested month's snapshot from its raw dump (re-fetching and "
+                          "re-running the slow content-size computation) instead of reassembling it from "
+                          "the cached content-<date>.json.gz -- for when the cached inputs themselves are "
+                          "suspect, not just the tree-assembly logic built from them. Months whose snapshot "
+                          "already exists are still reused; delete those first to force a full redo.")
     args = ap.parse_args()
 
     months = args.months if args.months is not None else default_months()
@@ -653,7 +759,8 @@ def main() -> None:
             args.materialized_root, args.materialize_src_dir,
         )
         try:
-            snapshot_path = ensure_snapshot(date_str, get_xml_path, args.snapshot_dir, args.workers, args.content_cache_dir)
+            snapshot_path = ensure_snapshot(date_str, get_xml_path, args.snapshot_dir, args.workers,
+                                             args.content_cache_dir, args.force_reprocess)
         except RootCategoryMissing as e:
             # Too early in sa.wikisource's history for this mirror's tree
             # model (see RootCategoryMissing) -- skip this month rather than

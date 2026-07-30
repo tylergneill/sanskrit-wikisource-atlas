@@ -685,7 +685,13 @@ a[target="_blank"]::after{
   .search-wrap{ flex: 1 1 auto; min-width: 0; order: 1; }
   .search-input{ width: auto; flex: 1 1 auto; min-width: 0; }
   .topnav .sep-search{ order: 2; }
-  .navlabel{ display: none; }
+  /* Scoped to the topbar: this hides the "अ→a" caption to buy horizontal space in
+     a cramped nav, but .navlabel is also used for the changelog's
+     "include असम्बद्धवर्गीकृतम्" checkbox down in about.html's Data Quantity
+     section, which has a full-width row to itself and no reason to disappear. An
+     unscoped rule here hid that toggle -- and with it the only way to include the
+     orphan bucket in the trends -- at every width below 1100px. */
+  .topnav .navlabel{ display: none; }
   #schemeSelect{ order: 4; flex: 0 1 auto; min-width: 0; max-width: 160px; }
   .topnav .sep:last-of-type{ order: 5; }
   .theme-toggle{
@@ -799,6 +805,48 @@ a[target="_blank"]::after{
     order: 3;
     margin-left: auto;
   }
+
+  /* about.html readability at phone widths. Section <h2>s inherit the UA's 1.5em,
+     which at this width wraps a title like "Data Quality: Structural Errors and
+     Provenance Hints" to three lines and costs most of the viewport before any
+     content shows. Scale the headings down and tighten their leading; the sticky
+     bar they sit in shrinks with them. */
+  .content .block.collapsible > summary h2{
+    font-size: 19px;
+    line-height: 1.25;
+  }
+  .content .block.collapsible > summary h3{
+    font-size: 16px;
+    line-height: 1.3;
+  }
+  .content .block.collapsible{ padding: 8px 10px; }
+  .content .block.collapsible:not(.block.collapsible .block.collapsible)[open] > summary{
+    /* Keep the negative margins matched to the reduced padding above, or the
+       pinned bar stops spanning the block's full width. */
+    margin: -8px -10px 0;
+    padding: 8px 10px;
+  }
+  /* The disclosure triangle is sized in em, so it shrank with the heading -- give
+     it back a little breathing room from the now-tighter title. */
+  .content .block.collapsible > summary::before{ margin-right: 8px; }
+
+  /* Granularity + orphan-bucket toggle: on one cramped line the label wraps mid-
+     phrase, stranding "asambaddhavargīkṛtam" on its own row away from its
+     checkbox. Give each control its own full-width row instead, and keep each
+     checkbox next to its own text. */
+  #changelogGranularity{ margin-left: 6px; }
+  label[for="changelogIncludeOrphans"]{
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-left: 0 !important;
+    margin-top: 8px;
+  }
+  label[for="changelogIncludeOrphans"] input{ flex: 0 0 auto; }
+
+  /* Trend-chart labels: 11px axis text with 6 x-ticks collides at this width. */
+  .chart-svg .chart-axis-text{ font-size: 10px; }
+  .chart-card h4{ font-size: 12px; }
 }
 
 /* === Changelog trend charts === */

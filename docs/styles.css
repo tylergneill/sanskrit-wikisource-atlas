@@ -203,6 +203,12 @@ a.topbar-link:hover { text-decoration: underline; }
   background: var(--panel2);
   padding: 12px;
   overflow:auto;
+  /* Lets .allRow respond to the sidebar's own width rather than the viewport's --
+     the sidebar is user-draggable (--sidebar-width, see app.js), so it can get
+     narrow enough to wrap that row at any viewport size. See the container query
+     below .includeOrphansToggle. */
+  container-type: inline-size;
+  container-name: sidenav;
 }
 
 .sidebar-resizer{
@@ -298,6 +304,29 @@ a.topbar-link:hover { text-decoration: underline; }
   color: var(--bg);
   background: var(--accent);
   border-color: var(--accent);
+}
+
+/* Once the sidebar is too narrow to fit All + stats + toggle on one line, use the
+   same arrangement the phone breakpoint uses: All + stats stay together on line 1
+   and the toggle drops to its own line below, right-aligned. Keyed to the
+   sidebar's inline size, not the viewport's, because the sidebar is
+   drag-resizable -- at a wide viewport with a dragged-in sidebar a viewport-only
+   rule leaves desktop's order in place, wrapping the *stats* to line 2 and
+   stranding them under the pill instead.
+
+   Threshold is 450px of *content*: a container query resolves against the
+   container's content box, and .sidenav is border-box with 12px side padding, so
+   this corresponds to a 474px sidebar as measured while dragging -- just under the
+   475px at which the desktop order fits on one line.
+
+   Between the wrap point and the threshold (~460-470px outer) all three still fit
+   on one line, in the swapped order All < stats < toggle. Left as-is: it reads
+   fine, and the alternatives (forcing the pill onto its own row with
+   flex-basis:100%) stretch the pill across the full row instead of letting it hug
+   its text. */
+@container sidenav (max-width: 450px){
+  .allStats{ order: 2; }
+  .includeOrphansToggle{ order: 3; margin-left: auto; }
 }
 
 .mainpane{
@@ -792,19 +821,10 @@ a[target="_blank"]::after{
     height: 100%;
   }
 
-  /* At phone widths, "All" + stats share line 1 (flex-wrap's per-line
-     justify-content:space-between still pushes stats to the right edge of
-     that line) and the toggle pill drops to its own line 2 below, right-
-     aligned and sized to its own content (not stretched full-width) --
-     swap desktop's stats/toggle order so stats (not the toggle) stays
-     adjacent to All on line 1. */
-  .allStats{
-    order: 2;
-  }
-  .includeOrphansToggle{
-    order: 3;
-    margin-left: auto;
-  }
+  /* The All-row stats/toggle reflow that used to live here is now handled by the
+     @container sidenav rule up by .includeOrphansToggle: the off-canvas sidebar is
+     min(85vw, 340px) at this width, comfortably under that query's threshold, so
+     phones get the same arrangement without a second copy of the rule. */
 
   /* about.html readability at phone widths. Section <h2>s inherit the UA's 1.5em,
      which at this width wraps a title like "Data Quality: Structural Errors and

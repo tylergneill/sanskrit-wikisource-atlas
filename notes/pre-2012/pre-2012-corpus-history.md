@@ -196,6 +196,13 @@ deleted-pages caveat below — re-running these scripts against a newer
 meta-history dump can legitimately shift the numbers, since pages deleted in
 the meantime drop out of the reconstruction entirely.
 
+This vintage is not local to this investigation: the same cached file is what
+`pipeline/backfill.py`'s `_ensure_materialize_source` hands to every
+`MATERIALIZED_MONTHS` reconstruction, so all 92 materialized months in
+`docs/data/changelog.json` inherit it too, and this document is the only place
+it's written down. See CLAUDE.md's "Materialized era" section (the **Dump
+vintage** paragraph) for what refreshing the cached dump would invalidate.
+
 | file | what it does |
 |---|---|
 | `corpus_stats_no_category.py` | The core of this investigation: runs `parse_dump` → `build_main_tree` → `build_transclusion_map` → `compute_all_content_sizes` on a directory of snapshot XMLs and reports MB/pages/texts using `process.py`'s own definitions, skipping the category graph entirely. |

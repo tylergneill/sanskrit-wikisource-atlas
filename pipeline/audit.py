@@ -157,6 +157,70 @@ def find_breadcrumb_gap_candidates(
     return {k: v for k, v in candidates.items() if v}
 
 
+def find_unresolvable_slash_paths(
+    main_nodes: dict[str, MainPageNode],
+) -> dict[str, list[str]]:
+    """Returns {first path segment: [full titles]} for non-redirect pages that
+    DO use "/" subpage syntax but whose breadcrumb reaches no existing page at
+    any level -- not the immediate parent, not any higher ancestor, not via
+    any redirect, not after whitespace normalization (see
+    build_tree._resolve_ancestor, which tries all of those before giving up).
+
+    These are the residue after real parenting: unlike a missing intermediate
+    level, there is nothing on-wiki to nest under, so the page stays top-level
+    and counts as its own text. The fix is upstream -- create the missing
+    ancestor page, or retitle the page under one that exists. Grouped by first
+    segment because a single missing root usually strands a whole run of
+    chapters at once."""
+    stranded: dict[str, list[str]] = defaultdict(list)
+    for title, node in main_nodes.items():
+        if node.parent_title is not None or "/" not in title:
+            continue
+        if node.record.redirect_target is not None:
+            continue
+        stranded[title.split("/", 1)[0].strip()].append(title)
+    return {k: sorted(v) for k, v in stranded.items()}
+
+
+# A flat title split by a non-"/" separator: "स्तेम-०१-भागः", "Work.12".
+# The separator must sit between non-empty text on both sides.
+_SEPARATOR_FAMILY_RE = re.compile(r"^(?P<stem>.+?)\s*[-–.]\s*(?P<rest>\S.*)$")
+
+
+def find_separator_family_candidates(
+    main_nodes: dict[str, MainPageNode],
+) -> dict[str, list[str]]:
+    """Returns {stem title: [full titles]} for flat (no "/") top-level pages
+    that look like subpages of an existing work but use a hyphen or dot where
+    "/" belongs -- e.g. महाभारतम्-03-आरण्यकपर्व-001, whose stem महाभारतम् is a
+    real page. Requires the stem to resolve to an actual page and the family
+    to have at least 2 members, so an ordinary hyphenated title isn't dragged
+    in on its own.
+
+    Complements find_breadcrumb_gap_candidates, which only detects the
+    SPACE-separated form -- between them they cover the separator conventions
+    actually in use. Reported only: unlike a real "/" breadcrumb, a hyphen
+    carries no structural meaning on MediaWiki, so inferring nesting from it
+    would be a naming-convention guess. These pages stay flat in tree.json and
+    keep counting as separate texts until they're moved on-wiki (see
+    notes/wikisource-editing-plan.md -- a page MOVE, not a redirect)."""
+    families: dict[str, list[str]] = defaultdict(list)
+    for title, node in main_nodes.items():
+        if node.parent_title is not None or "/" in title:
+            continue
+        if node.record.redirect_target is not None:
+            continue
+        m = _SEPARATOR_FAMILY_RE.match(title)
+        if not m:
+            continue
+        stem = m.group("stem").strip()
+        stem_node = main_nodes.get(stem)
+        if stem_node is None or stem_node.record.redirect_target is not None:
+            continue
+        families[stem].append(title)
+    return {k: sorted(v) for k, v in families.items() if len(v) >= 2}
+
+
 def find_root_inference_candidates(
     main_nodes: dict[str, MainPageNode],
     direct_cats_by_title: dict[str, set[str]],
@@ -431,6 +495,8 @@ def find_broken_commons_transclusions(
 
 def print_report(
     breadcrumb_candidates: dict[str, list[str]],
+    separator_families: dict[str, list[str]],
+    unresolvable_slash_paths: dict[str, list[str]],
     inference_candidates: dict[str, set[str]],
     orphaned_categories: list[str],
     redlink_categories: list[str],
@@ -460,6 +526,44 @@ def print_report(
             print(f"      {to_iast(other)}")
         if len(others) > 5:
             print(f"      ... and {len(others) - 5} more")
+    print()
+
+    sep_pages = sum(len(v) for v in separator_families.values())
+    print("=" * 70)
+    print(f"SEPARATOR-FAMILY CANDIDATES: {len(separator_families)} works, "
+          f"{sep_pages} pages implicated")
+    print("=" * 70)
+    print("(flat pages using a hyphen/dot where '/' belongs, whose stem IS a")
+    print(" real page -- e.g. mahabharatam-03-aranyakaparva-001. Unlike a real")
+    print(" '/', a hyphen carries no structural meaning, so these stay flat in")
+    print(" tree.json and keep counting as separate texts until moved on-wiki.)")
+    print()
+    for title in sorted(separator_families, key=lambda t: -len(separator_families[t])):
+        members = separator_families[title]
+        print(f"  {to_iast(title)}  ({len(members)} pages)")
+        for other in members[:5]:
+            print(f"      {to_iast(other)}")
+        if len(members) > 5:
+            print(f"      ... and {len(members) - 5} more")
+    print()
+
+    unres_pages = sum(len(v) for v in unresolvable_slash_paths.values())
+    print("=" * 70)
+    print(f"UNRESOLVABLE SUBPAGE PATHS: {len(unresolvable_slash_paths)} roots, "
+          f"{unres_pages} pages implicated")
+    print("=" * 70)
+    print("(pages that DO use '/' subpage syntax but whose breadcrumb reaches")
+    print(" no existing page at any level -- not the immediate parent, not any")
+    print(" higher ancestor, not via a redirect. Fix upstream: create the")
+    print(" missing ancestor, or retitle under one that exists.)")
+    print()
+    for root in sorted(unresolvable_slash_paths, key=lambda t: -len(unresolvable_slash_paths[t])):
+        members = unresolvable_slash_paths[root]
+        print(f"  {to_iast(root)}  ({len(members)} pages)")
+        for other in members[:5]:
+            print(f"      {to_iast(other)}")
+        if len(members) > 5:
+            print(f"      ... and {len(members) - 5} more")
     print()
 
     print("=" * 70)
@@ -600,26 +704,35 @@ def _findings_list(items: list[str]) -> str:
     return f'          <ul style="margin-left: 1.6em;">\n{lis}\n          </ul>'
 
 
-def _bullet(description: str, count: int, inner_html: str) -> str:
+def _bullet(description: str, count: int, inner_html: str, unit: str | None = None) -> str:
+    """`unit` spells out what the number actually counts, for checks where a
+    bare count would be ambiguous or misleading -- e.g. the separator-family
+    check groups 2,338 pages under only 10 works, so "(10)" alone reads as the
+    smallest finding when it's the largest. Every caller should pass a `unit`
+    naming its noun ("pages", "categories", ...) unless the description itself
+    already makes the unit unambiguous. Falls back to the bare count."""
     if count == 0:
         return f'          <li class="audit-item"><div class="audit-summary audit-summary-empty">{description}: none found</div></li>'
+    label = unit if unit is not None else str(count)
     return (
         f'          <li class="audit-item"><details>\n'
-        f'            <summary class="audit-summary">{description} ({count})</summary>\n'
+        f'            <summary class="audit-summary">{description} ({label})</summary>\n'
         f"{inner_html}\n"
         f"          </details></li>"
     )
 
 
-def _sub_bullet(description: str, count: int, inner_html: str) -> str:
+def _sub_bullet(description: str, count: int, inner_html: str, unit: str | None = None) -> str:
     """Same disclosure-triangle construction as _bullet, for a nested
     <details> one level inside an outer audit finding (grouping a flat
     candidate dump into collapsible sub-groups, e.g. by shared title prefix
     or by external-repo domain). Reuses .audit-item/.audit-summary styling
-    so the triangle and spacing match the top-level findings exactly."""
+    so the triangle and spacing match the top-level findings exactly.
+    `unit` spells out what the number counts, same convention as _bullet."""
+    label = unit if unit is not None else str(count)
     return (
         f'<li class="audit-item"><details>\n'
-        f'<summary class="audit-summary">{description} ({count})</summary>\n'
+        f'<summary class="audit-summary">{description} ({label})</summary>\n'
         f"{inner_html}\n"
         f"</details></li>"
     )
@@ -676,6 +789,8 @@ def _group_by_next_token(prefix: str, others: list[str]) -> tuple[str, str]:
 
 def render_audit_html(
     breadcrumb_candidates: dict[str, list[str]],
+    separator_families: dict[str, list[str]],
+    unresolvable_slash_paths: dict[str, list[str]],
     inference_candidates: dict[str, set[str]],
     multi_parented_categories: dict[str, list[str]],
     orphaned_categories: list[str],
@@ -704,12 +819,67 @@ def render_audit_html(
             f"{sub}\n"
             f"</details></li>"
         )
+    separator_items = []
+    for title in sorted(separator_families, key=lambda t: -len(separator_families[t])):
+        members = separator_families[title]
+        _effective_prefix, sub = _group_by_next_token(title, members)
+        separator_items.append(
+            f'<li class="audit-item"><details>\n'
+            f'<summary class="audit-summary">{_link(title)} ({len(members)} pages)</summary>\n'
+            f"{sub}\n"
+            f"</details></li>"
+        )
+
+    unresolvable_items = []
+    for root in sorted(unresolvable_slash_paths, key=lambda t: -len(unresolvable_slash_paths[t])):
+        members = unresolvable_slash_paths[root]
+        unresolvable_items.append(_sub_bullet(
+            _link(root),
+            len(members),
+            _findings_list([_link(m) for m in members]),
+            unit=f"{len(members)} pages",
+        ))
+
+    # All three are the same underlying defect -- a work whose parts don't roll
+    # up into one text -- so they sit under one bullet, split by what's actually
+    # wrong (and therefore by what the on-wiki fix is: move the pages, vs.
+    # create/retitle the missing ancestor). See notes/wikisource-editing-plan.md.
+    breadcrumb_pages = sum(len(v) for v in breadcrumb_candidates.values())
+    separator_pages = sum(len(v) for v in separator_families.values())
+    unresolvable_pages = sum(len(v) for v in unresolvable_slash_paths.values())
+
+    def _group_ul(items: list[str]) -> str:
+        return (
+            f'          <ul style="margin-left: 1.6em; list-style: none; padding-left: 0;">\n'
+            + "\n".join(f"            {item}" for item in items)
+            + "\n          </ul>"
+        )
+
+    breadcrumb_groups = [
+        _sub_bullet(
+            'Space-separated title instead of a "/"',
+            len(breadcrumb_candidates),
+            _group_ul(breadcrumb_items),
+            unit=f"{breadcrumb_pages} pages under {len(breadcrumb_candidates)} works",
+        ),
+        _sub_bullet(
+            'Hyphen or dot instead of a "/"',
+            len(separator_families),
+            _group_ul(separator_items),
+            unit=f"{separator_pages} pages under {len(separator_families)} works",
+        ),
+        _sub_bullet(
+            'Has a "/" breadcrumb, but it points at a page that does not exist',
+            len(unresolvable_slash_paths),
+            _group_ul(unresolvable_items),
+            unit=f"{unresolvable_pages} pages under {len(unresolvable_slash_paths)} missing roots",
+        ),
+    ]
     bullets.append(_bullet(
-        'Pages that look like missed breadcrumb subpages (space-separated title instead of a "/")',
-        len(breadcrumb_candidates),
-        f'          <ul style="margin-left: 1.6em; list-style: none; padding-left: 0;">\n'
-        + "\n".join(f"            {item}" for item in breadcrumb_items)
-        + "\n          </ul>",
+        "Pages that look like missed breadcrumb subpages",
+        breadcrumb_pages + separator_pages + unresolvable_pages,
+        _group_ul(breadcrumb_groups),
+        unit=f"{breadcrumb_pages + separator_pages + unresolvable_pages} pages",
     ))
 
     inference_items = [
@@ -720,6 +890,7 @@ def render_audit_html(
         "Parent pages lacking a Category shared uniformly by all subpages",
         len(inference_candidates),
         _findings_list(inference_items),
+        unit=f"{len(inference_candidates)} pages",
     ))
 
     multi_parent_items = [
@@ -730,18 +901,21 @@ def render_audit_html(
         "Categories with multiple parents",
         len(multi_parented_categories),
         _findings_list(multi_parent_items),
+        unit=f"{len(multi_parented_categories)} categories",
     ))
 
     bullets.append(_bullet(
         "Categories never filed under any parent (orphaned)",
         len(orphaned_categories),
         _findings_list([_cat_link(t, cat_ns_name) for t in sorted(orphaned_categories)]),
+        unit=f"{len(orphaned_categories)} categories",
     ))
 
     bullets.append(_bullet(
         "Categories referenced but never created (red links)",
         len(redlink_categories),
         _findings_list([_cat_link(t, cat_ns_name) for t in sorted(redlink_categories)]),
+        unit=f"{len(redlink_categories)} categories",
     ))
 
     cycle_items = [" &rarr; ".join(_cat_link(t, cat_ns_name) for t in cycle) for cycle in category_cycles]
@@ -749,6 +923,7 @@ def render_audit_html(
         "Cycles in the Category graph",
         len(category_cycles),
         _findings_list(cycle_items),
+        unit=f"{len(category_cycles)} cycles",
     ))
 
     tagged_items = [
@@ -759,6 +934,7 @@ def render_audit_html(
         "Page-namespace (पृष्ठम्) items wrongly carrying their own Category tag",
         len(tagged_page_ns_items),
         _findings_list(tagged_items),
+        unit=f"{len(tagged_page_ns_items)} items",
     ))
 
     def _broken_commons_item(idx_title: str, leaf_count: int, first_leaf: str, last_leaf: str) -> str:
@@ -778,6 +954,7 @@ def render_audit_html(
         "Transclusions broken due to removal of image file from Commons",
         len(broken_commons_transclusions),
         _findings_list(broken_commons_items),
+        unit=f"{len(broken_commons_transclusions)} Index items",
     ))
 
     body = "\n".join(bullets)
@@ -877,6 +1054,8 @@ def main() -> None:
     })
 
     breadcrumb_candidates = find_breadcrumb_gap_candidates(main_nodes)
+    separator_families = find_separator_family_candidates(main_nodes)
+    unresolvable_slash_paths = find_unresolvable_slash_paths(main_nodes)
     inference_candidates = find_root_inference_candidates(main_nodes, direct_cats_by_title)
     orphaned_categories = find_orphaned_categories(graph)
     redlink_categories = find_redlink_categories(graph, content_direct_cats_by_title)
@@ -889,7 +1068,8 @@ def main() -> None:
     broken_commons_transclusions = find_broken_commons_transclusions(dump_index, main_records)
 
     print_report(
-        breadcrumb_candidates, inference_candidates,
+        breadcrumb_candidates, separator_families, unresolvable_slash_paths,
+        inference_candidates,
         orphaned_categories, redlink_categories, category_cycles, tagged_page_ns_items,
         multi_parented_categories, bulk_import_candidates,
         broken_commons_transclusions,
@@ -897,7 +1077,8 @@ def main() -> None:
 
     if args.update_about:
         new_ul_html = render_audit_html(
-            breadcrumb_candidates, inference_candidates, multi_parented_categories,
+            breadcrumb_candidates, separator_families, unresolvable_slash_paths,
+            inference_candidates, multi_parented_categories,
             orphaned_categories, redlink_categories, category_cycles, tagged_page_ns_items,
             bulk_import_candidates, broken_commons_transclusions, cat_ns_name, index_ns_name,
         )

@@ -55,23 +55,106 @@ def _resolve_redirect(title: str, records_by_title: dict[str, PageRecord]) -> st
     return current
 
 
+def _normalize_path(title: str) -> str:
+    """Strips whitespace around each "/"-separated segment, for LOOKUP ONLY.
+
+    sa.wikisource has real titles like "अब्धिनौयानमीमांसा /चतुर्थं खण्डम्"
+    (stray space before the slash) whose parent exists only in un-spaced form.
+    MediaWiki itself normalizes this when resolving a subpage on the live
+    wiki, so the breadcrumb is genuinely correct there and only fails here.
+
+    Never persisted and never used as a node title -- the real, literal title
+    is always what gets stored/displayed, since that's what resolves against
+    Wikisource."""
+    return "/".join(seg.strip() for seg in title.split("/"))
+
+
+def _resolve_ancestor(
+    title: str,
+    records_by_title: dict[str, PageRecord],
+    titles_by_normalized: dict[str, list[str]],
+) -> str | None:
+    """Finds the nearest existing ancestor page for a "/"-bearing title, or
+    None if there genuinely isn't one (a real wiki problem -- see
+    pipeline.audit's find_unresolvable_slash_paths -- never papered over by
+    synthesizing a parent that doesn't exist).
+
+    Three reasons the plain "everything before the last '/'" rule misses a
+    parent that really is there:
+
+    1. A missing *intermediate* level: "ऋग्वेदः/संहिता/सस्वरपाठः/१-५" where
+       "ऋग्वेदः/संहिता/सस्वरपाठः" was never created but "ऋग्वेदः" was. We walk
+       up to the nearest ancestor that does exist rather than giving up at
+       the first miss.
+    2. A redirect anywhere up the chain, not just at the immediate parent:
+       "श्रीमद्भागवत महापुराण/स्कंध ०१/अध्यायः ०१" reaches its real home only
+       by resolving the ROOT segment's redirect to श्रीमद्भागवतपुराणम्. So
+       every level gets redirect-resolved, not just the first.
+    3. Whitespace around a "/" (see _normalize_path).
+
+    The exact literal parent is tried FIRST, before any normalization. This
+    matters: "भविष्यपुराणम् /पर्व १ (ब्राह्मपर्व)" is itself a real page whose
+    own title carries the stray space, and 226 chapters nest under it today by
+    exact match. Normalizing first would look up the space-free form, miss,
+    and pull all of them up to the shallow root instead -- so normalization is
+    only ever a fallback equivalence, never a rewrite of the path being
+    resolved."""
+    def _usable(candidate: str) -> str | None:
+        """A resolved candidate is usable only if it's a real page AND isn't
+        the title itself -- कथासरित्सागरः/लम्बकः १३ is a redirect pointing DOWN
+        at its own child, which would otherwise make that child its own parent
+        and drop it out of the tree entirely."""
+        resolved = _resolve_redirect(candidate, records_by_title)
+        if resolved != title and resolved in records_by_title:
+            return resolved
+        return None
+
+    # 1. Exact immediate parent -- today's behavior, preserved verbatim.
+    hit = _usable(title.rsplit("/", 1)[0])
+    if hit is not None:
+        return hit
+
+    # 2. Walk up the remaining ancestors, longest (nearest) first, allowing a
+    #    whitespace-normalized match at each level.
+    segments = _normalize_path(title).split("/")
+    for i in range(len(segments) - 1, 0, -1):
+        ancestor = "/".join(segments[:i])
+        hit = _usable(ancestor)
+        if hit is not None:
+            return hit
+        for real_title in titles_by_normalized.get(ancestor, ()):
+            hit = _usable(real_title)
+            if hit is not None:
+                return hit
+
+    return None
+
+
 def build_main_tree(records: list[PageRecord]) -> dict[str, MainPageNode]:
     """Returns a title -> MainPageNode map covering every Main-namespace page
     (redirects included, as leaf nodes -- callers filter/dereference as needed).
-    Parent/child edges are purely a title-string convention: a node's parent
-    is "everything before the last '/'" in its own title, resolved through
-    any redirect chain (see _resolve_redirect) to the real page that title
-    ultimately points to, IF that resolved title exists as another page in
-    this same namespace -- a "/" with no matching parent title present (e.g.
-    an orphaned or malformed subpage title) is left as its own top-level
-    node, not synthesized into a parent that doesn't exist as real content.
+    Parent/child edges are purely a title-string convention: a node's parent is
+    the nearest ancestor path that actually exists as a page in this same
+    namespace, resolved through any redirect chain at every level (see
+    _resolve_ancestor). A "/"-bearing title with no existing ancestor at all is
+    left as its own top-level node, never synthesized into a parent that
+    doesn't exist as real content.
     """
     records_by_title = {rec.title: rec for rec in records}
+
+    # Whitespace-normalized form -> the real title(s) sharing it, so a
+    # "Work /Part" style ancestor can still be found from a "Work/Part" probe.
+    # A normalized form can legitimately map to several real titles (73 such
+    # collisions in the 2026-07 dump), so this is a list, tried in order.
+    titles_by_normalized: dict[str, list[str]] = {}
+    for title in records_by_title:
+        titles_by_normalized.setdefault(_normalize_path(title), []).append(title)
+
     nodes: dict[str, MainPageNode] = {}
     for rec in records:
         parent_title = None
         if "/" in rec.title:
-            parent_title = _resolve_redirect(rec.title.rsplit("/", 1)[0], records_by_title)
+            parent_title = _resolve_ancestor(rec.title, records_by_title, titles_by_normalized)
         nodes[rec.title] = MainPageNode(record=rec, title=rec.title, parent_title=parent_title)
 
     for node in nodes.values():

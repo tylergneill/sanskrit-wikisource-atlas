@@ -434,15 +434,30 @@ function renderTrendChart(container, points, { title, getValue, fmtValue, fmtAxi
   }
 
   // X-axis: label first, last, and a few evenly-spaced dates in between.
-  const xTickCount = Math.min(6, points.length);
+  // Fewer date ticks on a phone: the axis text is counter-scaled up there (see
+  // styles.css) so six "YYYY-MM" labels crowd into each other, and the two leftmost
+  // end up nearly touching.
+  const narrow =
+    typeof window !== "undefined" &&
+    window.matchMedia("(max-width: 800px)").matches;
+  const xTickCount = Math.min(narrow ? 4 : 6, points.length);
   const xTickIdxs = new Set();
   for (let i = 0; i < xTickCount; i++) {
     xTickIdxs.add(Math.round((i / (xTickCount - 1 || 1)) * (points.length - 1)));
   }
-  for (const idx of xTickIdxs) {
+  // Anchor the end labels inward rather than centering them: a centered label at
+  // the first/last tick hangs half its width past the plot area, which at phone
+  // widths (where the axis text is counter-scaled up, see styles.css) runs visibly
+  // outside the chart box.
+  const sortedTickIdxs = [...xTickIdxs].sort((a, b) => a - b);
+  const firstIdx = sortedTickIdxs[0];
+  const lastIdx = sortedTickIdxs[sortedTickIdxs.length - 1];
+  for (const idx of sortedTickIdxs) {
     const x = xScale(dates[idx].getTime());
+    const anchor =
+      idx === firstIdx ? "start" : idx === lastIdx ? "end" : "middle";
     const label = svgEl("text", {
-      class: "chart-axis-text", x, y: height - 6, "text-anchor": "middle",
+      class: "chart-axis-text", x, y: height - 6, "text-anchor": anchor,
     });
     label.textContent = points[idx].date.slice(0, 7);
     svg.appendChild(label);
@@ -872,6 +887,15 @@ if (includeOrphansCheckbox) {
     renderChangelogCharts();
   });
 }
+
+// The charts pick their x-tick count from the viewport width (see buildChart), so
+// re-render when we cross that breakpoint -- otherwise rotating a phone leaves the
+// portrait tick count on a landscape chart. Listening to the media query rather
+// than every resize event keeps this to one re-render per actual crossing.
+const narrowQuery = window.matchMedia("(max-width: 800px)");
+narrowQuery.addEventListener("change", () => {
+  if (state.log) renderChangelogCharts();
+});
 
 main();
 loadSourceEras();

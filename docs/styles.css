@@ -844,8 +844,6 @@ a[target="_blank"]::after{
   }
   label[for="changelogIncludeOrphans"] input{ flex: 0 0 auto; }
 
-  /* Trend-chart labels: 11px axis text with 6 x-ticks collides at this width. */
-  .chart-svg .chart-axis-text{ font-size: 10px; }
   .chart-card h4{ font-size: 12px; }
 }
 
@@ -874,6 +872,18 @@ a[target="_blank"]::after{
   fill: var(--muted);
   font-size: 11px;
   font-variant-numeric: tabular-nums;
+}
+
+/* Chart text is authored in the SVG's 720px user-space coordinates and the SVG is
+   then scaled to fit (.chart-svg is width:100%), so these font sizes are NOT
+   on-screen pixels -- they shrink with the chart. On a 390px phone the chart
+   renders ~341px wide, a 0.47x scale, which turns the 11px above into ~5px on
+   screen against 18px body text: unreadable.
+   Counter-scale so the labels land near 12px actual. Must be declared after the
+   base rule above -- a media query adds no specificity, so an identical selector
+   later in the file would otherwise win. */
+@media (max-width: 800px){
+  .chart-svg .chart-axis-text{ font-size: 24px; }
 }
 .chart-svg .chart-line{
   fill: none;

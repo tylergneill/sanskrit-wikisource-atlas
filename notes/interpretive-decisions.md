@@ -336,3 +336,117 @@ Extracted from the decisions above, for judging future ones:
    partly an instrument for improving the source.
 5. **Both numbers when both are true.** `count` and `text_count`, root
    stats and `all_stats` — where one figure would mislead, show the pair.
+
+---
+
+## Appendix: Viṣṇupurāṇa reference data
+
+Compiled 2026-07-31 to support a separate investigation into a July 2026
+attempt to extract this work from Wikisource into another text collection —
+specifically, whether the filing defects above interfered with that attempt,
+and whether the extractor obtained the sixth aṃśa. Recorded here because it
+is expensive to re-derive and easy to get subtly wrong.
+
+### The work is complete, and always was
+
+126 chapter pages across six aṃśas (134 pages total including index pages),
+**no gaps in any aṃśa** — every chapter from 1 to the maximum is present:
+
+| aṃśa | chapters | tagged into its category | content bytes |
+|---|---|---|---|
+| प्रथमांशः | 22 | 22 | 406,447 |
+| द्वितीयांशः | 16 | 16 | 204,759 |
+| तृतीयांशः | 18 | 18 | 213,882 |
+| चतुर्थांशः | 24 | 24 | 332,192 |
+| पञ्चमांशः | 38 | 38 | 392,484 |
+| षष्टांशः | **8** | 8 | 125,151 |
+
+**The sixth aṃśa's 8 chapters are correct, not truncated.** Two independent
+confirmations: the canonical Viṣṇupurāṇa's sixth aṃśa has 8 adhyāyas, and
+the wiki's own index page `विष्णुपुराणम्/षष्टांशः` lists exactly
+`अध्यायः १` through `अध्यायः ८` and stops (verified against live wikitext,
+2026-07-31). Earlier notes treated "only 8" as evidence of a gap; it is not.
+Anyone extracting this work should have obtained 8 chapters there — 8 is the
+success condition, not a red flag.
+
+### State during July 2026, when the extraction happened
+
+The extractor was working against the **broken** wiki: the dead-tag defect
+was live from 2016-01-19 until it was fixed 2026-07-31T12:03:29Z. In the
+2026-07-01 dump the top page `विष्णुपुराणम्` still carried
+`[[वर्गः:विष्णुपुराणम्]]`.
+
+What that means concretely for a category-driven extraction:
+
+- The work's top page was in a **redlink category containing only itself**.
+  A crawler starting from `वर्गः:पुराणानि` and descending categories would
+  reach `वर्गः:श्रीविष्णुपुराणम्` and its six aṃśa subcategories, but would
+  **not** reach the work through `विष्णुपुराणम्`.
+- The six aṃśa categories were correctly populated the whole time (the
+  table above holds for the 2026-07-01 dump), so a category-driven crawl
+  that found `श्रीविष्णुपुराणम्` should have gotten **all six aṃśas
+  including the eighth-chapter sixth**.
+- A crawl driven from the **top page's own category** would have found
+  essentially nothing, since that category held one page.
+- A crawl driven by **title prefix** (`विष्णुपुराणम्/`) would have gotten
+  everything, since the breadcrumb titles were always intact.
+
+So the discriminating question for the investigation is *which entry point
+the extractor used*. Missing content, or getting five aṃśas but not the
+sixth, would not be explained by the defects documented here — the sixth was
+as reachable as the other five by every route. A total miss of the work, or
+finding it only as an orphan, is consistent with a category-driven crawl
+hitting the dead tag.
+
+### Naming trap
+
+Pages are titled **without** `श्री` (`विष्णुपुराणम्/चतुर्थांशः/अध्यायः १`);
+categories are named **with** it (`श्रीविष्णुपुराणम्-चतुर्थांशः`). Note also
+that the categories use a **hyphen**, not a slash. An extraction tool
+matching page titles against category names, or assuming the category name
+predicts the page path, would fail on both counts. This mismatch is old:
+the 2011 revisions of the top page linked to `श्रीविष्णुपुराणम्-प्रथमांशः`
+style titles, which were later moved to the slash form, leaving redirects.
+
+### Revision history of the top page (the defect's whole life)
+
+```
+2011-11-12  Sbblr0803            first version, links श्रीविष्णुपुराणम्-* titles
+2012-02-23  Sandeep V Kulkarni   added [[Category:पुराणानि]]
+2016-01-19  Udit Sharma          removed पुराणानि, added विष्णुपुराणम्   <-- DEFECT
+2017-06-29  Puranastudy
+2018-08-11  Puranastudy
+2019-06-03  Puranastudy          redirect work, श्रीविष्णुपुराणम् mentioned
+2019-06-04  Puranastudy
+2023-08-05  अनुनाद सिंह
+2026-07-31  (fix)                विष्णुपुराणम् -> श्रीविष्णुपुराणम्
+```
+
+Introduced in two consecutive edits 13 seconds apart on 2016-01-19, and live
+for **ten and a half years**. Four subsequent editors touched the page
+without noticing — consistent with the "undiagnosable by eye" point above,
+since a redlink category renders as an ordinary-looking link at the bottom
+of the page.
+
+### Provenance signal: the 2019-06-03 batch
+
+All six aṃśa index pages were created within about two minutes of each other
+on 2019-06-03 (20:17:24 through 20:20:14) by user `Puranastudy`, which looks
+like a scripted or batch upload rather than hand editing. Last-edit years
+across the work's 134 pages: 2019 (59), 2020 (2), 2021 (20), 2022 (31),
+2023 (6), 2024 (2), 2026 (14). Useful if the investigation needs to
+distinguish the wiki's own import history from the later extraction.
+
+### Caution when using historical snapshots for this
+
+`dump/_backfill_snapshots/` has 174 monthly snapshots (2012-02 onward), but
+**do not read early ones as evidence of when content appeared.** Materialized
+months are reconstructed from a 2026-vintage meta-history dump, so a naive
+query reports all six aṃśas present in 2012-02 while 2016-01 and 2018-01
+show zero — mutually contradictory. The 2019-06 onward figures are
+consistent with the revision history and can be trusted; earlier ones cannot.
+See CLAUDE.md's "Dump vintage" section for why.
+
+Also note the 2026-07-01 content cache was hand-patched with the 2026-07-31
+fix (see the worked example above); the unmodified original is not in git.
+The 2026-08-01 dump supersedes both.

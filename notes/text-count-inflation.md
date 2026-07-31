@@ -65,8 +65,24 @@ Verified as pure re-parenting: distinct page/index ids 26,742 → 26,742 (zero
 added, zero removed), and `content_bytes`/`transliterated_bytes` net to exactly
 zero across root + orphan bucket — every byte that entered the central tree left
 the bucket. Because the change is assembly-only, all 174 snapshots rebuilt from
-the content cache in ~3 minutes, so the historical trend shifts down uniformly
-(−590/−592 per month) with **no step discontinuity**.
+the content cache in ~3 minutes.
+
+> **Correction (2026-07-31).** This section originally claimed the historical
+> trend shifted down "uniformly (−590/−592 per month) with **no step
+> discontinuity**." That is **false**, and believing it is why the defect went
+> unnoticed for a day. Measured per era against the last known-smooth series,
+> `a63b21b` drops **IA months by −2,302** and **materialized months by −3,412**
+> — a ~1,110-page gap that *is* a step discontinuity, visible as deep notches
+> in the About page's Text Count chart. The uniform figure was computed against
+> the current-month tree only and does not hold across the historical range.
+>
+> The mechanism: `_resolve_flat_family` never synthesizes a parent, so in months
+> where the destination pages aren't found the family falls back to top-level
+> and stays counted as texts. In IA-era months roughly 1,110 pages (≈ the
+> ऋग्वेदः family) fail to nest; in materialized months they nest correctly. So
+> **the IA months are the ones left with spurious text counts**, not the
+> materialized ones. See `ia-dumps-resist-nesting.md` for the full bisect and
+> the open question of why IA dumps resist nesting.
 
 ## What's left in the orphan bucket, and why it's a different problem
 
@@ -95,7 +111,18 @@ when normalizing category titles). The other two rows are real wiki gaps with no
 mechanism to recover from — that's where the wiki-editing campaign applies, or a
 further allowlist if it's ever worth it.
 
-## Investigated and rejected: suppressing duplicate category listings
+## Investigated and rejected, then shipped anyway: suppressing duplicate category listings
+
+> **Status update (2026-07-31).** This section records a *rejection*, but
+> `5c41f34` ("suppress duplicate flat listings of centrally-reachable
+> subpages") shipped fix #2 the next day, keying it on central *reachability*
+> so the two failure modes below are avoided: works whose nested form lives
+> only in the orphan bucket keep their flat listing, and categories that
+> suppression empties outright are pruned rather than left as dead ends. Read
+> the analysis below as the constraints that shaped the shipped design, not as
+> a live decision to avoid it. `5c41f34` was checked during the 2026-07-31
+> bisect and does **not** contribute to the text_count discontinuity.
+
 
 A page can appear twice in one view — once nested under its breadcrumb
 ancestor, once listed flat under a category it tags directly. `आचारकाण्डः`

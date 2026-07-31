@@ -182,48 +182,141 @@ and measured for this and turned out to catch only 60 listings, because the
 duplication is nested-vs-nested rather than direct-vs-direct — the drafted
 rule only ever removed direct listings. A correct rule has not been written.
 
-### Worked example: the Viṣṇupurāṇa, and why we left it alone
+### Worked example: the Viṣṇupurāṇa — RESOLVED UPSTREAM, 2026-07-31
 
-Useful because it shows a pipeline decision deferring to an upstream fix.
+The best evidence so far that §4's self-correcting property works in
+practice. Kept in full because the diagnosis is reusable, not because the
+problem is still live.
 
-**One page** — chapter 1 of the fourth aṃśa, 8.2 KB — appears three times:
+**The symptom.** One page — chapter 1 of the fourth aṃśa, 6,232 bytes —
+appeared three times in the tree:
 
-1. **Because of its tag.** It claims membership in
-   `श्रीविष्णुपुराणम्-चतुर्थांशः`, so it goes in that box.
-2. **Because of its title.** It is named `विष्णुपुराणम्/चतुर्थांशः/अध्यायः १`,
-   so it also nests under its title-parent, which appears in the
-   `श्रीविष्णुपुराणम्` box.
-3. The same nesting again, under the orphan-bucket copy of the work.
+1. **Because of its own tag.** Its wikitext carries
+   `[[वर्गः:श्रीविष्णुपुराणम्-चतुर्थांशः]]`, so it was listed in that category.
+2. **Because of its title.** Named `विष्णुपुराणम्/चतुर्थांशः/अध्यायः १`, the
+   slashes make it a child of `विष्णुपुराणम्/चतुर्थांशः`, whose own tag is
+   `[[वर्गः:श्रीविष्णुपुराणम्]]` — so it appeared nested there too. Nobody
+   filed the chapter there; it arrived because its parent is there.
+3. **The same nesting again**, under the orphan-bucket copy of the work.
 
 Once by tag, twice by title — the two filing systems from the top of this
 file, disagreeing.
 
-**Why §4's rule doesn't catch it.** The rule walks to the top of the title
-chain, the page `विष्णुपुराणम्`, and asks whether *it* is tagged somewhere
-central. That page carries exactly one tag, naming a category
-`विष्णुपुराणम्` — **which does not exist.** Nobody created it. So the rule
-sees an unanchored work, concludes the flat listing may be the only way in,
-and keeps it. The rule is behaving correctly on broken input.
+**The diagnosis.** Of the work's 133 pages, 132 carried tags naming
+categories that exist. Exactly one did not: the work's **top** page,
+`विष्णुपुराणम्`, ended with `[[वर्गः:विष्णुपुराणम्]]` — a category with no
+description page, containing only that single page. A redlink.
+
+§4's rule walks to the top of the title chain and asks whether *that* page is
+tagged somewhere centrally reachable. Finding a dead tag, it concluded the
+work was unanchored, and kept the duplicate listings as possibly the only way
+in. **The rule was behaving correctly on broken input.**
 
 The `श्री` discrepancy is the fingerprint: categories were named *with* it,
-pages *without* it, and the one tag bridging them was written in the
-page-side spelling, pointing at a category never made.
+pages *without* it, and the one tag bridging the two was written in the
+page-side spelling — pointing at a category nobody ever created.
 
-**Why we're not patching it in the pipeline.**
+**The fix, made on-wiki 2026-07-31 (revid 417928).** One line, one page:
 
-1. **The defect is upstream.** One missing category — or one corrected tag —
-   and this resolves itself on the next run. Code that papers over it leaves
-   the wiki broken *and* hides the evidence, when surfacing such problems is
+```
+[[वर्गः:विष्णुपुराणम्]]   →   [[वर्गः:श्रीविष्णुपुराणम्]]
+```
+
+**The result, with no code change whatsoever:**
+
+| | before | after |
+|---|---|---|
+| occurrences of the chapter | 3 | 1 |
+| categories rendered | 215 | 208 |
+| distinct items in corpus | 26,742 | 26,742 |
+
+Seven categories stopped being rendered — the six aṃśa categories plus the
+dead orphan cluster — not because content vanished, but because their
+chapters became reachable nested under a properly anchored work root, so §4
+collapsed the duplicates. The work moved from the orphan bucket into the
+central tree (root `text_count` 1,625 → 1,626); `all_stats` was unchanged,
+correctly, since nothing entered or left the corpus.
+
+**Why this was left to an upstream fix rather than patched in the pipeline.**
+
+1. **The defect was upstream.** Code papering over it would have left the
+   wiki broken *and* hidden the evidence, when surfacing such problems is
    part of why this project exists.
-2. **A looser rule would guess.** Catching this means deciding a deep box and
-   a shallow box show "the same thing." True here; false for the 777 genuine
-   multi-filings. Too loose, and real memberships vanish invisibly.
-3. **There is a real content gap underneath.** The central
-   `श्रीविष्णुपुराणम्` box is missing the sixth aṃśa entirely; the orphan
-   copy has all six. Collapsing these now risks hiding the more complete
-   version behind the less complete one.
+2. **A looser rule would have guessed.** Catching this in code means deciding
+   a deeper category and a shallower one show "the same thing." True here;
+   false for the 777 genuine multi-filings (§5). Too loose, and real
+   memberships vanish invisibly.
 
-Recorded as an upstream item; see `notes/wikisource-editing-plan.md`.
+**Correction to an earlier claim.** Prior notes (and the implementation
+plan) stated the central `श्रीविष्णुपुराणम्` was "missing the sixth aṃśa
+entirely," offered as a reason both copies had to stay visible. That was
+never verified and is **false**: `श्रीविष्णुपुराणम्-षष्टांशः` exists and has
+8 pages tagged into it. The duplication was purely a filing defect, with no
+content gap underneath it.
+
+**The real lesson: the diagnosis was far too hard.** The fix was one line.
+Getting from what the interface showed to knowing *which* line took an
+extended investigation — reading the assembled tree, classifying duplicate
+paths, walking the title chain by hand, and finally querying the live wiki
+API to confirm the category was a redlink. A reader looking at the site
+could see *that* something was duplicated, but had no path to *why*, and no
+way to know that one specific page's tag was the cause.
+
+This asymmetry — trivial fix, expensive diagnosis — is the actual barrier to
+the self-correcting property being useful. §4's rule only pays off when
+someone makes the upstream edit, and nobody makes an edit they can't locate.
+Two concrete gaps to close:
+
+- **Redlink category tags are invisible in the UI.** A page tagged into a
+  category that doesn't exist is a specific, machine-detectable defect
+  (`tag not in graph.nodes`). It is the root cause here and is likely
+  behind other orphan clusters. The audit should list these outright:
+  page, dead tag, and the nearest existing category with a similar name.
+- **The orphan bucket says "unreachable" without saying why.** When a work
+  lands there because its root's only tag is dead, that is a one-sentence
+  explanation the pipeline already has enough information to emit.
+
+Until those exist, treat this worked example as a *method*: when a work is
+duplicated between the central tree and the orphan bucket, check the tag on
+the work's **top** page first. That single check would have short-circuited
+most of the investigation described above.
+
+**This is not a one-off.** Detecting the pattern is a two-line query
+(`tag not in graph.nodes`), and against the 2026-07-01 dump it finds:
+
+- **26** distinct nonexistent categories referenced by Main pages
+- **167** pages carrying at least one dead tag
+- **123** of those on *top-level* pages — the same shape as विष्णुपुराणम्,
+  where the damage propagates to every descendant
+
+Ranked by descendants affected, the largest are:
+
+| top-level page | dead tag | descendants |
+|---|---|---|
+| `गर्गसंहिता` | `संहिता` | 279 |
+| `कृष्‍णयजुर्वेदः` | `कृष्‍णयजुर्वेदः` | 58 |
+| `ऋग्वेदः` | `ऋग्वेदः‎` | 23 |
+| `रघुवंशम्` | `मालविकाग्निमित्रम्` | 21 |
+| `बुद्धचरितम्` | `बौद्धवाङ्मयम्` | 14 |
+
+Note `गर्गसंहिता` — §4 protects its 61 flat listings precisely because its
+root is unanchored, and this is why.
+
+Note also that two of these are **invisible-character bugs**, and both are
+unambiguous:
+
+| dead tag | hidden character | strip it and you get | exists? |
+|---|---|---|---|
+| `कृष्‍णयजुर्वेदः` | `U+200D` ZERO WIDTH JOINER | `कृष्णयजुर्वेदः` | **yes** |
+| `ऋग्वेदः‎` | `U+200E` LEFT-TO-RIGHT MARK | `ऋग्वेदः` | **yes** |
+
+In both cases removing the invisible character yields a category that
+actually exists, so the intended target is not in doubt and the fix needs no
+editorial judgment. These are undiagnosable by eye at any level of effort —
+the tag renders identically to a working one. Precisely the case for
+machine detection, and a strong argument for the audit addition above.
+
+See `notes/wikisource-editing-plan.md` for the broader upstream campaign.
 
 ---
 

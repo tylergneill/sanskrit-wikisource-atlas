@@ -466575,19 +466575,19 @@
       "last_changed": "2026-05-29T11:21:41Z"
     },
     "new": {
-      "raw_bytes": 911350286,
+      "raw_bytes": 911351276,
       "content_bytes": 866184032,
       "transliterated_bytes": 449023997,
-      "count": 22788,
-      "text_count": 1625,
-      "last_changed": "2026-06-29T05:38:48Z"
+      "count": 22789,
+      "text_count": 1626,
+      "last_changed": "2026-07-31T12:03:29Z"
     },
     "sizes": {
       "raw_bytes": {
         "old": 904613785,
-        "new": 911350286,
-        "delta": 6736501,
-        "delta_pct": 0.7446825498021789
+        "new": 911351276,
+        "delta": 6737491,
+        "delta_pct": 0.744791988771208
       },
       "content_bytes": {
         "old": 860369553,
@@ -466603,10 +466603,10 @@
       }
     },
     "delta": {
-      "count": 14,
-      "count_pct": 0.06147361025731097,
-      "text_count": 15,
-      "text_count_pct": 0.9316770186335404
+      "count": 15,
+      "count_pct": 0.06586458241854747,
+      "text_count": 16,
+      "text_count_pct": 0.9937888198757764
     },
     "all": {
       "old": {
@@ -466623,7 +466623,7 @@
         "transliterated_bytes": 808466325,
         "count": 26742,
         "text_count": 3783,
-        "last_changed": "2026-06-29T05:38:48Z"
+        "last_changed": "2026-07-31T12:03:29Z"
       },
       "sizes": {
         "raw_bytes": {
@@ -466684,6 +466684,11 @@
         "new_bytes": 244588
       },
       {
+        "id": "page:विष्णुपुराणम्",
+        "date": "2026-07-31T12:03:29Z",
+        "new_bytes": 857879
+      },
+      {
         "id": "page:षडाम्नायपूजाविधिः",
         "date": "2026-06-08T06:18:08Z",
         "new_bytes": 107044
@@ -466736,34 +466741,6 @@
       }
     ],
     "items_with_changed_timestamp": [
-      {
-        "id": "index-item:Advaita Siddhi with Guru Chandrika vyakhya.djvu",
-        "old": "2023-07-04T22:50:14Z",
-        "new": "2026-06-12T11:46:24Z",
-        "old_bytes": 2316832,
-        "new_bytes": 2316779
-      },
-      {
-        "id": "index-item:बृहद्देवता.djvu",
-        "old": "2023-07-10T08:46:23Z",
-        "new": "2023-07-20T09:09:54Z",
-        "old_bytes": 459063,
-        "new_bytes": 459063
-      },
-      {
-        "id": "index-item:मेदिनीकोशः.djvu",
-        "old": "2023-07-08T14:23:38Z",
-        "new": "2024-02-27T11:45:24Z",
-        "old_bytes": 24345,
-        "new_bytes": 24345
-      },
-      {
-        "id": "index-item:याज्ञवल्क्यस्मृतिः.pdf",
-        "old": "2023-07-05T12:34:47Z",
-        "new": "2023-07-05T12:37:22Z",
-        "old_bytes": 233653,
-        "new_bytes": 233653
-      },
       {
         "id": "page:उमासहस्रनामस्तोत्रम्",
         "old": "2016-01-22T08:47:16Z",
@@ -466856,10 +466833,10 @@
         "new_bytes": 13136
       }
     ],
-    "items_added_count": 15,
+    "items_added_count": 16,
     "items_removed_count": 1,
-    "items_changed_count": 17,
-    "items_added_pct": 0.06586458241854747,
+    "items_changed_count": 13,
+    "items_added_pct": 0.07025555457978397,
     "items_removed_pct": 0.004390972161236498,
     "items_added_count_all": 59,
     "items_removed_count_all": 32

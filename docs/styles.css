@@ -60,6 +60,10 @@ body{
 .brand-title{ white-space: nowrap; }
 .brand-meta{ display: contents; }
 
+/* Subtle: same color/weight as plain text, just a pointer cursor -- unlike
+   .topbar-link (About), which is meant to visually announce itself as a link. */
+.brand-title-link{ cursor: pointer; color: inherit; text-decoration: none; }
+
 .sidebar-toggle{
   display: none;
   background: transparent;
@@ -237,6 +241,16 @@ a.topbar-link:hover { text-decoration: underline; }
 .panelTitle{ font-weight: 600; margin-bottom: 6px; }
 .panelTitleLink{ cursor: pointer; }
 .hint{ font-size: 14px; color: var(--muted); margin-bottom: 10px; }
+.expandAllButton{
+  font-size: 13px;
+  padding: 3px 10px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text);
+  cursor: pointer;
+}
+.expandAllButton:hover{ border-color: var(--accent); color: var(--accent); }
 .hint-touch{ display: none; }
 /* Coarse-pointer devices (touch, no hover) get the long-press hint instead of
    the Option/Shift-click one -- keyed on pointer capability, not viewport width,

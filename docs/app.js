@@ -13,6 +13,9 @@ const state = {
                              // this is purely a UI hint, not a dedup mechanism) -- powers the "also filed under..." button
   multiCatLocations: new Map(), // page/index-item title -> [{path, stats}] over every occurrence, for the hover tooltip/highlight
   selectedCatId: null,
+  rootExpanded: false,      // when true, "All" renders the full nested tree (renderCategoryBlock)
+                             // instead of the lightweight one-row-per-top-level-category summary
+                             // (renderRootOverview) -- see the "Expand All" button there.
   includeOrphans: localStorage.getItem("includeOrphans") !== "0", // when true (default), the "All"
                              // headline stats use data.all_stats (root + असम्बद्धवर्गीकृतम्, the orphan
                              // bucket) instead of root.stats (the central, well-categorized tree only) --
@@ -57,6 +60,7 @@ function isSearchActive() {
 // for the click to do anything the user can see.
 function selectCategory(catId) {
   state.selectedCatId = catId;
+  state.rootExpanded = false;
   state.searchQuery = "";
   state.searchExact = false;
   state.collapsedSubpages.clear();  // leaving search discards its per-result collapse state
@@ -423,11 +427,12 @@ function renderMain() {
     // The actual root has ~20k descendant pages across the whole tree -- fully
     // recursing here (as any other category selection does) would build DOM for
     // all of them on every initial load. Show one level of category summaries
-    // instead; drilling into a specific category still renders its subtree in full.
+    // instead; drilling into a specific category still renders its subtree in
+    // full, and root's own "Expand All" button opts into the same full render.
     const isActualRoot = selected.id === root.id;
-    const selectedBlock = isActualRoot
+    const selectedBlock = isActualRoot && !state.rootExpanded
       ? renderRootOverview(selected)
-      : renderCategoryBlock(selected, { includeLeaves: true, depth: breadcrumb.length + 1, isRoot: false });
+      : renderCategoryBlock(selected, { includeLeaves: true, depth: isActualRoot ? 0 : breadcrumb.length + 1, isRoot: isActualRoot });
 
     let inner = selectedBlock;
     for (let i = breadcrumb.length - 1; i >= 0; i--) {
@@ -489,6 +494,20 @@ function positionStickyHeaders(host) {
 // See the comment at its call site in renderMain() for why this exists.
 function renderRootOverview(root) {
   const block = el("div", {});
+  // "All" is the one sidenav selection with no actual text links of its own --
+  // just top-level category summaries -- so offer a way to blow it open into
+  // the full nested listing, same as drilling into any other category.
+  block.appendChild(
+    el("button", {
+      type: "button",
+      class: "expandAllButton",
+      style: "margin-bottom:10px;",
+      onclick: () => {
+        state.rootExpanded = true;
+        renderMain();
+      },
+    }, "Expand All"),
+  );
   for (const ch of (root.children || [])) {
     const content = resolveContent(ch);
     const statsText = formatStats(ch.stats, { includeDate: true });
@@ -1153,6 +1172,13 @@ function initUI() {
     else openSidebar();
   });
   document.getElementById("sidebarBackdrop").addEventListener("click", closeSidebar);
+
+  document.getElementById("brandTitle").addEventListener("click", () => {
+    selectCategory(null);
+    renderSidebarTree();
+    renderMain();
+    closeSidebarIfMobile();
+  });
   document.addEventListener("keydown", (ev) => {
     if (ev.key === "Escape") closeSidebar();
   });

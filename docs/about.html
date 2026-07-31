@@ -1740,8 +1740,30 @@
       <details class="block collapsible">
         <summary><h2 id="data-quantity">Data Quantity: Historical Trends and Deltas</h2></summary>
         <p class="small">
-          Monthly deltas, patched together across four source types — see "Snapshots" above for detail.
+          Monthly deltas, patched together across four source types.
         </p>
+
+        <div class="viz-root sourceTimeline" id="sourceTimelineDataQuantity" data-palette="#2a78d6,#eb6834,#1baf7a,#eda100">
+          <div class="sourceTimelineRow">
+            <div class="sourceTimelinePre" id="sourceTimelineDataQuantityPre" role="img" aria-label="Wiki founded 2004, before this mirror's changelog begins"></div>
+            <div class="sourceTimelineBar" id="sourceTimelineDataQuantityBar" role="img" aria-label="Timeline of source types covering the historical changelog, 2012 to present"></div>
+          </div>
+          <div class="sourceTimelineAxis" id="sourceTimelineDataQuantityAxis"></div>
+          <div class="sourceTimelineLegend">
+            <span class="legendItem"><span class="legendSwatch" style="background:var(--series-1)"></span>current-format live</span>
+            <span class="legendItem"><span class="legendSwatch" style="background:var(--series-2)"></span>legacy-format live</span>
+            <span class="legendItem"><span class="legendSwatch" style="background:var(--series-3)"></span>Internet Archive</span>
+            <span class="legendItem"><span class="legendSwatch" style="background:var(--series-4)"></span>materialized (synthetic)</span>
+            <span class="legendItem"><span class="legendSwatch" style="background:var(--surface-uncovered)"></span>no coverage</span>
+          </div>
+          <div class="sourceTimelineTooltip" id="sourceTimelineDataQuantityTooltip" hidden></div>
+        </div>
+
+        <p class="small">
+          See "Snapshots" above in <a href="about.html#obtaining-and-representing">the "Obtaining and Representing" section</a> for detail.
+        </p>
+
+        <hr>
 
         <p class="small">
           <label class="navlabel" for="changelogGranularity">Granularity:</label>

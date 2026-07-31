@@ -756,11 +756,11 @@ const TIMELINE_PRE_TOOLTIP_HTML =
   `the underlying revision data runs out, but because there's no category structure ` +
   `to build a tree from before then.`;
 
-function renderSourceTimeline(eras) {
-  const preEl = document.getElementById("sourceTimelinePre");
-  const barEl = document.getElementById("sourceTimelineBar");
-  const axisEl = document.getElementById("sourceTimelineAxis");
-  const tooltipEl = document.getElementById("sourceTimelineTooltip");
+function renderSourceTimeline(eras, idPrefix = "sourceTimeline") {
+  const preEl = document.getElementById(`${idPrefix}Pre`);
+  const barEl = document.getElementById(`${idPrefix}Bar`);
+  const axisEl = document.getElementById(`${idPrefix}Axis`);
+  const tooltipEl = document.getElementById(`${idPrefix}Tooltip`);
   if (!barEl) return;
 
   if (preEl) {
@@ -818,20 +818,28 @@ function renderSourceTimeline(eras) {
     tooltipEl.hidden = false;
   }
   function positionTimelineTooltip(ev) {
-    const rootRect = document.getElementById("sourceTimeline").getBoundingClientRect();
+    const rootRect = document.getElementById(idPrefix).getBoundingClientRect();
     tooltipEl.style.left = `${ev.clientX - rootRect.left + 12}px`;
     tooltipEl.style.top = `${ev.clientY - rootRect.top + 16}px`;
   }
 }
 
+// Rendered twice with the same data: once under "Snapshots" (where the source
+// types are explained) and again under "Data Quantity" (so the trend charts'
+// bumps/dips can be visually cross-referenced against which source type
+// produced that stretch of the changelog, without scrolling back up).
+const SOURCE_TIMELINE_ID_PREFIXES = ["sourceTimeline", "sourceTimelineDataQuantity"];
+
 async function loadSourceEras() {
-  const container = document.getElementById("sourceTimeline");
-  if (!container) return;
+  const anyContainer = SOURCE_TIMELINE_ID_PREFIXES.some((id) => document.getElementById(id));
+  if (!anyContainer) return;
   try {
     const r = await fetch(SOURCE_ERAS_URL, { cache: "no-store" });
     if (!r.ok) throw new Error(`${r.status}`);
     const eras = await r.json();
-    renderSourceTimeline(eras);
+    for (const idPrefix of SOURCE_TIMELINE_ID_PREFIXES) {
+      if (document.getElementById(idPrefix)) renderSourceTimeline(eras, idPrefix);
+    }
   } catch (e) {
     console.log("Could not load source era boundaries:", e);
   }

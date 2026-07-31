@@ -571,7 +571,7 @@ def print_report(
     what's shown while a human is reading this report."""
     total_pages = sum(len(v) for v in breadcrumb_candidates.values())
     print("=" * 70)
-    print(f"BREADCRUMB-GAP CANDIDATES: {len(breadcrumb_candidates)} works, "
+    print(f"BREADCRUMB-GAP CANDIDATES: {len(breadcrumb_candidates)} texts, "
           f"{total_pages} pages implicated")
     print("=" * 70)
     print("(top-level page titles with other top-level pages sharing them as")
@@ -589,7 +589,7 @@ def print_report(
 
     sep_pages = sum(len(v) for v in separator_families.values())
     print("=" * 70)
-    print(f"SEPARATOR-FAMILY CANDIDATES: {len(separator_families)} works, "
+    print(f"SEPARATOR-FAMILY CANDIDATES: {len(separator_families)} texts, "
           f"{sep_pages} pages implicated")
     print("=" * 70)
     print("(flat pages using a hyphen/dot where '/' belongs, whose stem IS a")
@@ -626,7 +626,7 @@ def print_report(
     print()
 
     print("=" * 70)
-    print(f"ROOT CATEGORY-INFERENCE CANDIDATES: {len(inference_candidates)} works")
+    print(f"ROOT CATEGORY-INFERENCE CANDIDATES: {len(inference_candidates)} texts")
     print("=" * 70)
     print("(top-level pages whose real '/' subpages ALL share a category tag")
     print(" the top-level page itself lacks -- candidate for adding that tag")
@@ -766,7 +766,7 @@ def _findings_list(items: list[str]) -> str:
 def _bullet(description: str, count: int, inner_html: str, unit: str | None = None) -> str:
     """`unit` spells out what the number actually counts, for checks where a
     bare count would be ambiguous or misleading -- e.g. the separator-family
-    check groups 2,338 pages under only 10 works, so "(10)" alone reads as the
+    check groups 2,338 pages under only 10 texts, so "(10)" alone reads as the
     smallest finding when it's the largest. Every caller should pass a `unit`
     naming its noun ("pages", "categories", ...) unless the description itself
     already makes the unit unambiguous. Falls back to the bare count."""
@@ -919,13 +919,13 @@ def render_audit_html(
             'Space-separated title instead of a "/"',
             len(breadcrumb_candidates),
             _group_ul(breadcrumb_items),
-            unit=f"{breadcrumb_pages} pages under {len(breadcrumb_candidates)} works",
+            unit=f"{breadcrumb_pages} pages under {len(breadcrumb_candidates)} texts",
         ),
         _sub_bullet(
             'Hyphen or dot instead of a "/"',
             len(separator_families),
             _group_ul(separator_items),
-            unit=f"{separator_pages} pages under {len(separator_families)} works",
+            unit=f"{separator_pages} pages under {len(separator_families)} texts",
         ),
         _sub_bullet(
             'Has a "/" breadcrumb, but it points at a page that does not exist',
@@ -1070,9 +1070,9 @@ def main() -> None:
 
     xml_path = args.xml_path
     if xml_path is None:
-        candidates = sorted(Path("dump").glob("sawikisource-*.xml"))
+        candidates = sorted(Path("dump/1_current_format_live").glob("sawikisource-*.xml"))
         if not candidates:
-            print("no dump/*.xml found", file=sys.stderr)
+            print("no dump/1_current_format_live/*.xml found", file=sys.stderr)
             sys.exit(1)
         xml_path = candidates[0]
 

@@ -514,11 +514,74 @@ def build_tree_json(
 
     emitted_ids: dict[str, str] = {}  # category title -> id of its first (real) emission
 
+    # Categories reachable downward from वर्गसर्वस्वम् by category descent
+    # alone -- the "central" corpus, as opposed to the orphan-only clusters
+    # swept up later into असम्बद्धवर्गीकृतम्. Computed here as a pure graph
+    # traversal rather than read off emitted_ids, because emitted_ids only
+    # becomes the reachable set *after* build_category(root) returns -- and
+    # the breadcrumb-subpage suppression below needs the answer during that
+    # same pass. Memoized and cycle-safe (see CategoryGraph).
+    central_categories = graph.reachable_descendants(graph.root_title)
+
+    # Per-title memo for _work_root: the topmost ancestor of a breadcrumb
+    # subpage, i.e. the page node the whole work hangs off. Filled lazily,
+    # since this is asked once per (category, page) pair.
+    work_root_memo: dict[str, str] = {}
+
+    def _work_root(title: str) -> str:
+        """Walk main_nodes' parent_title chain to the top and return the work
+        root's title. build_main_tree guarantees no cycles by construction
+        (a candidate resolving to the title itself is rejected), but guard
+        anyway, matching _resolve_ancestor's defensiveness -- on a cycle,
+        stop and report the last title seen."""
+        cached = work_root_memo.get(title)
+        if cached is not None:
+            return cached
+        chain: list[str] = []
+        seen: set[str] = set()
+        cur = title
+        while True:
+            if cur in work_root_memo:
+                root_title = work_root_memo[cur]
+                break
+            if cur in seen:
+                root_title = cur  # cycle guard -- shouldn't happen
+                break
+            seen.add(cur)
+            chain.append(cur)
+            node = main_nodes.get(cur)
+            if node is None or node.parent_title is None:
+                root_title = cur
+                break
+            cur = node.parent_title
+        for t in chain:
+            work_root_memo[t] = root_title
+        return root_title
+
+    def _root_is_central(title: str) -> bool:
+        """True when this page's work root is reachable from वर्गसर्वस्वम् --
+        i.e. the properly-nested version of this page is browsable from the
+        central category tree, so a flat duplicate listing adds nothing."""
+        root_title = _work_root(title)
+        return any(
+            c in central_categories
+            for c in content_index.main_categories.get(root_title, set())
+        )
+
     def cat_id(title: str) -> str:
         return "cat:" + title
 
-    def build_category(title: str) -> dict:
+    # Categories whose first (real) emission was pruned as suppression-emptied.
+    # A later filing of the same category must be pruned too, not emitted as a
+    # category-pointer -- its points_to would dangle at an id no longer in the
+    # tree, which recompute_stats_dedup silently scores as empty stats and the
+    # frontend renders as a broken "see also".
+    pruned_titles: set[str] = set()
+
+    def build_category(title: str) -> dict | None:
         node_id = cat_id(title)
+        if title in pruned_titles:
+            return None
         if title in emitted_ids:
             return {
                 "id": node_id + ":pointer",
@@ -534,7 +597,9 @@ def build_tree_json(
         children = []
         if cat_node is not None:
             for child_title in sorted(cat_node.children):
-                children.append(build_category(child_title))
+                child = build_category(child_title)
+                if child is not None:  # None == pruned as suppression-emptied
+                    children.append(child)
 
         # Every category that directly tags a page/Index item builds and shows
         # its own full, real node -- a page tagged into 2+ categories is a
@@ -552,11 +617,31 @@ def build_tree_json(
         # node (see build_page_node's recursion below), not filed here
         # directly -- its own direct tags would otherwise be silently
         # dropped for filing purposes. Surface it here too, exactly like a
-        # top-level multi-tagged page, but only for tags its immediate
-        # parent doesn't already carry -- a tag the parent also carries adds
-        # no new discoverability, since browsing the parent's node already
-        # surfaces this subpage via its nested `subpages` list.
+        # top-level multi-tagged page, but only when that flat listing is
+        # the *only* way in. Two tests suppress it otherwise:
+        #
+        #  1. Its immediate parent already carries this same tag, so browsing
+        #     the parent's node under this very category already surfaces
+        #     this subpage via its nested `subpages` list. Cheap, and catches
+        #     cases (2) doesn't subsume.
+        #  2. Its work root -- the top of its parent_title chain -- carries at
+        #     least one tag that is itself reachable from वर्गसर्वस्वम्. Then
+        #     the whole work is browsable in properly nested form somewhere in
+        #     the central tree, and this flat dump of every chapter is pure
+        #     noise beside it. The Garuḍapurāṇa is the motivating case: the
+        #     tag chain is disjoint (गरुडपुराणम् is tagged गरुडपुराणम्, the
+        #     आचारकाण्डः subpage is tagged nothing, its 240 chapters are each
+        #     tagged आचारकाण्डः), so (1) never fires, yet browsing
+        #     पुराणानि > गरुडपुराणम् already reaches every one of them nested.
+        #
+        # Keying (2) on central *reachability* rather than on tags is what
+        # makes it safe: some works' nested form lives only in the orphan
+        # bucket (विष्णुपुराणम्, गर्गसंहिता), and for those the flat listing
+        # really is the only path in, so it stays. It also self-corrects --
+        # tag such a work root into the central tree upstream and its
+        # duplicate listings suppress themselves on the next run.
         page_jsons = []
+        suppressed_any = False
         for page_title in sorted(pages_by_cat.get(title, [])):
             main_node = main_nodes.get(page_title)
             if main_node is None:
@@ -566,7 +651,11 @@ def build_tree_json(
             if main_node.parent_title is not None:
                 parent_tags = content_index.main_categories.get(main_node.parent_title, set())
                 if title in parent_tags:
+                    suppressed_any = True
                     continue  # already discoverable via the parent's own filing under this category
+                if _root_is_central(page_title):
+                    suppressed_any = True
+                    continue  # already discoverable nested under its work root in the central tree
             page_json, _ = build_page_node(main_node, node_id, content_index, reverse_transclusion_map, index_ns_name)
             page_jsons.append(page_json)
 
@@ -575,6 +664,29 @@ def build_tree_json(
             if is_transcluded(bare_title, transclusion_map):
                 continue  # published elsewhere in Main -- drop the raw Index item per spec
             index_jsons.append(build_index_item_node(bare_title, content_index, index_ns_name))
+
+        if suppressed_any and not page_jsons and not index_jsons and not children:
+            # Suppression emptied this category outright -- e.g. आचारकाण्डः,
+            # whose entire membership is the 240 गरुडपुराणम् chapters now
+            # shown nested under their work root instead. Nothing in the
+            # frontend filters empties, so keeping it would render a dead-end
+            # row. Only prune where suppression is the cause -- a category
+            # that's genuinely empty on the wiki keeps behaving exactly as it
+            # does today.
+            #
+            # 46 categories empty out this way in the 2026-07-01 dump, but
+            # only the 21 that are centrally reachable actually reach this
+            # return: the other 25 are never emitted in the first place
+            # (unreachable from root, and the orphan sweep skips them since
+            # all their pages are centrally reachable via their work root).
+            #
+            # emitted_ids keeps its entry (registered above, before this
+            # point) on purpose: the orphan sweep below reads emitted_ids as
+            # the reachable-category set, and a pruned category is still
+            # reachable -- its pages are all emitted elsewhere in the central
+            # tree, so dropping the entry would misfile them as orphans.
+            pruned_titles.add(title)
+            return None
 
         return {
             "id": node_id,
@@ -588,6 +700,8 @@ def build_tree_json(
         }
 
     root = build_category(graph.root_title)
+    if root is None:  # only possible if the entire corpus suppressed away
+        raise RuntimeError(f"root category '{graph.root_title}' built empty")
 
     # Content unreachable from root by category descent: a page/Index item
     # whose only category tag(s) are themselves never filed under any parent
@@ -643,7 +757,9 @@ def build_tree_json(
     for orphan_root_title in orphan_cat_roots:
         if orphan_root_title in emitted_ids:
             continue  # already swept in by an earlier orphan root this same loop
-        orphan_children.append(build_category(orphan_root_title))
+        orphan_root = build_category(orphan_root_title)
+        if orphan_root is not None:  # None == pruned as suppression-emptied
+            orphan_children.append(orphan_root)
     orphan_children.sort(key=lambda n: n["title"])
 
     orphan_page_jsons = []

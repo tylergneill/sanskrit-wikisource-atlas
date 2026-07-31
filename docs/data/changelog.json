@@ -466576,8 +466576,8 @@
     },
     "new": {
       "raw_bytes": 911350286,
-      "content_bytes": 867086752,
-      "transliterated_bytes": 450355584,
+      "content_bytes": 866184032,
+      "transliterated_bytes": 449023997,
       "count": 22788,
       "text_count": 1625,
       "last_changed": "2026-06-29T05:38:48Z"
@@ -466591,15 +466591,15 @@
       },
       "content_bytes": {
         "old": 860369553,
-        "new": 867086752,
-        "delta": 6717199,
-        "delta_pct": 0.7807341597082295
+        "new": 866184032,
+        "delta": 5814479,
+        "delta_pct": 0.6758118043259023
       },
       "transliterated_bytes": {
         "old": 446923136,
-        "new": 450355584,
-        "delta": 3432448,
-        "delta_pct": 0.7680175232637766
+        "new": 449023997,
+        "delta": 2100861,
+        "delta_pct": 0.47007210653780074
       }
     },
     "delta": {
@@ -466619,8 +466619,8 @@
       },
       "new": {
         "raw_bytes": 1624627292,
-        "content_bytes": 1541264229,
-        "transliterated_bytes": 809844241,
+        "content_bytes": 1540326064,
+        "transliterated_bytes": 808466325,
         "count": 26742,
         "text_count": 3783,
         "last_changed": "2026-06-29T05:38:48Z"
@@ -466634,15 +466634,15 @@
         },
         "content_bytes": {
           "old": 1532706308,
-          "new": 1541264229,
-          "delta": 8557921,
-          "delta_pct": 0.5583536099076327
+          "new": 1540326064,
+          "delta": 7619756,
+          "delta_pct": 0.49714390553679383
         },
         "transliterated_bytes": {
           "old": 805413286,
-          "new": 809844241,
-          "delta": 4430955,
-          "delta_pct": 0.5501467478896295
+          "new": 808466325,
+          "delta": 3053039,
+          "delta_pct": 0.3790648916610993
         }
       },
       "delta": {
@@ -466804,7 +466804,7 @@
         "old": "2016-12-05T03:48:41Z",
         "new": "2026-06-09T09:15:03Z",
         "old_bytes": 1489,
-        "new_bytes": 1488
+        "new_bytes": 1386
       },
       {
         "id": "page:न्यायसूत्राणि",
@@ -466825,7 +466825,7 @@
         "old": "2026-01-08T00:48:54Z",
         "new": "2026-06-15T23:04:55Z",
         "old_bytes": 105565,
-        "new_bytes": 105565
+        "new_bytes": 105543
       },
       {
         "id": "page:भगवद्गीता/ज्ञानविज्ञानयोगः",

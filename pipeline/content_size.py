@@ -356,6 +356,10 @@ def strip_markup(expanded_wikitext: str, category_ns_name: str = "वर्ग�
     Navigation link-lists (navboxes, TOC bullet lists) are also stripped
     post-hoc via _strip_navigation_lines -- see that function's docstring
     for the अग्निपुराणम् case that motivated it.
+
+    Stray HTML tags left behind by malformed markup are removed by
+    _strip_leftover_html_tags -- see its docstring for why strip_code()
+    can't do it.
     """
     wikicode = mwparserfromhell.parse(expanded_wikitext)
     for link in wikicode.filter_wikilinks(recursive=True):
@@ -363,7 +367,39 @@ def strip_markup(expanded_wikitext: str, category_ns_name: str = "वर्ग�
         if title.startswith(category_ns_name + ":") or title.startswith(category_ns_name.lower() + ":"):
             wikicode.remove(link)
     stripped = wikicode.strip_code()
+    stripped = _strip_leftover_html_tags(stripped)
     return _strip_navigation_lines(stripped)
+
+
+# An HTML tag mwparserfromhell left behind: a known inline/table tag name,
+# optionally closing, with only simple attributes. Deliberately NOT a general
+# "<[^>]*>" sweep -- real Devanagari content contains "<" and ">" as ordinary
+# characters, and a greedy pattern would eat text between them.
+_LEFTOVER_HTML_TAG_RE = re.compile(
+    r"</?(?:table|tr|td|th|tbody|thead|tfoot|caption|b|i|u|s|em|strong|"
+    r"br|hr|p|div|span|center|small|big|sub|sup|font|blockquote|poem)"
+    r"(?:\s[^<>]{0,120})?/?>",
+    re.IGNORECASE,
+)
+
+
+def _strip_leftover_html_tags(stripped_text: str) -> str:
+    """Removes HTML tags that survived strip_code().
+
+    mwparserfromhell only recognizes a tag it can pair up: given well-formed
+    "<td>x</td>" it strips both and keeps "x". Sa.wikisource's hand-written
+    verse tables are routinely malformed -- "<tr><td>" with no closing tag at
+    all, and "<b>text<b>" using an opening tag where a closing one belongs --
+    so the parser treats those as literal text and strip_code() emits "<td>"
+    into the counted content.
+
+    Measured on महाभारतम् (2,314 chapters, every one a two-column verse
+    table): 795 KB of literal "<td>"/"<tr>"/"<b>" strings, 2.5% of that work's
+    content_bytes, all of it counted as if it were text. The tag list is
+    explicit rather than a wildcard so that "<" and ">" appearing as ordinary
+    characters in content are never touched.
+    """
+    return _LEFTOVER_HTML_TAG_RE.sub("", stripped_text)
 
 
 def _strip_navigation_lines(stripped_text: str) -> str:

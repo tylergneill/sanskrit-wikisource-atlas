@@ -105,6 +105,7 @@ from pathlib import Path
 from urllib.parse import urlparse
 
 from pipeline.build_tree import (
+    FLAT_FAMILY_PATTERNS,
     CategoryGraph,
     MainPageNode,
     build_category_graph,
@@ -192,10 +193,10 @@ def find_separator_family_candidates(
 ) -> dict[str, list[str]]:
     """Returns {stem title: [full titles]} for flat (no "/") top-level pages
     that look like subpages of an existing work but use a hyphen or dot where
-    "/" belongs -- e.g. महाभारतम्-03-आरण्यकपर्व-001, whose stem महाभारतम् is a
-    real page. Requires the stem to resolve to an actual page and the family
-    to have at least 2 members, so an ordinary hyphenated title isn't dragged
-    in on its own.
+    "/" belongs -- e.g. पञ्चतन्त्रम् ०१, whose stem पञ्चतन्त्रम् is a real
+    page. Requires the stem to resolve to an actual page and the family to
+    have at least 2 members, so an ordinary hyphenated title isn't dragged in
+    on its own.
 
     Complements find_breadcrumb_gap_candidates, which only detects the
     SPACE-separated form -- between them they cover the separator conventions
@@ -203,7 +204,12 @@ def find_separator_family_candidates(
     carries no structural meaning on MediaWiki, so inferring nesting from it
     would be a naming-convention guess. These pages stay flat in tree.json and
     keep counting as separate texts until they're moved on-wiki (see
-    notes/wikisource-editing-plan.md -- a page MOVE, not a redirect)."""
+    notes/wikisource-editing-plan.md -- a page MOVE, not a redirect).
+
+    The two families the pipeline DOES nest (महाभारतम्, ऋग्वेदः सूक्तं -- see
+    build_tree.FLAT_FAMILY_PATTERNS) drop out here for free: they now have a
+    parent_title, so the top-level filter below already skips them. Their own
+    liveness is checked separately by check_flat_family_allowlist."""
     families: dict[str, list[str]] = defaultdict(list)
     for title, node in main_nodes.items():
         if node.parent_title is not None or "/" in title:
@@ -219,6 +225,59 @@ def find_separator_family_candidates(
             continue
         families[stem].append(title)
     return {k: sorted(v) for k, v in families.items() if len(v) >= 2}
+
+
+def check_flat_family_allowlist(
+    main_nodes: dict[str, MainPageNode],
+) -> list[str]:
+    """Returns a list of human-readable problems with
+    build_tree.FLAT_FAMILY_PATTERNS, empty when every row is healthy.
+
+    The allowlist is the pipeline's one deliberate departure from
+    breadcrumb-first parenting, so it needs to fail LOUDLY rather than
+    silently, in both directions:
+
+    - A row matching ZERO pages means the family was renamed or cleaned up
+      on-wiki and the row is now dead weight -- remove it.
+    - A row whose matches don't all land on a real destination means pages
+      are quietly falling back to top-level (see _resolve_flat_family, which
+      refuses to synthesize a parent), inflating text_count again with no
+      other signal that anything changed.
+
+    Checked against the dump being audited, so it tracks the wiki rather than
+    whatever was true when the row was written."""
+    problems: list[str] = []
+    for pattern, to_parent, label in FLAT_FAMILY_PATTERNS:
+        matched = 0
+        unparented: list[str] = []
+        destinations: set[str] = set()
+        for title, node in main_nodes.items():
+            if "/" in title or not pattern.match(title):
+                continue
+            matched += 1
+            if node.parent_title is None:
+                unparented.append(title)
+            else:
+                destinations.add(node.parent_title)
+        if matched == 0:
+            problems.append(f"{label}: matches 0 pages -- row is dead, remove it")
+            continue
+        if unparented:
+            sample = ", ".join(sorted(unparented)[:3])
+            problems.append(
+                f"{label}: {len(unparented)} of {matched} matched pages have no real "
+                f"destination page and fell back to top-level (e.g. {sample})"
+            )
+        for dest in sorted(destinations):
+            dest_node = main_nodes.get(dest)
+            if dest_node is None:
+                problems.append(f"{label}: destination {dest!r} is not a Main page")
+            elif dest_node.record.redirect_target is not None:
+                problems.append(
+                    f"{label}: destination {dest!r} is a redirect -> "
+                    f"{dest_node.record.redirect_target!r}"
+                )
+    return problems
 
 
 def find_root_inference_candidates(
@@ -1052,6 +1111,17 @@ def main() -> None:
         rec.title: {c for c in direct_categories(rec, cat_ns_name) if not is_excluded_category(c)}
         for rec in index_records
     })
+
+    allowlist_problems = check_flat_family_allowlist(main_nodes)
+    if allowlist_problems:
+        print("\n!!! FLAT_FAMILY_PATTERNS allowlist problems "
+              "(pipeline health, not a wiki finding):", file=sys.stderr)
+        for problem in allowlist_problems:
+            print(f"  - {problem}", file=sys.stderr)
+        print(file=sys.stderr)
+    else:
+        print(f"flat-family allowlist: all {len(FLAT_FAMILY_PATTERNS)} rows healthy",
+              file=sys.stderr)
 
     breadcrumb_candidates = find_breadcrumb_gap_candidates(main_nodes)
     separator_families = find_separator_family_candidates(main_nodes)

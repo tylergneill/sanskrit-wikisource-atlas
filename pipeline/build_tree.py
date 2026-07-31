@@ -15,6 +15,7 @@ Per notes/sawikisource-scraper-spec.md:
 from __future__ import annotations
 
 import argparse
+import re
 import sys
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -130,6 +131,121 @@ def _resolve_ancestor(
     return None
 
 
+_DEVANAGARI_DIGITS = "०१२३४५६७८९"
+
+
+def _to_devanagari(n: int) -> str:
+    return "".join(_DEVANAGARI_DIGITS[int(d)] for d in str(n))
+
+
+def _from_any_digits(s: str) -> int | None:
+    """Reads a run of either ASCII or Devanagari digits as an int. Titles in a
+    single family are not consistent about which script they use for numbers."""
+    out = ""
+    for ch in s:
+        if ch in _DEVANAGARI_DIGITS:
+            out += str(_DEVANAGARI_DIGITS.index(ch))
+        elif ch.isdigit():
+            out += ch
+        else:
+            return None
+    return int(out) if out else None
+
+
+def _mahabharata_parent(m: "re.Match[str]") -> str | None:
+    """महाभारतम्-02-सभापर्व-001 -> महाभारतम्/सभापर्व.
+
+    The parva NAME is taken straight from the title, not looked up from the
+    parva number -- the number is redundant with it and never disagrees (all
+    18 numbers map to exactly one name in the 2026-07 dump), so trusting the
+    name avoids baking a number->name table that could silently drift."""
+    return f"महाभारतम्/{m.group('parva')}"
+
+
+def _rgveda_parent(m: "re.Match[str]") -> str | None:
+    """ऋग्वेदः सूक्तं १.१ -> ऋग्वेदः मण्डल १.
+
+    The sūkta number is itself dotted hierarchy (maṇḍala.sūkta), so the
+    destination comes from the part BEFORE the dot. Maṇḍala pages are titled
+    with Devanagari numerals, hence the re-rendering rather than reusing the
+    matched text verbatim."""
+    mandala = _from_any_digits(m.group("mandala"))
+    if mandala is None:
+        return None
+    return f"ऋग्वेदः मण्डल {_to_devanagari(mandala)}"
+
+
+# (compiled pattern, match -> destination title, human label for the audit)
+#
+# A deliberate, narrow exception to the breadcrumb-first rule: these two works
+# encode a parent/child decomposition in their titles using a separator
+# MediaWiki assigns no meaning to ("-" or " "), so _resolve_ancestor can never
+# see it. Both were verified against the 2026-07-01 dump before being added:
+# every match resolves to a destination page that ALREADY EXISTS on the wiki
+# (18 महाभारतम्/<parva> pages, 10 ऋग्वेदः मण्डल <N> pages, all real, none a
+# redirect), the patterns match 2314/2314 and 1028/1028 pages respectively with
+# no exceptions, and ऋग्वेदः's per-maṇḍala counts reproduce the canonical
+# saṃhitā exactly (191/43/62/58/87/75/104/103/114/191). महाभारतम्/आदिपर्व/००१
+# is one chapter an editor already converted to the "/" form by hand, and the
+# wiki carries 18 redirects from the hyphen form to the slash form -- so this
+# transcribes a relationship sa.wikisource already asserts elsewhere rather
+# than inventing one.
+#
+# This is NOT a general separator rule and must not become one. Below these two
+# families the shapes stop being regular -- stems that don't exist at all
+# (समराङ्गणसूत्रधार अध्याय, दशक), chapter RANGES rather than single chapters
+# (अष्टाङ्गसंग्रहः ... अध्याय १-५), and titles where a naive split lands
+# mid-parenthetical (सिद्धान्तकौमुदी (बालमनोरमा पूर्व २-२)) -- and 2,544 flat
+# titles have an inferred stem that coincidentally IS a real page, so
+# "the stem exists" cannot discriminate a chapter from a shared prefix. A rule
+# general enough to catch these two would silently mis-nest hundreds of others.
+# Everything not listed here stays flat and is reported by pipeline.audit's
+# find_separator_family_candidates for a human to fix upstream with page moves.
+#
+# Adding a row is cheap; verify first that the destination exists and that the
+# pattern's match count equals the family's real size. pipeline.audit asserts
+# both on every run, so a row that goes stale (upstream cleanup, a page move)
+# surfaces as a loud audit line instead of a quietly wrong tree.
+FLAT_FAMILY_PATTERNS: list[tuple["re.Pattern[str]", object, str]] = [
+    (
+        re.compile(r"^महाभारतम्-(?P<num>\d+)-(?P<parva>[^-]+)-(?P<chapter>.+)$"),
+        _mahabharata_parent,
+        "महाभारतम्-NN-<parva>-NNN → महाभारतम्/<parva>",
+    ),
+    (
+        re.compile(r"^ऋग्वेदः सूक्तं (?P<mandala>[०-९\d]+)\.(?P<sukta>[०-९\d]+)$"),
+        _rgveda_parent,
+        "ऋग्वेदः सूक्तं M.S → ऋग्वेदः मण्डल M",
+    ),
+]
+
+
+def _resolve_flat_family(
+    title: str,
+    records_by_title: dict[str, PageRecord],
+) -> str | None:
+    """Finds a parent for a title that carries NO "/" but does encode its
+    parent in some other separator, via the FLAT_FAMILY_PATTERNS allowlist.
+
+    Returns None unless the destination is a real page in this same dump --
+    redirect-resolved, and rejected if it resolves back to the title itself,
+    exactly like _resolve_ancestor's _usable. A parent is never synthesized:
+    if a row's destination page were ever deleted upstream, its pages fall
+    back to top-level rather than nesting under a title that isn't there."""
+    for pattern, to_parent, _label in FLAT_FAMILY_PATTERNS:
+        m = pattern.match(title)
+        if m is None:
+            continue
+        candidate = to_parent(m)  # type: ignore[operator]
+        if candidate is None:
+            continue
+        resolved = _resolve_redirect(candidate, records_by_title)
+        if resolved != title and resolved in records_by_title:
+            return resolved
+        return None  # matched the family but its destination isn't real -- stay top-level
+    return None
+
+
 def build_main_tree(records: list[PageRecord]) -> dict[str, MainPageNode]:
     """Returns a title -> MainPageNode map covering every Main-namespace page
     (redirects included, as leaf nodes -- callers filter/dereference as needed).
@@ -139,6 +255,11 @@ def build_main_tree(records: list[PageRecord]) -> dict[str, MainPageNode]:
     _resolve_ancestor). A "/"-bearing title with no existing ancestor at all is
     left as its own top-level node, never synthesized into a parent that
     doesn't exist as real content.
+
+    Titles WITHOUT a "/" are top-level by default, with one narrow exception:
+    the FLAT_FAMILY_PATTERNS allowlist, covering two works that encode their
+    chapter hierarchy with a separator MediaWiki gives no meaning to. See that
+    table's comment for why it is an explicit allowlist and not a general rule.
     """
     records_by_title = {rec.title: rec for rec in records}
 
@@ -155,6 +276,8 @@ def build_main_tree(records: list[PageRecord]) -> dict[str, MainPageNode]:
         parent_title = None
         if "/" in rec.title:
             parent_title = _resolve_ancestor(rec.title, records_by_title, titles_by_normalized)
+        else:
+            parent_title = _resolve_flat_family(rec.title, records_by_title)
         nodes[rec.title] = MainPageNode(record=rec, title=rec.title, parent_title=parent_title)
 
     for node in nodes.values():

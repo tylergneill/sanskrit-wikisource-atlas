@@ -213,9 +213,18 @@ FLAT_FAMILY_PATTERNS: list[tuple["re.Pattern[str]", object, str]] = [
         "महाभारतम्-NN-<parva>-NNN → महाभारतम्/<parva>",
     ),
     (
-        re.compile(r"^ऋग्वेदः सूक्तं (?P<mandala>[०-९\d]+)\.(?P<sukta>[०-९\d]+)$"),
+        # Accepts BOTH the visarga "ऋग्वेदः" and the ASCII-colon "ऋग्वेद:"
+        # spelling of the stem. The sūkta pages were titled with a literal ":"
+        # until a mass rename in 2017-08 moved all 1,028 to the correct
+        # visarga; the colon titles survive today only as redirects to the
+        # visarga ones. Matching just the visarga form is correct for the
+        # current dump but leaves every historical month before 2017-08 with
+        # 1,028 unnested sūktas counted as standalone texts -- the notch in the
+        # backfilled text_count curve. The destination is spelled with the
+        # visarga in both eras, so only the child side varies.
+        re.compile(r"^ऋग्वेद[ः:] सूक्तं (?P<mandala>[०-९\d]+)\.(?P<sukta>[०-९\d]+)$"),
         _rgveda_parent,
-        "ऋग्वेदः सूक्तं M.S → ऋग्वेदः मण्डल M",
+        "ऋग्वेद[ः:] सूक्तं M.S → ऋग्वेदः मण्डल M",
     ),
 ]
 

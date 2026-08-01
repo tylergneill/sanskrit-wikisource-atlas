@@ -648,87 +648,35 @@ function monthIndex(yyyyMmDd) {
   return y * 12 + (m - 1);
 }
 
-function monthIndexToDate(idx) {
-  const y = Math.floor(idx / 12);
-  const m = (idx % 12) + 1;
-  return `${y}-${String(m).padStart(2, "0")}-01`;
-}
-
-// Subtracts a sorted, non-overlapping list of [start, end] ranges (inclusive,
-// month-granularity) from a [start, end] span, returning the leftover pieces
-// in chronological order. Used to derive the Internet Archive's own real
-// coverage (its span minus its interior gaps) without hand-listing it
-// separately from archive_gap_ranges.
-function subtractRanges(spanStart, spanEnd, ranges) {
-  let cursor = monthIndex(spanStart);
-  const spanEndIdx = monthIndex(spanEnd);
-  const pieces = [];
-  for (const [gapStart, gapEnd] of ranges) {
-    const gapStartIdx = monthIndex(gapStart);
-    const gapEndIdx = monthIndex(gapEnd);
-    if (gapStartIdx > cursor) pieces.push([monthIndexToDate(cursor), monthIndexToDate(gapStartIdx - 1)]);
-    cursor = Math.max(cursor, gapEndIdx + 1);
-  }
-  if (cursor <= spanEndIdx) pieces.push([monthIndexToDate(cursor), monthIndexToDate(spanEndIdx)]);
-  return pieces;
-}
-
 // This mirror's tree-building depends on वर्गसर्वस्वम् (created 2012-01-20),
-// so no month before this floor could ever produce a usable snapshot --
-// regardless of whether a dump file happens to exist for it (Internet
-// Archive has 2011-09/2011-10, but both hit RootCategoryMissing and are
-// skipped, same as any other pre-floor month -- see pipeline/backfill.py's
-// MATERIALIZED_FLOOR and RootCategoryMissing). Everything before this floor
-// is folded into the separate #sourceTimelinePre block instead of being
-// miscolored as usable coverage in the real bar.
+// so no month before this floor could ever produce a usable snapshot: the
+// root category doesn't exist yet, and process_dump raises
+// RootCategoryMissing (see pipeline/backfill.py's MATERIALIZED_FLOOR).
+// Everything before this floor is folded into the separate
+// #sourceTimelinePre block instead of being miscolored as usable coverage
+// in the real bar.
 const TIMELINE_FLOOR = "2012-02-01"; // first month with a real changelog snapshot (Jan straddles the category's creation)
 
 // Builds the full chronological list of {start, end, kind} segments covering
 // TIMELINE_FLOOR through the present, for the source-type timeline bar. kind
-// is one of "current-live" / "legacy-live" / "archive" / "materialized" /
-// "uncovered" (a genuine hole -- e.g. 2015-01 -- with no real dump AND no
-// materialization, because it isn't reachable through either legacy source
-// as an interior gap; see archive_gap_ranges vs materialized_ranges).
+// is one of "current-live" / "legacy-live" / "materialized".
+//
+// Every historical month is materialized -- reconstructed from the full
+// revision history -- rather than read from whichever archived dump happens
+// to exist for it. Internet Archive snapshots are deliberately unused: a real
+// archived dump records the titles pages bore at that date, while the
+// reconstruction records the titles they bear today, and since text_count is
+// derived from title breadcrumbs the two count the same corpus differently.
+// Mixing them stepped the series at every source switch. See
+// notes/interpretive-decisions.md §6.
 function buildTimelineSegments(eras) {
-  const { era1_rolling_start, era2_rolling_start, archive_start, archive_end, archive_gap_ranges, materialized_ranges } = eras;
-  const floorIdx = monthIndex(TIMELINE_FLOOR);
+  const { era1_rolling_start, era2_rolling_start } = eras;
   const segments = [];
 
-  const clip = (start, end) => (monthIndex(end) < floorIdx ? null : [monthIndex(start) < floorIdx ? TIMELINE_FLOOR : start, end]);
-
-  const archiveCoverage = subtractRanges(archive_start, archive_end, archive_gap_ranges);
-  for (const [start, end] of archiveCoverage) {
-    const clipped = clip(start, end);
-    if (clipped) segments.push({ start: clipped[0], end: clipped[1], kind: "archive" });
-  }
-  for (const [start, end] of materialized_ranges) {
-    const clipped = clip(start, end);
-    if (clipped) segments.push({ start: clipped[0], end: clipped[1], kind: "materialized" });
-  }
-
-  // Any interior span archive_gap_ranges carries that materialized_ranges
-  // doesn't also fill is a real, currently-unfillable hole (not a rendering
-  // bug) -- e.g. 2015-01/2015-05 are both, so no "uncovered" segment results
-  // for those; a genuinely un-materialized interior gap would show here.
-  const materializedSet = new Set();
-  for (const [s, e] of materialized_ranges) {
-    for (let i = monthIndex(s); i <= monthIndex(e); i++) materializedSet.add(i);
-  }
-  for (const [gapStart, gapEnd] of archive_gap_ranges) {
-    const clipped = clip(gapStart, gapEnd);
-    if (!clipped) continue;
-    const [cStart, cEnd] = clipped;
-    let runStart = null;
-    for (let i = monthIndex(cStart); i <= monthIndex(cEnd); i++) {
-      const covered = materializedSet.has(i);
-      if (!covered && runStart === null) runStart = i;
-      if (covered && runStart !== null) {
-        segments.push({ start: monthIndexToDate(runStart), end: monthIndexToDate(i - 1), kind: "uncovered" });
-        runStart = null;
-      }
-    }
-    if (runStart !== null) segments.push({ start: monthIndexToDate(runStart), end: cEnd, kind: "uncovered" });
-  }
+  // Materialized covers everything from the floor up to the legacy-live
+  // window's start -- one contiguous span, no gaps, since reconstruction
+  // never depends on a dump existing for a given month.
+  segments.push({ start: TIMELINE_FLOOR, end: monthBefore(era2_rolling_start), kind: "materialized" });
 
   segments.push({ start: era2_rolling_start, end: monthBefore(era1_rolling_start), kind: "legacy-live" });
 
@@ -743,9 +691,7 @@ function buildTimelineSegments(eras) {
 const TIMELINE_KIND_INFO = {
   "current-live": { color: "var(--series-1)", label: "Current-format live", desc: "newer Wikimedia “Content File” export format" },
   "legacy-live": { color: "var(--series-2)", label: "Legacy-format live", desc: "legacy Wikimedia export format" },
-  "archive": { color: "var(--series-3)", label: "Internet Archive", desc: "legacy Wikimedia export format, stored on Internet Archive" },
   "materialized": { color: "var(--series-4)", label: "Materialized", desc: "synthetic, reconstructed on demand from full Wikimedia revision history" },
-  "uncovered": { color: "var(--surface-uncovered)", label: "No coverage", desc: "no dump and no revision history old enough to reconstruct from" },
 };
 
 const TIMELINE_PRE_TOOLTIP_HTML =

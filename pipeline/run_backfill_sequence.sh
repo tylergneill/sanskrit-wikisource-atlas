@@ -4,12 +4,12 @@
 # pipeline.backfill.current_era_months -- NOT a hardcoded list, since the
 # live 3-month rolling window shifts forward over time and a hardcoded
 # anchor would silently stop advancing once a newer month appears) and
-# working backward through every available legacy month (pipeline.fetch_legacy
-# -- merged live rolling window + Internet Archive, see that module's
-# docstring), splicing in every materialized month (every interior hole in
-# the two legacy sources' combined coverage, detected live rather than
-# hardcoded -- see pipeline.backfill.compute_materialized_months and
-# MATERIALIZED_MONTHS). Each is reconstructed on demand, one at a time, the
+# working backward through every older month, all of which are materialized
+# (Internet Archive dumps are deliberately unused -- see
+# notes/internet-archive-dumps.md). The month list comes from
+# pipeline.backfill.default_months(), a plain calendar enumeration back to
+# MATERIALIZED_FLOOR, so coverage is gap-free by construction. Each month is
+# reconstructed on demand, one at a time, the
 # moment its step runs (see pipeline.backfill._ensure_materialized_month) --
 # nothing needs to be pre-generated before running this script. Each step is
 # a separate `python -m pipeline.backfill --months OLDER NEWER` invocation,
@@ -33,14 +33,13 @@
 #
 # The walk is floored at pipeline.backfill.MATERIALIZED_FLOOR (2012-02, the
 # first month whose cutoff lands after वर्गसर्वस्वम् was created on
-# 2012-01-20). Internet Archive really does serve older dumps (2011-09,
-# 2011-10), and they're real files this script would otherwise pass as
-# explicit --months -- bypassing default_months()'s own floor and paying a
-# full download + parse per run for months that can only ever raise
-# RootCategoryMissing. main() still catches that exception (see its
-# docstring) as the backstop for anything unexpected at or above the floor;
-# the floor here just avoids the known-futile work rather than rediscovering
-# it from the network every time.
+# 2012-01-20). Earlier months can only ever raise RootCategoryMissing -- the
+# root category this mirror's tree model depends on does not exist yet -- so
+# the floor avoids paying a full materialize + parse to rediscover that. The
+# floor is applied by default_months() itself, so this script inherits it
+# rather than reimplementing it. main() still catches RootCategoryMissing
+# (see its docstring) as the backstop for anything unexpected at or above
+# the floor.
 #
 # Usage: bash pipeline/run_backfill_sequence.sh [--workers N]
 
@@ -69,37 +68,29 @@ print(months[-1])
 ")
 echo "newest current-era month: ${NEWEST_ANCHORED}"
 
-# Legacy months, oldest first (merged live rolling window + Internet
-# Archive, as pipeline.fetch_legacy reports them right now, filtered to
-# before NEWEST_ANCHORED) -- reverse this list to walk backward.
-# stderr is NOT suppressed here: if pipeline.fetch_legacy --list fails
-# (network error, missing `requests` dependency, wrong python3 on PATH,
-# etc.), that error must be visible rather than silently yielding an empty
-# MONTHS and a script that looks like it did nothing.
-echo "querying available legacy months..."
-FLOOR=$(python3 -c "
-from pipeline.backfill import MATERIALIZED_FLOOR
-print(MATERIALIZED_FLOOR)
-")
-LEGACY_MONTHS=$(python3 -m pipeline.fetch_legacy --list | cut -f1 | sed 's/$/-01/' | awk -v cutover="$NEWEST_ANCHORED" -v floor="$FLOOR" '$0 >= floor && $0 < cutover')
-if [[ -z "$LEGACY_MONTHS" ]]; then
-  echo "error: pipeline.fetch_legacy --list returned no months -- aborting" >&2
+# Every backfillable month, oldest first, from pipeline.backfill's own
+# default_months() -- a plain calendar enumeration from MATERIALIZED_FLOOR up
+# to the current era, with no network query and no gaps by construction.
+#
+# This used to merge pipeline.fetch_legacy --list (Internet Archive + the
+# legacy live rolling window) with the detected materialized holes. That is
+# gone: IA dumps are deliberately unused (see notes/internet-archive-dumps.md
+# and notes/interpretive-decisions.md section 6), so deriving the walk from IA
+# availability would now silently skip every month IA never covered.
+#
+# stderr is NOT suppressed: if this fails (missing dependency, wrong python3
+# on PATH), that must be visible rather than silently yielding an empty MONTHS
+# and a script that looks like it did nothing.
+echo "listing backfillable months..."
+MONTHS=$(python3 -c "
+from pipeline.backfill import default_months
+for d in default_months():
+    print(d)
+" | awk -v cutover="$NEWEST_ANCHORED" '$0 < cutover')
+if [[ -z "$MONTHS" ]]; then
+  echo "error: default_months() returned no months -- aborting" >&2
   exit 1
 fi
-
-# Materialized months (the Internet-Archive/live-window gap, see
-# pipeline.backfill's MATERIALIZED_MONTHS) -- all of them, unconditionally;
-# each is reconstructed on demand by ensure_month/_ensure_materialized_month
-# when its step actually runs, so there's no disk-existence check to apply
-# here anymore.
-echo "listing materialized months..."
-MATERIALIZED_MONTHS=$(python3 -c "
-from pipeline.backfill import MATERIALIZED_MONTHS
-for d in MATERIALIZED_MONTHS:
-    print(d)
-" 2>/dev/null)
-
-MONTHS=$(printf '%s\n%s\n' "$LEGACY_MONTHS" "$MATERIALIZED_MONTHS" | grep -v '^$' | sort -u)
 
 # Build the full oldest-to-newest sequence, then reverse it in bash.
 SEQUENCE=()
@@ -122,7 +113,12 @@ for ((i=0; i<${#REVERSED[@]}-1; i++)); do
   echo "=================================================================="
   echo "=== step $((i+1))/$((${#REVERSED[@]}-1)): ${OLDER} -> ${NEWER} ==="
   echo "=================================================================="
-  python3 -m pipeline.backfill --months "${OLDER}" "${NEWER}" "${WORKERS_ARGS[@]}"
+  # ${WORKERS_ARGS[@]+"${WORKERS_ARGS[@]}"} rather than a bare
+  # "${WORKERS_ARGS[@]}": under `set -u`, expanding an EMPTY array is an
+  # unbound-variable error on bash < 4.4 (macOS ships 3.2), which aborted the
+  # whole run on step 1 whenever --workers was omitted -- after the changelog
+  # had already been deleted.
+  python3 -m pipeline.backfill --months "${OLDER}" "${NEWER}" ${WORKERS_ARGS[@]+"${WORKERS_ARGS[@]}"}
   echo
 done
 

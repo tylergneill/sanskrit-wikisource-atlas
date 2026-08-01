@@ -76,13 +76,20 @@ the content cache in ~3 minutes.
 > in the About page's Text Count chart. The uniform figure was computed against
 > the current-month tree only and does not hold across the historical range.
 >
-> The mechanism: `_resolve_flat_family` never synthesizes a parent, so in months
-> where the destination pages aren't found the family falls back to top-level
-> and stays counted as texts. In IA-era months roughly 1,110 pages (≈ the
-> ऋग्वेदः family) fail to nest; in materialized months they nest correctly. So
-> **the IA months are the ones left with spurious text counts**, not the
-> materialized ones. See `ia-dumps-resist-nesting.md` for the full bisect and
-> the open question of why IA dumps resist nesting.
+> **Resolved (2026-08-01).** The mechanism is a title-spelling gap, not
+> anything about the sources. `_resolve_flat_family` never synthesizes a
+> parent, so when a pattern doesn't match, the family falls back to top-level
+> and stays counted as texts. The ऋग्वेदः row matched only the modern visarga
+> stem `ऋग्वेदः`; those 1,028 pages were spelled with an ASCII colon
+> `ऋग्वेद:` until a 2017-08 mass rename, so every earlier month left all 1,028
+> unnested. Archived dumps carried the era's real (colon) titles and so
+> failed; reconstructed months carried modern titles and so matched — which is
+> why the failure tracked the source and looked like a source problem. Fixed by
+> accepting both spellings; see `interpretive-decisions.md` §3.
+>
+> The historical series is now built from one reconstruction method throughout
+> (`interpretive-decisions.md` §6), so this class of source-boundary step can
+> no longer arise.
 
 ## What's left in the orphan bucket, and why it's a different problem
 

@@ -30,7 +30,7 @@ import sys
 from pathlib import Path
 
 from pipeline import fetch_legacy
-from pipeline.backfill import compute_materialized_months, current_era_months
+from pipeline.backfill import MATERIALIZED_FLOOR, current_era_months
 
 DEFAULT_SOURCE_ERAS = Path(__file__).resolve().parent.parent / "docs" / "data" / "source_eras.json"
 
@@ -54,6 +54,15 @@ def _months_to_ranges(months: list[str]) -> list[list[str]]:
         start = prev = m
     ranges.append([start, prev])
     return ranges
+
+
+def _month_before(date_str: str) -> str:
+    """YYYY-MM-01 one calendar month earlier."""
+    year, month = int(date_str[:4]), int(date_str[5:7])
+    month -= 1
+    if month == 0:
+        month, year = 12, year - 1
+    return f"{year:04d}-{month:02d}-01"
 
 
 def _interior_gaps(months: list[str]) -> list[str]:
@@ -91,19 +100,18 @@ def source_era_boundaries() -> dict[str, object]:
     written to a small sidecar file (DEFAULT_SOURCE_ERAS, see main()) rather
     than guessed client-side.
 
-    Also includes the Internet Archive's own coverage range (real historical
-    depth, but with interior gaps -- archive_gap_ranges lists those gaps
-    directly, computed from the same archive_months list, no extra network
-    call) and materialized_ranges -- every interior hole
-    compute_materialized_months() currently detects across BOTH legacy
-    sources, compressed into contiguous ranges, since that list changes over
-    time as new gaps are discovered or old ones get real coverage. Note
-    archive_gap_ranges and materialized_ranges aren't identical: the oldest
-    archive gap starts earlier (2011-11, right after the Archive's own last
-    pre-gap snapshot) than the oldest materialized range (2012-01, floored at
-    MATERIALIZED_FLOOR since वर्गसर्वस्वम् didn't exist yet before that) --
-    2011-11/2011-12 are a real, currently-unfillable hole, not a
-    materialization target."""
+    Also records the Internet Archive's own coverage range and its interior
+    gaps (archive_start/archive_end/archive_gap_ranges), computed from the
+    same list_available_months() result with no extra network call. **The
+    pipeline does not use IA dumps** -- see notes/internet-archive-dumps.md
+    and notes/interpretive-decisions.md section 6 -- and about.js no longer
+    reads these three fields. They are kept as the machine-readable record
+    backing that note, so its prose stays checkable against reality.
+
+    materialized_ranges is now a single contiguous span (MATERIALIZED_FLOOR
+    through the month before era2_rolling_start), because every historical
+    month is materialized rather than only the holes IA left behind. It used
+    to be the set of detected gaps."""
     era1_months = current_era_months()
     era1_start = min(era1_months) if era1_months else None
 
@@ -111,12 +119,27 @@ def source_era_boundaries() -> dict[str, object]:
     live_months = sorted(f"{ym}-01" for ym, dump in by_month.items() if dump.source == "live")
     era2_start = live_months[0] if live_months else None
 
+    # Internet Archive coverage is recorded but NOT used by the pipeline (see
+    # notes/internet-archive-dumps.md and notes/interpretive-decisions.md
+    # section 6 -- every historical month is materialized instead). These
+    # three fields are no longer read by about.js's timeline; they are kept as
+    # the machine-readable record of what IA actually holds, which is exactly
+    # what notes/internet-archive-dumps.md documents in prose. Refreshing them
+    # keeps that note checkable against reality.
     archive_months = sorted(f"{ym}-01" for ym, dump in by_month.items() if dump.source == "archive")
     archive_start = archive_months[0] if archive_months else None
     archive_end = archive_months[-1] if archive_months else None
     archive_gap_ranges = _months_to_ranges(_interior_gaps(archive_months))
 
-    materialized_ranges = _months_to_ranges(sorted(compute_materialized_months(use_cache=False)))
+    # Everything from MATERIALIZED_FLOOR up to the legacy-live window is
+    # materialized now -- one contiguous span, not the old set of detected
+    # holes in IA's coverage. about.js derives the timeline's materialized bar
+    # from era2_rolling_start directly and doesn't read this, but it stays
+    # accurate so the JSON isn't quietly lying about what was built.
+    last_materialized = _month_before(era2_start) if era2_start else None
+    materialized_ranges = (
+        [[MATERIALIZED_FLOOR, last_materialized]] if last_materialized else []
+    )
 
     return {
         "era1_rolling_start": era1_start,

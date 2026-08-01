@@ -1,6 +1,6 @@
 """Backfill historical changelog entries from older monthly dump exports.
 
-Four source eras, all handled here:
+TWO source kinds, all handled here:
 
 1. **Current era** (pipeline.fetch / mediawiki_content_current): only a
    3-month rolling window is available online for sawikisource --
@@ -11,67 +11,45 @@ Four source eras, all handled here:
    rolling window, though no page documents a retention policy in writing;
    this is an inference from the observed pattern, not a cited policy.
 
-2. **Legacy era** (pipeline.fetch_legacy): the classic MediaWiki export
-   format (pages-meta-current.xml.bz2). Two sources, merged transparently by
-   fetch_legacy.list_available_months -- pipeline.backfill never needs to
-   know which one served a given month:
-   - **Live rolling window** (dumps.wikimedia.org/sawikisource/<date>/):
-     Wikimedia's own still-current copy of the legacy format. Also just a
-     rolling window (confirmed directly), but as of this writing it holds
-     2025-11-20 through 2026-07-01 -- i.e. it reaches right up to (and
-     overlaps with) mediawiki_content_current's start, which is what fills
-     what would otherwise be a ~4-year gap (2022-05 to 2026-05) between
-     Internet Archive's last snapshot and the current-era window's first.
-   - **Internet Archive** (item `sawikisource-<YYYYMMDD>`, one per
-     historical dump run): the only source with real historical depth, back
-     to 2011 -- confirmed via a spike run against 2022-01-20 that
-     pipeline.parse_dump / build_tree / transclusion / content_size all read
-     this format with zero code changes (same schema, same namespace IDs).
-     Its volunteer pipeline for sawikisource stalled after 2022-05-01 though
-     (confirmed live -- see MATERIALIZED_MONTHS below), leaving real gaps
-     up to the live rolling window's own start (2025-11-20).
-
-3. **Materialized era** (MATERIALIZED_MONTHS, _ensure_materialized_month):
-   covers every interior hole in the two legacy sources' combined coverage
-   -- computed by compute_materialized_months() scanning
-   fetch_legacy.list_available_months() for months with no entry at all,
-   between the earliest and latest months either source ever covers, at or
-   after MATERIALIZED_FLOOR (2012-02, the first month whose cutoff is after
-   वर्गसर्वस्वम् -- this mirror's tree model's root category -- first existed
-   at 2012-01-20T10:18:19Z; see RootCategoryMissing). As of this writing that
-   scan finds five such holes:
-   2012-02 through 2014-06 (the earlier archival hole between Internet
-   Archive's last dump before वर्गसर्वस्वम् existed and its first dump after
-   real legacy coverage resumes), 2015-01, 2015-05, 2018-04 through 2018-07,
-   2019-04 through 2020-06 (four further Internet-Archive-only-era holes),
-   and 2022-06 through 2025-10 (the Internet-Archive/live-window gap). No
-   dump *file* exists for these months on any source, but
-   pipeline/materialize_snapshots.py reconstructs one from
-   sawikisource-latest-pages-meta-history.xml.bz2 (every surviving revision
-   ever made) -- for a cutoff date D, the wiki's state at D is just, per
-   page, the newest revision <= D. The ~533MB meta-history dump itself is
-   downloaded once (auto-fetched on first need, cached at
+2. **Materialized** (_ensure_materialized_month): EVERY month older than
+   LEGACY_CUTOVER, back to MATERIALIZED_FLOOR (2012-02, the first month
+   whose cutoff is after वर्गसर्वस्वम् -- this mirror's tree model's root
+   category -- first existed at 2012-01-20T10:18:19Z; see
+   RootCategoryMissing). pipeline/materialize_snapshots.py reconstructs a
+   month from sawikisource-latest-pages-meta-history.xml.bz2 (every
+   surviving revision ever made): for a cutoff date D, the wiki's state at D
+   is just, per page, the newest revision <= D. The ~533MB meta-history dump
+   is downloaded once (auto-fetched on first need, cached at
    dump/_materialize_src/) and reused for every materialized month; each
    month's reconstruction is generated on demand, one at a time, the moment
    ensure_month needs it -- never all months up front, since each
    materialized XML runs 1-2GB and there's no reason to hold more than one
-   on disk at a time (see cleanup_raw_dump, which now deletes a materialized
-   month's XML right after its snapshot is written, same as every other
-   era). See pipeline/materialize_snapshots.py's docstring for the known
-   deviations from a genuine dump of that month.
+   on disk at a time (see cleanup_raw_dump). See
+   pipeline/materialize_snapshots.py's docstring for the known deviations
+   from a genuine dump of that month.
 
-For each month, ensure_month resolves an exact date to an era:
-MATERIALIZED_MONTHS take priority (checked first, since Internet
-Archive/the live rolling window are confirmed to never have these months --
-querying them would just waste an API round-trip); otherwise legacy months
-(< LEGACY_CUTOVER) go through pipeline.fetch_legacy (which itself picks
-live-rolling-window vs. Internet Archive per month); current-era months go
-through pipeline.fetch against mediawiki_content_current, unchanged from
-before. Each raw dump lands in its own dated subdir of the appropriate
-numbered era folder (dump/1_current_format_live/<date>/,
-dump/2_legacy_format_live/<date>/, dump/3_materialized/<date>/, or
-dump/4_legacy_format_archive/<date>/ -- see the DEFAULT_*_ROOT constants
-below), never touching any other era's folder. Each month is processed into a
+**Internet Archive and legacy-format dumps are deliberately NOT used**, even
+for the many months where a real archived dump exists (76 of them, 2011-09
+to 2022-05). An archived dump records the titles pages bore at that date; a
+reconstruction records the titles they bear today. Since text_count derives
+from title breadcrumbs, the two count the same corpus differently, so a
+series that switched sources stepped by hundreds of texts at every switch --
+artifacts that read as corpus events. One method applied uniformly is less
+faithful per month but is the only way months compare to each other. See
+notes/interpretive-decisions.md section 6 for the rationale and its costs,
+and notes/internet-archive-dumps.md for what IA actually holds and how to
+fetch it if a period-accurate snapshot is ever needed.
+
+Consequently ensure_month has no era detection: >= LEGACY_CUTOVER goes to
+pipeline.fetch (dump/1_current_format_live/<date>/), everything older is
+materialized (dump/3_materialized/<date>/). default_months() is a plain
+calendar enumeration, so coverage is gap-free by construction -- there is no
+longer any "hole" to detect. compute_materialized_months(),
+materialized_months(), _ensure_legacy_month and the fetch_legacy import
+survive but are no longer consulted by routing (update_source_eras.py and
+run_backfill_sequence.sh still reference some of them); dump/
+2_legacy_format_live/ and dump/4_legacy_format_archive/ are now dead
+folders. Each month is processed into a
 throwaway tree.json-shaped snapshot, and pipeline.compare runs pairwise
 across consecutive months, appending each diff to docs/data/changelog.json.
 
@@ -386,13 +364,35 @@ def default_months() -> list[str]:
     dumps, but they predate वर्गसर्वस्वम् entirely, so process_dump can only
     raise RootCategoryMissing on them (see that exception's docstring) --
     after a full download and parse spent to rediscover a fact the floor
-    already encodes. The floor is the same one compute_materialized_months
-    applies; these months just reach the month list by the other route, as
-    real dumps rather than materialized holes."""
-    legacy_months = sorted(fetch_legacy.list_available_months())
-    legacy_dates = [f"{ym}-01" for ym in legacy_months if f"{ym}-01" >= MATERIALIZED_FLOOR]
-    materialized_dates = [d for d in materialized_months() if d not in legacy_dates]
-    return sorted(set(legacy_dates) | set(materialized_dates)) + current_era_months()
+    already encodes.
+
+    NOTE: source selection has been removed -- every month from
+    MATERIALIZED_FLOOR up to the current era is materialized, so this is now
+    a plain calendar enumeration rather than a query of what Internet Archive
+    happens to hold."""
+    current = current_era_months()
+    first_current = current[0] if current else None
+
+    months: list[str] = []
+    year, month = (int(p) for p in MATERIALIZED_FLOOR.split("-")[:2])
+    while True:
+        date_str = f"{year:04d}-{month:02d}-01"
+        if first_current is not None and date_str >= first_current:
+            break
+        if date_str >= _today_month_start():
+            break
+        months.append(date_str)
+        month += 1
+        if month > 12:
+            month, year = 1, year + 1
+
+    return months + current
+
+
+def _today_month_start() -> str:
+    from datetime import date as _date
+    today = _date.today()
+    return f"{today.year:04d}-{today.month:02d}-01"
 
 
 def ensure_month(
@@ -404,31 +404,34 @@ def ensure_month(
     materialize_src_dir: Path = DEFAULT_MATERIALIZE_SRC_DIR,
 ) -> Path:
     """Fetch+decompress one month's export if not already there, returning the
-    path to its uncompressed XML. Dispatches to _ensure_materialized_month
-    (materialized_root/<date>/) for any MATERIALIZED_MONTHS date, checked
-    first since neither of pipeline.fetch_legacy's sources has ever had these
-    months (confirmed live against archive.org -- see MATERIALIZED_MONTHS);
-    otherwise pipeline.fetch_legacy (legacy era -- routed to
-    legacy_live_dump_root or legacy_archive_dump_root by _ensure_legacy_month
-    based on which source served the month) or pipeline.fetch (current era,
-    mediawiki_content_current, dump_root/<date>/) based on LEGACY_CUTOVER,
-    unchanged from before."""
-    if date_str in materialized_months():
-        return _ensure_materialized_month(date_str, materialized_root, materialize_src_dir)
+    path to its uncompressed XML.
 
-    if date_str < LEGACY_CUTOVER:
-        return _ensure_legacy_month(date_str, legacy_live_dump_root, legacy_archive_dump_root)
+    TWO SOURCES ONLY (the legacy/Internet-Archive era selection has been
+    removed on purpose):
 
-    out_dir = dump_root / date_str
-    existing = sorted(out_dir.glob("sawikisource-*.xml")) if out_dir.exists() else []
-    if existing:
-        print(f"{date_str}: already fetched -> {existing[0]}", file=sys.stderr)
-        return existing[0]
-    paths = fetch_mod.fetch(out_dir=out_dir, date=date_str)
-    xml_paths = [p for p in paths if p.suffix == ".xml"]
-    if not xml_paths:
-        raise RuntimeError(f"no .xml produced for {date_str}")
-    return xml_paths[0]
+    - Current era (>= LEGACY_CUTOVER): pipeline.fetch, the live
+      mediawiki_content_current export, into dump_root/<date>/.
+    - Everything older: ALWAYS materialized from the pages-meta-history dump,
+      regardless of whether Internet Archive or the legacy rolling window
+      happens to have a real dump for that month.
+
+    This makes every historical month share one reconstruction method, so the
+    series can't step at a source boundary. The trade is materialization's own
+    deviations (see materialize_snapshots.py) applied uniformly rather than
+    only in the gaps."""
+    if date_str >= LEGACY_CUTOVER:
+        out_dir = dump_root / date_str
+        existing = sorted(out_dir.glob("sawikisource-*.xml")) if out_dir.exists() else []
+        if existing:
+            print(f"{date_str}: already fetched -> {existing[0]}", file=sys.stderr)
+            return existing[0]
+        paths = fetch_mod.fetch(out_dir=out_dir, date=date_str)
+        xml_paths = [p for p in paths if p.suffix == ".xml"]
+        if not xml_paths:
+            raise RuntimeError(f"no .xml produced for {date_str}")
+        return xml_paths[0]
+
+    return _ensure_materialized_month(date_str, materialized_root, materialize_src_dir)
 
 
 def _ensure_legacy_month(date_str: str, legacy_live_dump_root: Path, legacy_archive_dump_root: Path) -> Path:
@@ -561,29 +564,36 @@ def cleanup_raw_dump(
     dump used by routine `make process`) -- only the dated subdirectories
     this module itself creates via ensure_month.
 
-    Applies to MATERIALIZED_MONTHS too: a materialized month's XML is
-    cheaply regenerable on demand from the cached meta-history dump (see
-    _ensure_materialize_source), so there's no reason to keep it around
-    after its snapshot exists -- unlike the cached meta-history .bz2 itself,
-    which this function never touches."""
-    if date_str in materialized_months():
+    A materialized month's XML is cheaply regenerable on demand from the
+    cached meta-history dump (see _ensure_materialize_source), so there's no
+    reason to keep it around after its snapshot exists -- unlike the cached
+    meta-history .bz2 itself, which this function never touches.
+
+    The branch here MUST mirror ensure_month's routing exactly, or dumps leak.
+    It used to test `date_str in materialized_months()` -- the old
+    hole-detection list -- which silently stopped matching once every
+    pre-cutover month became materialized: months outside that stale list fell
+    through to the legacy branch, which globs era folders nothing writes to
+    any more, so their multi-GB XMLs were never deleted (17GB leaked before
+    this was caught)."""
+    if date_str < LEGACY_CUTOVER:
         d = materialized_root / date_str
         if d.is_dir():
             shutil.rmtree(d)
             print(f"{date_str}: deleted materialized dump -> {d}", file=sys.stderr)
-        return
-    if date_str < LEGACY_CUTOVER:
+        # Legacy-era folders are dead (see ensure_month), but sweep any dated
+        # dirs an older run left behind so this stays a complete cleanup.
         ym = date_str[:7]
         for root in (legacy_live_dump_root, legacy_archive_dump_root):
-            for d in sorted(root.glob(f"{ym}-*")):
-                if d.is_dir():
-                    shutil.rmtree(d)
-                    print(f"{date_str}: deleted raw dump -> {d}", file=sys.stderr)
-    else:
-        d = dump_root / date_str
-        if d.is_dir():
-            shutil.rmtree(d)
-            print(f"{date_str}: deleted raw dump -> {d}", file=sys.stderr)
+            for stale in sorted(root.glob(f"{ym}-*")):
+                if stale.is_dir():
+                    shutil.rmtree(stale)
+                    print(f"{date_str}: deleted raw dump -> {stale}", file=sys.stderr)
+        return
+    d = dump_root / date_str
+    if d.is_dir():
+        shutil.rmtree(d)
+        print(f"{date_str}: deleted raw dump -> {d}", file=sys.stderr)
 
 
 def _existing_snapshot_path(date_str: str, snapshot_dir: Path) -> Path | None:

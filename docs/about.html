@@ -114,7 +114,7 @@
           The main page of this mirror is regularly updated to reflect the latest monthly snapshot drawn from Wikimedia's own "Content File Export" dump for sa.wikisource.org.
         </p>
         <p>
-          By contrast, the historical changelog on this About page (see <a href="#data-quantity">Data Quantity</a> section below) patches together four different source types to cover as much of the wiki's history as possible. Two are live rolling windows that together reach right up to the present; one is an archive with real historical depth but interior gaps; and the fourth reconstructs every gap the other three leave behind:
+          By contrast, the historical changelog on this About page (see <a href="#data-quantity">Data Quantity</a> section below) reaches back to 2012. Two live rolling windows cover the recent past; everything older is <em>reconstructed</em> month by month from Wikimedia's full revision history, taking each page as it stood on the first of that month:
         </p>
         <div class="viz-root sourceTimeline" id="sourceTimeline" data-palette="#2a78d6,#eb6834,#1baf7a,#eda100">
           <div class="sourceTimelineRow">
@@ -125,14 +125,15 @@
           <div class="sourceTimelineLegend">
             <span class="legendItem"><span class="legendSwatch" style="background:var(--series-1)"></span>current-format live</span>
             <span class="legendItem"><span class="legendSwatch" style="background:var(--series-2)"></span>legacy-format live</span>
-            <span class="legendItem"><span class="legendSwatch" style="background:var(--series-3)"></span>Internet Archive</span>
             <span class="legendItem"><span class="legendSwatch" style="background:var(--series-4)"></span>materialized (synthetic)</span>
-            <span class="legendItem"><span class="legendSwatch" style="background:var(--surface-uncovered)"></span>no coverage</span>
           </div>
           <div class="sourceTimelineTooltip" id="sourceTimelineTooltip" hidden></div>
         </div>
         <p>
-          For a materialized month, no ready-made dump exists at all — instead, a snapshot is reconstructed on demand from the full revision history: for a given cutoff date, each page's state is taken as its newest revision at or before that date.
+          For a materialized month, no ready-made dump is used at all — instead, a snapshot is reconstructed on demand from the full revision history: for a given cutoff date, each page's state is taken as its newest revision at or before that date.
+        </p>
+        <p>
+          Archived copies of the older dump format <em>do</em> exist for many of these months, but they are deliberately not used. An archived dump records the titles pages carried on that date, while a reconstruction records the titles they carry now — and because this mirror decides what counts as a separate text from title breadcrumbs, the two count the same corpus differently. Mixing them made the text count step at every switch between sources, in a way that looked like the collection changing when only the source had. One reconstruction method applied uniformly is less faithful to any single month, but it is the only way the months can be compared to each other. The trade-off is that pages deleted before the revision-history dump was taken are missing everywhere, so early figures are lower bounds, and works reorganized later appear reorganized throughout.
         </p>
 
         <h3>Pages, Categories, and Texts</h3>
@@ -1367,7 +1368,7 @@
           </ul>
           </details></li>
           <li class="audit-item"><details>
-            <summary class="audit-summary">Categories referenced but never created (red links) (35 categories)</summary>
+            <summary class="audit-summary">Categories referenced but never created (red links) (36 categories)</summary>
           <ul style="margin-left: 1.6em;">
             <li><a href="https://sa.wikisource.org/wiki/%E0%A4%B5%E0%A4%B0%E0%A5%8D%E0%A4%97%E0%A4%83%3AHinduism" target="_blank">ḥinadisama</a></li>
             <li><a href="https://sa.wikisource.org/wiki/%E0%A4%B5%E0%A4%B0%E0%A5%8D%E0%A4%97%E0%A4%83%3ARig_Veda" target="_blank">ṇga Veda</a></li>
@@ -1397,6 +1398,7 @@
             <li><a href="https://sa.wikisource.org/wiki/%E0%A4%B5%E0%A4%B0%E0%A5%8D%E0%A4%97%E0%A4%83%3A%E0%A4%AE%E0%A4%BE%E0%A4%B2%E0%A4%B5%E0%A4%BF%E0%A4%95%E0%A4%BE%E0%A4%97%E0%A5%8D%E0%A4%A8%E0%A4%BF%E0%A4%AE%E0%A4%BF%E0%A4%A4%E0%A5%8D%E0%A4%B0%E0%A4%AE%E0%A5%8D" target="_blank">mālavikāgnimitram</a></li>
             <li><a href="https://sa.wikisource.org/wiki/%E0%A4%B5%E0%A4%B0%E0%A5%8D%E0%A4%97%E0%A4%83%3A%E0%A4%AF%E0%A4%9C%E0%A5%81%E0%A4%B0%E0%A5%8D%E0%A4%B5%E0%A5%87%E0%A4%A6" target="_blank">yajurveda</a></li>
             <li><a href="https://sa.wikisource.org/wiki/%E0%A4%B5%E0%A4%B0%E0%A5%8D%E0%A4%97%E0%A4%83%3A%E0%A4%B0%E0%A4%B8%E0%A4%B0%E0%A4%A4%E0%A5%8D%E0%A4%A8%E0%A4%B8%E0%A4%AE%E0%A5%81%E0%A4%9A%E0%A5%8D%E0%A4%9A%E0%A4%AF%E0%A4%83%E2%80%8E" target="_blank">rasaratnasamuccayaḥ‎</a></li>
+            <li><a href="https://sa.wikisource.org/wiki/%E0%A4%B5%E0%A4%B0%E0%A5%8D%E0%A4%97%E0%A4%83%3A%E0%A4%B5%E0%A4%BF%E0%A4%B7%E0%A5%8D%E0%A4%A3%E0%A5%81%E0%A4%AA%E0%A5%81%E0%A4%B0%E0%A4%BE%E0%A4%A3%E0%A4%AE%E0%A5%8D" target="_blank">viṣṇupurāṇam</a></li>
             <li><a href="https://sa.wikisource.org/wiki/%E0%A4%B5%E0%A4%B0%E0%A5%8D%E0%A4%97%E0%A4%83%3A%E0%A4%B5%E0%A5%87%E0%A4%A6%E0%A4%BE%E0%A4%A8%E0%A5%8D%E0%A4%A4%E0%A4%A6%E0%A4%B0%E0%A5%8D%E0%A4%B6%E0%A4%A8%E0%A4%AE%E0%A5%8D" target="_blank">vedāntadarśanam</a></li>
             <li><a href="https://sa.wikisource.org/wiki/%E0%A4%B5%E0%A4%B0%E0%A5%8D%E0%A4%97%E0%A4%83%3A%E0%A4%B6%E0%A5%8D%E0%A4%B0%E0%A5%8C%E0%A4%A4%E0%A4%97%E0%A5%8D%E0%A4%B0%E0%A4%A8%E0%A5%8D%E0%A4%A5%E0%A4%BE%E0%A4%83" target="_blank">śrautagranthāḥ</a></li>
             <li><a href="https://sa.wikisource.org/wiki/%E0%A4%B5%E0%A4%B0%E0%A5%8D%E0%A4%97%E0%A4%83%3A%E0%A4%B8%E0%A4%82%E0%A4%B9%E0%A4%BF%E0%A4%A4%E0%A4%BE" target="_blank">saṃhitā</a></li>
@@ -1740,7 +1742,7 @@
       <details class="block collapsible">
         <summary><h2 id="data-quantity">Data Quantity: Historical Trends and Deltas</h2></summary>
         <p class="small">
-          Monthly deltas, patched together across four source types.
+          Monthly deltas. Historical months are reconstructed from revision history; recent months come from live dumps.
         </p>
 
         <div class="viz-root sourceTimeline" id="sourceTimelineDataQuantity" data-palette="#2a78d6,#eb6834,#1baf7a,#eda100">
@@ -1752,9 +1754,7 @@
           <div class="sourceTimelineLegend">
             <span class="legendItem"><span class="legendSwatch" style="background:var(--series-1)"></span>current-format live</span>
             <span class="legendItem"><span class="legendSwatch" style="background:var(--series-2)"></span>legacy-format live</span>
-            <span class="legendItem"><span class="legendSwatch" style="background:var(--series-3)"></span>Internet Archive</span>
             <span class="legendItem"><span class="legendSwatch" style="background:var(--series-4)"></span>materialized (synthetic)</span>
-            <span class="legendItem"><span class="legendSwatch" style="background:var(--surface-uncovered)"></span>no coverage</span>
           </div>
           <div class="sourceTimelineTooltip" id="sourceTimelineDataQuantityTooltip" hidden></div>
         </div>

@@ -81,6 +81,39 @@ upstream fixing. Hiding it would defeat one of the project's purposes.
 reasonable proxy for "properly filed." It is a proxy. A perfectly good text
 sits in the orphan bucket if nobody tagged it.
 
+### Corollary: rollup cannot bridge the orphan boundary
+
+Worth stating explicitly, because it is the mechanism behind every
+historical `text_count` wobble that has ever been chased in this repo.
+
+Ancestor rollups dedup by *distinct page id*: a page reachable by two paths
+is counted once, at whichever ancestor those paths first converge. And
+`text_count` is assigned per page by one rule only —
+`text_count=1 if main_node.parent_title is None else 0` (`process.py`) —
+i.e. by the **title breadcrumb**, never by category placement.
+
+Those two facts are fine on their own. The problem is when a single work is
+split *across* the boundary: part of it centrally reachable, part in the
+orphan bucket. Then the two halves have no common ancestor to converge at,
+so rollup cannot merge them, and the work is effectively counted twice —
+once in root's totals and once in the bucket's.
+
+The practical consequence: **anything that changes which categories reach
+the root will move `text_count`**, even though no page's own text-ness ever
+changed. A dump missing a handful of category pages strands whole works in
+the bucket, and the count moves by hundreds. That is why byte totals and
+`count` stay perfectly smooth across such a month while `text_count`
+notches — bytes and page counts don't care which bucket a page landed in.
+
+Known live instance: the 2015-01 and 2015-05 materialized snapshots contain
+104 Category-namespace pages where their neighbours have 139 (counted
+directly in the reconstructed XML). ~35 missing categories strand enough
+content to move `text_count` by roughly −370 in each of those two months.
+Deliberately **not** fixed — see the About page's Snapshots section. The
+cause is understood, bounded to two months out of 174, and the alternatives
+(interpolating the points, or reworking category reconstruction in
+`materialize_snapshots.py`) are both worse than a documented artifact.
+
 ---
 
 ## 3. The flat-family allowlist: structure inferred, but only twice
@@ -92,7 +125,20 @@ count. These get an explicit allowlist entry each:
 | Pattern | Destination | Pages |
 |---|---|---|
 | `महाभारतम्-NN-<parva>-NNN` | `महाभारतम्/<parva>` | 2,315 |
-| `ऋग्वेदः सूक्तं M.S` | `ऋग्वेदः मण्डल M` | 1,028 |
+| `ऋग्वेद[ः:] सूक्तं M.S` | `ऋग्वेदः मण्डल M` | 1,028 |
+
+**A pattern must cover historical spellings, not just today's.** The
+ऋग्वेदः row originally matched only the visarga stem `ऋग्वेदः` (U+0903),
+which is correct for the current dump. But those 1,028 pages were titled
+with an ASCII colon `ऋग्वेद:` (U+003A) until a mass rename in 2017-08, so in
+every backfilled month before that the pattern matched nothing, all 1,028
+sūktas fell back to top-level, and each was counted as a standalone text —
+a large, invisible inflation across a third of the history. The destination
+carried the visarga in both eras, so only the child side needed widening.
+Post-rename the colon titles survive as redirects, which `text_count`
+already ignores, so accepting both spellings changes nothing in the modern
+era. `check_flat_family_allowlist` cannot catch this class of problem: it
+validates against the current dump only, where the row was always healthy.
 
 **Why an allowlist and not a rule.** A general "infer structure from
 separators" rule would be wrong far more often than right. 2,544 flat titles
@@ -163,6 +209,57 @@ Picking one filing as canonical would assert something the wiki does not.
 **Interaction with stats.** Dedup happens at rollup: a page reachable by two
 paths is counted once, at whichever ancestor the paths first converge. So
 duplicate *display* never inflates totals.
+
+---
+
+## 6. One reconstruction method for all history, not the best-available source
+
+**Decision.** Every historical month is **materialized** — reconstructed
+from `sawikisource-latest-pages-meta-history.xml.bz2` by taking, for each
+page, its newest revision at or before that month's cutoff. Only the current
+era (from `LEGACY_CUTOVER`) uses a real live export. Internet Archive dumps
+are no longer used, even for the many months where a genuine archived
+snapshot exists.
+
+**Why.** A real archived dump records the titles pages bore *at that date*.
+The reconstruction records the titles they bear *today*. Both are internally
+coherent; they are not mutually comparable. Since `text_count` is derived
+from title breadcrumbs (§1), the same corpus counted from the two sources
+differs by hundreds of texts — so a series that switches source mid-history
+shows steps at every switch that look like corpus events and are not. The
+old series switched sources a dozen times.
+
+Given that a boundary is unavoidable somewhere, one consistent method for
+all of history is worth more than each month's most authentic individual
+source. A trend chart's job is comparability across time.
+
+**What this costs.** Materialization's own deviations now apply everywhere
+rather than only in gaps (see `materialize_snapshots.py`):
+
+- Pages **hard-deleted** before the meta-history dump was taken are absent
+  from every month, so each month is a lower bound and deletion events
+  largely stop being visible. Measured cost: of 5,199 removals the old
+  mixed-source series reported, only ~106 (2%) were genuine deletions —
+  the rest were renames and re-filings counted as remove+add pairs. The
+  "removed" column loses little real signal.
+- Titles are **as of the dump's vintage**, so a work reorganized in 2020
+  appears reorganized in 2013 too. This is the deliberate trade: today's
+  structural understanding applied uniformly backward, rather than each
+  month's own worse organization.
+- Error grows with distance backward. Near the dump's vintage the
+  reconstruction is nearly exact, which is why the materialized→live
+  handoff is clean.
+
+**What was given up, and how to get it back.** 76 real archived dumps exist
+(2011-09 .. 2022-05) and are the only source for period-accurate titles and
+for pages later deleted. `notes/internet-archive-dumps.md` records exactly
+which months are available, the gaps, and how to fetch one — the knowledge is
+kept even though the fetching code was removed.
+
+**Judgment being made.** That a consistent series which is slightly wrong in
+a known direction is more useful than an accurate-per-month series whose
+month-to-month deltas are dominated by source artifacts. For a chart about
+growth over time, comparability is the property that matters.
 
 ---
 

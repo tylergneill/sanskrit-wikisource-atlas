@@ -5,6 +5,8 @@ const state = {
   scheme: "iast", // devanagari | iast | hk | itrans | slp1 | iso
   log: null,
   granularity: 12, // months per group: 1 = monthly, 3 = quarterly, 12 = yearly
+  eras: null, // source_eras.json once loaded; lets trend lines be colored by
+              // which source each span came from (see sourceGradientStops)
   includeOrphans: true, // when true, trend charts use each entry's "all" total
                           // (central + असम्बद्धवर्गीकृतम्, the orphan bucket) instead
                           // of the central-only old/new/sizes. Defaults ON: the
@@ -388,6 +390,50 @@ function fmtAxisCount(n) {
   return n.toLocaleString();
 }
 
+// Hard-stop gradient stops mapping the chart's x-range onto the source-type
+// segments the timeline bar above already computes, so a trend line is drawn
+// in the same colors: readers can see at a glance which stretch of the curve
+// came from live dumps vs. reconstruction. Returns null when eras haven't
+// loaded (the chart then falls back to its plain single-color stroke).
+//
+// Doubled stops (each boundary emitted twice, at the same offset) give a crisp
+// switch rather than a blend -- these are categorical sources, not a
+// continuum, so an interpolated midpoint would imply a nonexistent hybrid.
+function sourceGradientStops(xMinMs, xMaxMs) {
+  if (!state.eras) return null;
+  let segments;
+  try {
+    segments = buildTimelineSegments(state.eras);
+  } catch {
+    return null;
+  }
+  if (!segments || !segments.length) return null;
+  const span = xMaxMs - xMinMs;
+  if (!(span > 0)) return null;
+
+  const pct = (ms) => Math.max(0, Math.min(100, ((ms - xMinMs) / span) * 100));
+  const stops = [];
+  for (const seg of segments) {
+    const info = TIMELINE_KIND_INFO[seg.kind];
+    if (!info) continue;
+    // Segment end dates are inclusive month starts; extend to the following
+    // month so the last month's color reaches the next boundary.
+    const startMs = new Date(`${seg.start}T00:00:00Z`).getTime();
+    const endMs = new Date(`${monthAfter(seg.end)}T00:00:00Z`).getTime();
+    if (endMs < xMinMs || startMs > xMaxMs) continue;
+    stops.push({ offset: pct(startMs), color: info.color });
+    stops.push({ offset: pct(endMs), color: info.color });
+  }
+  return stops.length ? stops : null;
+}
+
+function monthAfter(dateStr) {
+  let year = Number(dateStr.slice(0, 4));
+  let month = Number(dateStr.slice(5, 7)) + 1;
+  if (month > 12) { month = 1; year += 1; }
+  return `${String(year).padStart(4, "0")}-${String(month).padStart(2, "0")}-01`;
+}
+
 function renderTrendChart(container, points, { title, getValue, fmtValue, fmtAxis, tickStep }) {
   const width = 720;
   const height = 220;
@@ -471,11 +517,53 @@ function renderTrendChart(container, points, { title, getValue, fmtValue, fmtAxi
     svg.appendChild(label);
   }
 
-  // Area wash + line.
+  // Area wash + line. When source-era data is available the stroke/fill use a
+  // hard-stop gradient keyed to the timeline bar's colors, so the curve is
+  // legible as "this stretch came from that source" (see sourceGradientStops).
   const linePath = points.map((p, i) => `${i === 0 ? "M" : "L"}${xScale(dates[i].getTime())},${yScale(getValue(p))}`).join(" ");
   const areaPath = `${linePath} L${xScale(xMax)},${yScale(yMin)} L${xScale(xMin)},${yScale(yMin)} Z`;
-  svg.appendChild(svgEl("path", { class: "chart-area", d: areaPath }));
-  svg.appendChild(svgEl("path", { class: "chart-line", d: linePath }));
+
+  const stops = sourceGradientStops(xMin, xMax);
+  let lineStroke = null;
+  let areaFill = null;
+  if (stops) {
+    // Unique ids: several charts share one document, and duplicate gradient
+    // ids would make later charts silently reuse the first one's stops.
+    const uid = `srcgrad-${Math.random().toString(36).slice(2, 9)}`;
+    const defs = svgEl("defs", {});
+    // gradientUnits=userSpaceOnUse so offsets track the chart's x pixels, not
+    // each path's own bounding box (the area path is wider than the line).
+    const mkGrad = (id, opacity) => {
+      const g = svgEl("linearGradient", {
+        id, gradientUnits: "userSpaceOnUse",
+        x1: margin.left, x2: width - margin.right, y1: 0, y2: 0,
+      });
+      for (const stop of stops) {
+        g.appendChild(svgEl("stop", {
+          offset: `${stop.offset}%`, "stop-color": stop.color, "stop-opacity": opacity,
+        }));
+      }
+      return g;
+    };
+    defs.appendChild(mkGrad(`${uid}-line`, 1));
+    defs.appendChild(mkGrad(`${uid}-area`, 1));
+    svg.appendChild(defs);
+    lineStroke = `url(#${uid}-line)`;
+    areaFill = `url(#${uid}-area)`;
+  }
+
+  // Inline style, not a presentation attribute: .chart-line/.chart-area set
+  // stroke/fill in styles.css, and a CSS declaration beats a presentation
+  // attribute regardless of specificity -- so `stroke="url(#...)"` silently
+  // lost to `stroke: var(--accent)` and the line stayed one flat color.
+  const areaAttrs = { class: "chart-area", d: areaPath };
+  // Only the fill is overridden -- .chart-area's own opacity:0.1 still supplies
+  // the wash, so the tinted area stays as subtle as the original flat one.
+  if (areaFill) areaAttrs.style = `fill:${areaFill};`;
+  svg.appendChild(svgEl("path", areaAttrs));
+  const lineAttrs = { class: "chart-line", d: linePath };
+  if (lineStroke) lineAttrs.style = `stroke:${lineStroke};`;
+  svg.appendChild(svgEl("path", lineAttrs));
 
   // End marker (direct-labeled per marks-and-anatomy: label the endpoint).
   const lastX = xScale(xMax);
@@ -791,6 +879,8 @@ async function loadSourceEras() {
     const r = await fetch(SOURCE_ERAS_URL, { cache: "no-store" });
     if (!r.ok) throw new Error(`${r.status}`);
     const eras = await r.json();
+    // Stash for renderTrendChart's source-colored stroke (see sourceGradientStops).
+    state.eras = eras;
     for (const idPrefix of SOURCE_TIMELINE_ID_PREFIXES) {
       if (document.getElementById(idPrefix)) renderSourceTimeline(eras, idPrefix);
     }
@@ -859,5 +949,9 @@ narrowQuery.addEventListener("change", () => {
   if (state.log) renderChangelogCharts();
 });
 
-main();
-loadSourceEras();
+// Eras first, then the changelog: renderTrendChart colors its line by source
+// (sourceGradientStops) and reads state.eras synchronously, so racing these
+// two fetches would leave the charts plain whenever the eras lost. The eras
+// file is tiny, and a failed/slow load still resolves -- loadSourceEras
+// swallows its own errors -- so main() is never blocked by it.
+loadSourceEras().then(main);

@@ -5,9 +5,17 @@ const state = {
   scheme: "iast", // devanagari | iast | hk | itrans | slp1 | iso
   log: null,
   granularity: 12, // months per group: 1 = monthly, 3 = quarterly, 12 = yearly
-  includeOrphans: false, // when true, trend charts use each entry's "all" total
+  includeOrphans: true, // when true, trend charts use each entry's "all" total
                           // (central + असम्बद्धवर्गीकृतम्, the orphan bucket) instead
-                          // of the central-only old/new/sizes.
+                          // of the central-only old/new/sizes. Defaults ON: the
+                          // orphan bucket is real corpus content that merely
+                          // isn't reachable by category descent, and its share
+                          // swings enormously over the history (0% pre-2015,
+                          // ~50% from 2020-07 to 2025-01 while पुराणानि was
+                          // detached from the root -- see
+                          // notes/interpretive-decisions.md), so the
+                          // central-only series makes upstream category
+                          // maintenance look like corpus loss.
 };
 
 function translitText(s) {

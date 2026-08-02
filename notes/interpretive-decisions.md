@@ -114,6 +114,35 @@ cause is understood, bounded to two months out of 174, and the alternatives
 (interpolating the points, or reworking category reconstruction in
 `materialize_snapshots.py`) are both worse than a documented artifact.
 
+### The 2020–2025 orphan plateau is real history, not an artifact
+
+Worth recording because it looks exactly like the artifact above and is not.
+The orphan bucket's share of the corpus runs:
+
+| Period | Orphan share |
+|---|---|
+| before 2015 | 0% |
+| 2016 – 2020-01 | ~13–19% |
+| **2020-07 – 2025-01** | **~50%** |
+| 2025-07 – present | ~14% |
+
+Across 2020-01 → 2020-07 the central tree *falls* from 19,168 to 11,422 items
+while the corpus keeps growing. The cause is upstream: **`पुराणानि` lost its
+link to the root category**, taking its whole subtree with it — 32 categories
+and roughly 7,700 pages — and it was re-filed by 2025-07.
+
+The tell that this is genuine and not a reconstruction failure: Category-
+namespace *page* counts keep climbing right through the window (241 → 285),
+so nothing is missing from the dumps. What changes is connectivity —
+categories reachable from the root drop 158 → 134, hold there for five years,
+then recover to 168. The pages were always present and always counted; they
+were simply not reachable by category descent, which is precisely what the
+orphan bucket is for.
+
+So the mirror is reporting this correctly. Anyone reading the trend charts
+should know the mid-period orphan mass is a real, five-year gap in
+sa.wikisource's own category maintenance, not a defect in this pipeline.
+
 ---
 
 ## 3. The flat-family allowlist: structure inferred, but only twice

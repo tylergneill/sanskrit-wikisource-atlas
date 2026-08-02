@@ -100,7 +100,7 @@
         </p>
 
         <p>
-          However, nothing guarantees that transclusion is used in this way. Instead, an editor may well copy-paste the content of OCR-workflow Pages into Mainspace pages, in which case proofreading corrections will no longer propagate. Mainspace pages visually indicate active transclusion with special marginal links to respective Pages (e.g., the "[१]" in this <a href="https://sa.wikisource.org/wiki/अमरकोषः_%28अमरविवेकव्याख्यासहितः%29" target="_blank"><span class="sa">अमरकोषः</span></a> item).
+          However, nothing guarantees such use of transclusion. Instead, an editor may well copy-paste the content of OCR-workflow Pages into Mainspace pages, in which case proofreading corrections will no longer propagate automatically. Mainspace pages visually indicate active transclusion with special marginal links to respective Pages (e.g., the "[१]" in this <a href="https://sa.wikisource.org/wiki/अमरकोषः_%28अमरविवेकव्याख्यासहितः%29" target="_blank"><span class="sa">अमरकोषः</span></a> item).
         </p>
 
 
@@ -123,17 +123,14 @@
           </div>
           <div class="sourceTimelineAxis" id="sourceTimelineAxis"></div>
           <div class="sourceTimelineLegend">
-            <span class="legendItem"><span class="legendSwatch" style="background:var(--series-1)"></span>current-format live</span>
-            <span class="legendItem"><span class="legendSwatch" style="background:var(--series-2)"></span>legacy-format live</span>
             <span class="legendItem"><span class="legendSwatch" style="background:var(--series-4)"></span>materialized (synthetic)</span>
+            <span class="legendItem"><span class="legendSwatch" style="background:var(--series-2)"></span>legacy-format live</span>
+            <span class="legendItem"><span class="legendSwatch" style="background:var(--series-1)"></span>current-format live</span>
           </div>
           <div class="sourceTimelineTooltip" id="sourceTimelineTooltip" hidden></div>
         </div>
         <p>
-          For a materialized month, no ready-made dump is used at all — instead, a snapshot is reconstructed on demand from the full revision history: for a given cutoff date, each page's state is taken as its newest revision at or before that date.
-        </p>
-        <p>
-          Archived copies of the older dump format <em>do</em> exist for many of these months, but they are deliberately not used. An archived dump records the titles pages carried on that date, while a reconstruction records the titles they carry now — and because this mirror decides what counts as a separate text from title breadcrumbs, the two count the same corpus differently. Mixing them made the text count step at every switch between sources, in a way that looked like the collection changing when only the source had. One reconstruction method applied uniformly is less faithful to any single month, but it is the only way the months can be compared to each other. The trade-off is that pages deleted before the revision-history dump was taken are missing everywhere, so early figures are lower bounds, and works reorganized later appear reorganized throughout.
+          Although Internet Archive does also hold <a href="https://archive.org/search?query=identifier%3Asawikisource-2*&sort=identifier" target="_blank">additional legacy-format dumps</a> for 74 of the 95 months between 2014-07 and 2022-05, these suffer from the relatively poor organization of past years. By contrast, materialized data benefits from the relatively better organization of the present, which makes it easier abstract to the text level. For this reason, Internet Archive legacy-format data dumps are not used here.
         </p>
 
         <h3>Pages, Categories, and Texts</h3>
@@ -154,7 +151,7 @@
         </p>
 
        <p>
-          A "text" in this mirror can be one of two things: 1) any Mainspace page with no "/" parent of its own, whether or not it collects real subpages under itself; or 2) an Index item still in the OCR "Proofreading" pipeline that hasn't yet been transcluded into a Mainspace page. For <span class="sa">असम्बद्धवर्गीकृतम्</span> items, which suffer from relatively poor organization overall, proper index pages are often missing, and so "text" counts can be greatly inflated — hence the option to exclude such items from count and size totals.
+          A "text" in this mirror can be one of two things: 1) any Mainspace page with no "/" parent of its own, whether or not it collects real subpages under itself; or 2) an Index item still in the OCR "Proofreading" pipeline that hasn't yet been transcluded into a Mainspace page. The artificial <span class="sa">असम्बद्धवर्गीकृतम्</span> category contains the majority of completely unproofread OCR, and its Mainspace pages frequently suffer from poor organization, such that subpages don't "roll up" properly and instead get counted as full "texts." For these reasons, this category may optionally be excluded from size and text/page-count totals.
        </p>
 
         <h3>Transclusion Issues</h3>
@@ -168,7 +165,7 @@
 
         <h3>Cross-tree Connections</h3>
         <p>
-          If a Category (wrongly!) has multiple parents, it will show up in both places in the mirror's tree display, with notes to that effect ("also filed under...") linking each occurrence to the other.
+          If a Category (wrongly!) has multiple parents, it will show up in all those places in the mirror's tree display with an on-hover note ("also filed under...") so that all such occurrences clearly link to each other.
         </p>
 
         <p>
@@ -176,7 +173,7 @@
         </p>
 
         <p>
-          An item filed in multiple places risks being double-counted in the mirror's size and text-count stats. Special care avoids this: each item is credited to a category's rollup exactly once, at whichever ancestor its various paths first converge. For example, <span class="sa">काश्यपसंहिता</span> is filed under both <span class="sa">धर्मशास्त्रम्</span> (&gt; <span class="sa">काश्यपरचनाः</span>) and <span class="sa">वेदाः</span> (&gt; <span class="sa">उपवेदाः</span> &gt; <span class="sa">आयुर्वेदः</span> &gt; <span class="sa">काश्यपरचनाः</span>), so its size and text count contribute to both <span class="sa">धर्मशास्त्रम्</span> and <span class="sa">वेदाः</span>, but the top-level "All" aggregation still only counts it once.
+          An item filed in multiple places risks being double-counted in the mirror's size and text/page-count stats, so special care is taken that each item be credited to a given category's rollup exactly once. For example, <span class="sa">काश्यपसंहिता</span> is filed under both <span class="sa">धर्मशास्त्रम्</span> (&gt; <span class="sa">काश्यपरचनाः</span>) and <span class="sa">वेदाः</span> (&gt; <span class="sa">उपवेदाः</span> &gt; <span class="sa">आयुर्वेदः</span> &gt; <span class="sa">काश्यपरचनाः</span>), so its size and text count contribute to both <span class="sa">धर्मशास्त्रम्</span> and <span class="sa">वेदाः</span>, but the top-level "All" aggregation still only counts it once.
         </p>
 
         <h3>Calculating Size</h3>
@@ -1453,6 +1450,7 @@
           </details></li>
         </ul>
 
+        <h3>Provenance Insights</h3>
         <p>
           The same audit pipeline also makes note of source links:
         </p>
@@ -1742,7 +1740,7 @@
       <details class="block collapsible">
         <summary><h2 id="data-quantity">Data Quantity: Historical Trends and Deltas</h2></summary>
         <p class="small">
-          Monthly deltas. Historical months are reconstructed from revision history; recent months come from live dumps.
+          Timeline of data source types. See "Snapshots" above in the <a href="about.html#obtaining-and-representing">"Obtaining and Representing" section</a> for detail.
         </p>
 
         <div class="viz-root sourceTimeline" id="sourceTimelineDataQuantity" data-palette="#2a78d6,#eb6834,#1baf7a,#eda100">
@@ -1752,16 +1750,12 @@
           </div>
           <div class="sourceTimelineAxis" id="sourceTimelineDataQuantityAxis"></div>
           <div class="sourceTimelineLegend">
-            <span class="legendItem"><span class="legendSwatch" style="background:var(--series-1)"></span>current-format live</span>
-            <span class="legendItem"><span class="legendSwatch" style="background:var(--series-2)"></span>legacy-format live</span>
             <span class="legendItem"><span class="legendSwatch" style="background:var(--series-4)"></span>materialized (synthetic)</span>
+            <span class="legendItem"><span class="legendSwatch" style="background:var(--series-2)"></span>legacy-format live</span>
+            <span class="legendItem"><span class="legendSwatch" style="background:var(--series-1)"></span>current-format live</span>
           </div>
           <div class="sourceTimelineTooltip" id="sourceTimelineDataQuantityTooltip" hidden></div>
         </div>
-
-        <p class="small">
-          See "Snapshots" above in <a href="about.html#obtaining-and-representing">the "Obtaining and Representing" section</a> for detail.
-        </p>
 
         <hr>
 

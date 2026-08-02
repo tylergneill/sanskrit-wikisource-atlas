@@ -1027,6 +1027,12 @@ a[target="_blank"]::after{
 .sourceTimelineAxis span:last-child{ transform: translateX(-100%); }
 .sourceTimelineLegend{
   display: flex;
+  /* Right-aligned so the legend's end lines up with the bar's present-day
+     end. Item order (materialized -> legacy-live -> current-live, matching
+     the bar's oldest-to-newest layout) comes from the markup, not from
+     flex-direction -- reversing via row-reverse looked right on one line but
+     flipped back to newest-first as soon as the legend wrapped. */
+  justify-content: flex-end;
   flex-wrap: wrap;
   gap: 6px 16px;
   margin-top: 10px;

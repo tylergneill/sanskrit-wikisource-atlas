@@ -41,7 +41,7 @@
   <main class="mainpane" style="height: calc(100% - 48px); display:flex; justify-content:center;">
     <section class="content" style="width:100%; max-width:900px;">
       <div class="block">
-        <h2 style="margin-top:0;">About</h2>
+        <h2 id="about" style="margin-top:0;">About</h2>
         <p>
           This mirror offers a better way to explore the Sanskrit e-text content at <a href="https://sa.wikisource.org/" target="_blank">sa.wikisource.org</a>, with transliteration support, dynamic display of categories (see <a href="https://sa.wikisource.org/wiki/वर्गः:वर्गसर्वस्वम्" target="_blank">"<span class="sa">वर्गसर्वस्वम्</span>"</a>), additional abstraction to the "text" level, and clear size and date information. It also surfaces insights that will help to gradually improve the source collection itself. The data snapshot is refreshed semi-automatically on a monthly basis.
         </p>
@@ -59,17 +59,17 @@
       <details class="block collapsible">
         <summary><h2 id="practical-intro">Practical Intro to Wikisource Structure</h2></summary>
 
-        <h3>Graph of Equal Pages</h3>
+        <h3 id="graph-of-equal-pages">Graph of Equal Pages</h3>
         <p>
           Wikisource's most basic ontological unit is the page. Pages can freely link to each other, creating a directed graph, with no inherent hierarchy. In order to make one page link to multiple others, as in a table of contents, all connections must be made manually. Nothing automatically creates such lists, and there is no distinct "subpage" node or relation type.
         </p>
 
-        <h3>Breadcrumbs</h3>
+        <h3 id="breadcrumbs">Breadcrumbs</h3>
         <p>
           Pages that are conceptually a "child" or "subpage" can be made to automatically link back to the relevant "parent" page, namely by carefully constructing the child page name so that it consists of the parent's name, then a slash, then the unique child page name. For example, Wikisource will automatically parse the page name "<a href="https://sa.wikisource.org/wiki/अग्निपुराणम्/अध्यायः_१" target="_blank"><span class="sa">अग्निपुराणम्/अध्यायः १</span></a>" and place at the top of that page a link to the related page "<span class="sa">अग्निपुराणम्</span>." In Wikisource jargon, these auto-generated links are called "breadcrumbs."
         </p>
 
-        <h3>Categories: Another Graph</h3>
+        <h3 id="categories">Categories: Another Graph</h3>
         <p>
           The next basic ontological unit is the Category. Pages can be labeled with any number of Categories. For each Category, Wikisource creates a display page that shows all associated items, e.g., <a href="https://sa.wikisource.org/wiki/वर्गः%3Aनाटकानि" target="_blank"><span class="sa">नाटकानि</span></a>.
         </p>
@@ -77,12 +77,12 @@
           Categories of course also relate to each other, creating their own directed graph. By convention, this graph should be constructed as a simple tree, with a single root, exactly one parent per node, and nothing left out. However, since categorization is done manually, this is not guaranteed; one Category may have multiple parents, and there can theoretically even be cycles.
         </p>
 
-        <h3>Namespaces</h3>
+        <h3 id="namespaces">Namespaces</h3>
         <p>
           Distinct ontological types exist in different "namespaces." For example, regular content pages are in namespace 0 (technically called "Main"), and Categories constitute namespace 14. This makes it easy to use computational methods to obtain all items of a given type.
         </p>
 
-        <h3>OCR "Proofreading" Workflow</h3>
+        <h3 id="proofreading">OCR "Proofreading" Workflow</h3>
         <p>
           Filling in the text content of a Mainspace page is often done manually. Another option provided by Wikisource is the "Proofreading" workflow which is based on OCR. A user uploads an image file, which gets stored as part of a central "Index" item (namespace 106, Sanskrit "<span class="sa">अनुक्रमणिका</span>"). For example, <a href="https://sa.wikisource.org/wiki/अनुक्रमणिका%3Aकाठकोपनिषत्.djvu" target="_blank"><span class="sa">काठकोपनिषत्</span></a>. Based on file metadata, Wikisource then creates a table with links for each page.
         </p>
@@ -95,7 +95,7 @@
           By convention, Index items can be labeled with Categories, but Pages should not be, in order to avoid clutter when viewing a given Category's associated items.
         </p>
 
-        <h3>Transclusion</h3>
+        <h3 id="transclusion">Transclusion</h3>
         <p>
           Content of one item can be virtually injected into the content of another by a process known as "transclusion," similar to symbolic linking. Most notably, a user-facing Mainspace page can transclude relevant ranges of proofreading "Pages." Proofreading can then continue gradually, and the Mainspace page will update automatically.
         </p>
@@ -110,7 +110,7 @@
       <details class="block collapsible">
         <summary><h2 id="obtaining-and-representing">Obtaining and Representing Sanskrit Wikisource Data</h2></summary>
 
-        <h3>Snapshots</h3>
+        <h3 id="snapshots">Snapshots</h3>
         <p>
           The main page of this mirror is regularly updated to reflect the latest monthly snapshot drawn from Wikimedia's own "Content File Export" dump for sa.wikisource.org.
         </p>
@@ -134,7 +134,7 @@
           Although Internet Archive does also hold <a href="https://archive.org/search?query=identifier%3Asawikisource-2*&sort=identifier" target="_blank">additional legacy-format dumps</a> for 74 of the 95 months between 2014-07 and 2022-05, these suffer from the relatively poor organization of past years. By contrast, materialized data benefits from the relatively better organization of the present, which makes it easier abstract to the text level. For this reason, Internet Archive legacy-format data dumps are not used here.
         </p>
 
-        <h3>Pages, Categories, and Texts</h3>
+        <h3 id="pages-categories-texts">Pages, Categories, and Texts</h3>
         <p>
           After fetching full data for a given point in time, the Main, Category, Index, and Page namespaces are explored in full.
         </p>
@@ -155,7 +155,7 @@
           A "text" in this mirror can be one of two things: 1) any Mainspace page with no "/" parent of its own, whether or not it collects real subpages under itself; or 2) an Index item still in the OCR "Proofreading" pipeline that hasn't yet been transcluded into a Mainspace page. The artificial <span class="sa">असम्बद्धवर्गीकृतम्</span> category contains the majority of completely unproofread OCR, and its Mainspace pages frequently suffer from poor organization, such that subpages don't "roll up" properly and instead get counted as full "texts." For these reasons, this category may optionally be excluded from size and text/page-count totals.
        </p>
 
-        <h3>Transclusion Issues</h3>
+        <h3 id="transclusion-issues">Transclusion Issues</h3>
         <p>
           When OCR content has <em>not</em> been transcluded to Main, the mirror links to the Index page and flags it with a "Proofing" label. Meanwhile, it remains possible that the editor copy-pasted to Main.
         </p>
@@ -164,7 +164,7 @@
           Where any range <em>has</em> been transcluded, the mirror links to the Mainspace page, and a small "pdf" icon also links to the Index page for source images.
         </p>
 
-        <h3>Cross-tree Connections</h3>
+        <h3 id="cross-tree-connections">Cross-tree Connections</h3>
         <p>
           If a Category (wrongly!) has multiple parents, it will show up in all those places in the mirror's tree display with an on-hover note ("also filed under...") so that all such occurrences clearly link to each other.
         </p>
@@ -177,7 +177,7 @@
           An item filed in multiple places risks being double-counted in the mirror's size and text/page-count stats, so special care is taken that each item be credited to a given category's rollup exactly once. For example, <span class="sa">काश्यपसंहिता</span> is filed under both <span class="sa">धर्मशास्त्रम्</span> (&gt; <span class="sa">काश्यपरचनाः</span>) and <span class="sa">वेदाः</span> (&gt; <span class="sa">उपवेदाः</span> &gt; <span class="sa">आयुर्वेदः</span> &gt; <span class="sa">काश्यपरचनाः</span>), so its size and text count contribute to both <span class="sa">धर्मशास्त्रम्</span> and <span class="sa">वेदाः</span>, but the top-level "All" aggregation still only counts it once.
         </p>
 
-        <h3>Calculating Size</h3>
+        <h3 id="calculating-size">Calculating Size</h3>
         <p>
           The size Wikisource itself reports for a page reflects stored "wikitext," including markup, templates, and Category tags. Importantly, transcluded content is NOT counted. In order to obtain a more meaningful measure how much "real" text the collection contains, this mirror parses the wikitext, strips out overhead, populates transcluded content, and transliterates from Devanāgarī to IAST. IAST text takes up less space (approximately 50% of the Devanāgarī byte count) and is more common for cross-collection comparison.
         </p>
@@ -187,7 +187,7 @@
       <details class="block collapsible">
         <summary><h2 id="data-quality">Data Quality: Structural Errors and Provenance Hints</h2></summary>
 
-        <h3>Opportunities for Correction</h3>
+        <h3 id="opportunities-for-correction">Opportunities for Correction</h3>
         <p>
           In addition to the artificial <span class="sa">असम्बद्धवर्गीकृतम्</span> category shown on this mirror website, the codebase also includes an audit pipeline for detecting and concisely indicating problems that should be fixed on sa.wikisource.org:
         </p>
@@ -1451,7 +1451,7 @@
           </details></li>
         </ul>
 
-        <h3>Provenance Insights</h3>
+        <h3 id="provenance-insights">Provenance Insights</h3>
         <p>
           The same audit pipeline also makes note of source links:
         </p>
@@ -1774,12 +1774,12 @@
         </p>
 
         <details class="block collapsible" open>
-          <summary><h3 style="margin:0;">Trends</h3></summary>
+          <summary><h3 id="trends" style="margin:0;">Trends</h3></summary>
           <div id="changelogCharts">Loading…</div>
         </details>
 
         <details class="block collapsible" open>
-          <summary><h3 style="margin:0;">Monthly Deltas</h3></summary>
+          <summary><h3 id="monthly-deltas" style="margin:0;">Monthly Deltas</h3></summary>
           <div id="changelog">Loading…</div>
         </details>
       </details>

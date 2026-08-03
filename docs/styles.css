@@ -15,6 +15,12 @@
   --series-3: #199e70;
   --series-4: #c98500;
   --surface-uncovered: #222b36;
+  /* Only used where the topbar is pinned over scrolling content (phone widths):
+     a stronger edge than --border plus a shadow, so the bar reads as a layer
+     above the page. Both are theme-specific -- a shadow tuned for dark mode
+     turns into a grey smear on white. */
+  --border-strong: #3a4757;
+  --topbar-shadow: 0 4px 16px rgb(0 0 0 / 0.75), 0 1px 3px rgb(0 0 0 / 0.6);
 }
 
 :root[data-theme="light"]{
@@ -34,6 +40,8 @@
   --series-3: #1baf7a;
   --series-4: #eda100;
   --surface-uncovered: #d7dde3;
+  --border-strong: #b3bdc7;
+  --topbar-shadow: 0 4px 16px rgb(0 0 0 / 0.22), 0 1px 3px rgb(0 0 0 / 0.16);
 }
 
 * { box-sizing: border-box; }
@@ -720,7 +728,12 @@ a[target="_blank"]::after{
      .topnav for why this page's topbar has 3 direct children instead of
      index.html's 2. */
   .about-topbar{ flex-wrap: wrap; }
-  .about-topbar .brand{ flex: 0 1 auto; }
+  /* The brand shrinks (flex-shrink:1) while .topnav is pushed right by its
+     margin-left:auto, so without a floor between them the ellipsized title runs
+     straight into the select with no gap at all. column-gap alone won't do it --
+     the auto margin absorbs the free space first -- so the title needs its own
+     right margin. */
+  .about-topbar .brand{ flex: 0 1 auto; margin-right: 14px; min-width: 0; }
   .about-topbar .topnav{ flex: 0 0 auto; margin-left: auto; order: 2; }
   .about-topbar .about-back-link{ order: 3; flex: 1 1 100%; margin-right: 0; }
   .brand-title{ flex: 0 1 auto; overflow: hidden; text-overflow: ellipsis; font-size: 17px; }
@@ -736,6 +749,16 @@ a[target="_blank"]::after{
      orphan bucket in the trends -- at every width below 1100px. */
   .topnav .navlabel{ display: none; }
   #schemeSelect{ order: 4; flex: 0 1 auto; min-width: 0; max-width: 160px; }
+
+  /* A <select> sizes itself to its *longest* option, not the selected one, so
+     the box stayed wide while showing a 4-character "IAST". Shortening the two
+     worst labels ("Harvard-Kyoto" -> "HK", "Devanagari" -> "देवनागरी", which is
+     both narrower and self-demonstrating) shrinks it at the source, leaving
+     "ISO 15919" as the widest -- no max-width clamp needed. */
+  .about-topbar #schemeSelect{
+    font-size: 14px;
+    padding: 4px 6px;
+  }
   .topnav .sep:last-of-type{ order: 5; }
   .theme-toggle{
     order: 6;
@@ -749,6 +772,18 @@ a[target="_blank"]::after{
   }
   .theme-toggle .toggle-label{ display: none; }
 
+  /* about.html's nav is just the scheme dropdown + this button (no search box),
+     so the toggle sits directly beside #schemeSelect rather than after a
+     separator. A fixed 34px box next to the dropdown reads as oversized and
+     empty on a phone, so match the dropdown's own height instead and let the
+     icon center itself. */
+  .about-topbar .theme-toggle{
+    width: auto;
+    height: auto;
+    aspect-ratio: 1;
+    padding: 4px 8px;
+  }
+
   .layout{ height: calc(100% - 76px); }
 }
 
@@ -761,7 +796,19 @@ a[target="_blank"]::after{
      topbar needs its own sticky pin here -- above sticky category headers
      (max z-index ~999, see renderCategoryBlock in app.js) but below the
      off-canvas sidebar/backdrop (1900/2000) so an open sidebar still overlays it. */
-  .topbar{ position: sticky; top: 0; z-index: 1000; }
+  /* Content scrolls *under* this bar at phone widths, so the 1px --border alone
+     wasn't enough separation -- --panel and --bg differ by only a few points of
+     luminance, leaving text appearing to bleed through the boundary. Give the
+     bar its own slightly-lifted surface plus a drop shadow so it reads as a
+     layer above the page rather than part of it. */
+  .topbar{
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+    background: var(--panel);
+    border-bottom-color: var(--border-strong);
+    box-shadow: var(--topbar-shadow);
+  }
 
   /* The document (not .mainpane) scrolls here and the topbar is pinned over it,
      so sticky section headers must come to rest *below* that bar rather than at

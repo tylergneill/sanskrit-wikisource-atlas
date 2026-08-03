@@ -75,9 +75,25 @@ function fmtBytesCompact(n) {
   return `${(n / 1024 / 1024).toFixed(1)} MB`;
 }
 
-// "(0→400 KB)" for a new item, "(400 KB → 480 KB, ↑ 20%)" for a size change.
+// "(0→400 KB)" for a new item, "(400 KB → 480 KB, ↑ 20.0%)" for a size change.
 // Omits the trailing percent when the old size is 0 (added items), since a
 // percent-of-zero is undefined/misleading.
+//
+// Otherwise the parenthetical is dropped entirely unless the change is real on
+// *both* measures, because each one alone lies in a different direction:
+//
+//   - Rendered-identical, e.g. "39 KB → 39 KB, ↓ 0%". The common case on the
+//     Updated list (timestamp moved, content barely did); a delta the reader
+//     can't see is noise next to the date range already shown.
+//   - Rendered-different but numerically trivial, e.g. "891 KB → 892 KB" for a
+//     *3-byte* change, or "7 KB → 6 KB, ↓ 0.9%". fmtBytesCompact's zero-decimal
+//     KB step is coarser than the percent beside it, so a pair straddling a
+//     rounding boundary looks like a whole-kilobyte move. Adding decimals does
+//     not fix this -- a finer grid just has more boundaries to straddle (one
+//     decimal quadruples these, 715 rows -> 2698) -- so the real magnitude has
+//     to be checked directly.
+const MIN_VISIBLE_PCT = 0.1;
+
 function fmtSizeDelta(oldBytes, newBytes) {
   oldBytes = oldBytes || 0;
   newBytes = newBytes || 0;
@@ -85,9 +101,11 @@ function fmtSizeDelta(oldBytes, newBytes) {
   const newStr = fmtBytesCompact(newBytes);
   if (oldBytes === 0) return ` (${oldStr}→${newStr})`;
   if (newBytes === 0) return ` (${oldStr}→${newStr})`;
+  if (oldStr === newStr) return "";
   const pct = ((newBytes - oldBytes) / oldBytes) * 100;
+  if (Math.abs(pct) < MIN_VISIBLE_PCT) return "";
   const arrow = pct >= 0 ? "↑" : "↓";
-  return ` (${oldStr} → ${newStr}, ${arrow} ${Math.abs(pct).toFixed(0)}%)`;
+  return ` (${oldStr} → ${newStr}, ${arrow} ${Math.abs(pct).toFixed(1)}%)`;
 }
 
 // Combine N consecutive monthly changelog entries (oldest-first, chained --
@@ -918,6 +936,35 @@ if (schemeSelect) {
   schemeSelect.addEventListener("change", (ev) => {
     state.scheme = ev.target.value;
     renderChangelog();
+  });
+}
+
+// Theme toggle. about.html doesn't load app.js, so the icons and handler are
+// duplicated here rather than shared; the inline <script> in each page's <head>
+// already applies the saved theme before first paint, so this only has to
+// handle the click and keep the button's label in sync. Both pages read/write
+// the same localStorage "theme" key, so switching here carries over to the tree.
+const SUN_ICON = `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 3v2"/><path d="M12 19v2"/><path d="M5 5l1.4 1.4"/><path d="M17.6 17.6L19 19"/><path d="M3 12h2"/><path d="M19 12h2"/><path d="M5 19l1.4-1.4"/><path d="M17.6 6.4L19 5"/></svg>`;
+const MOON_ICON = `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5Z"/></svg>`;
+
+function updateThemeToggleLabel() {
+  const btn = document.getElementById("themeToggle");
+  if (!btn) return;
+  const theme = document.documentElement.getAttribute("data-theme") || "dark";
+  const icon = theme === "dark" ? SUN_ICON : MOON_ICON;
+  const label = theme === "dark" ? "Light" : "Dark";
+  btn.innerHTML = `${icon}<span class="toggle-label">${label}</span>`;
+}
+
+const themeToggle = document.getElementById("themeToggle");
+if (themeToggle) {
+  updateThemeToggleLabel();
+  themeToggle.addEventListener("click", () => {
+    const current = document.documentElement.getAttribute("data-theme") || "dark";
+    const next = current === "dark" ? "light" : "dark";
+    document.documentElement.setAttribute("data-theme", next);
+    localStorage.setItem("theme", next);
+    updateThemeToggleLabel();
   });
 }
 

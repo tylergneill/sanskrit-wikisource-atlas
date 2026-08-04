@@ -1,0 +1,54 @@
+
+===== 2006-01 burst =====
+total revisions in window: 4323
+top editors:
+    4289  ThomasBot
+      24  Yann
+       5  Renamed user 34971c6624b373bd32a0c14b61407ac8
+       2  134.67.6.3
+       1  216.231.38.125
+       1  TheoClarke
+top edit comments:
+     556  'Yannf : replace'
+     382  'Yann १० : replace'
+     332  'Yann : replace'
+     204  'Yann १ : replace'
+     192  'Yann regex १० : regexp'
+     191  'Yann regex १ : regexp'
+distinct pages touched: 1033
+sample pages:
+     6  ऋग्वेदः सूक्तं १०.८६
+     6  ऋग्वेदः सूक्तं १०.८९
+     5  ऋग्वेदः सूक्तं १०.१
+     5  ऋग्वेदः सूक्तं १०.२
+     5  ऋग्वेदः सूक्तं १०.३
+     5  ऋग्वेदः सूक्तं १०.४
+     5  ऋग्वेदः सूक्तं १०.५
+     5  ऋग्वेदः सूक्तं १०.६
+
+===== 2011-03 burst =====
+total revisions in window: 1924
+top editors:
+    1877  Shijualex
+      13  Yann
+       4  Andrijko Z.
+       3  Jyothis
+       3  Hydriz
+       3  Hrishikesh.kb
+top edit comments:
+     438  '६ अवतरण: rigveda and other pages'
+     408  '७ अवतरण: rigveda and other pages'
+     199  '२ अवतरण: from old wikisource'
+     118  '१ अवतरण: from old wikisource'
+      83  '८ अवतरण: rigveda and other pages'
+      79  '३ अवतरण: अयोध्याकाण्डे and other pages'
+distinct pages touched: 1852
+sample pages:
+     9  मुखपुटम्
+     6  भगवद् गीता
+     4  ऋग्वेदः
+     4  महाभारतम्
+     3  सदस्यः:Yann
+     3  वाल्मीकिरामायणम्
+     2  सदस्यः:Shijualex
+     2  सदस्यः:MF-Warburg

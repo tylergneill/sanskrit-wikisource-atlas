@@ -944,7 +944,16 @@ def main() -> None:
         if not candidates:
             print("no dump/1_current_format_live/*.xml found", file=sys.stderr)
             sys.exit(1)
-        xml_path = candidates[0]
+        # Newest, not oldest: the ISO date in sawikisource-<date>-... sorts
+        # lexicographically, so the last entry is the most recent month.
+        # pipeline.fetch's _remove_stale_files normally leaves exactly one
+        # export here, but if a prior month survives (interrupted fetch, a
+        # hand-placed dump), picking candidates[0] would silently rebuild the
+        # old month while reporting success.
+        if len(candidates) > 1:
+            print(f"{len(candidates)} dumps present in dump/1_current_format_live; "
+                  f"using newest: {candidates[-1].name}", file=sys.stderr)
+        xml_path = candidates[-1]
 
     print(f"parsing {xml_path}", file=sys.stderr)
     # namespaces_of_interest=None (the default) resolves Main/Category/Index/

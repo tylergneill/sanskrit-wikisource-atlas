@@ -4,174 +4,204 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this is
 
-A more accessible browsing interface for the Sanskrit text collection at sa.wikisource.org. Wikisource's category structure is hard to browse (no good overview for non-technical users, disorienting subcategory nesting, no metadata like filesize, no transliteration). This project scrapes the category tree via the MediaWiki API and renders it as a static, searchable, transliteration-aware site published to GitHub Pages from `docs/`.
+A more accessible browsing interface for the Sanskrit text collection at sa.wikisource.org. Wikisource's category structure is hard to browse (no good overview for non-technical users, disorienting subcategory nesting, no metadata like filesize, no transliteration). This project builds `docs/data/tree.json` from Wikimedia's monthly XML dump exports and renders it as a static, searchable, transliteration-aware site published to GitHub Pages from `docs/`. It also maintains a historical changelog of how the corpus has grown over time, rendered on the About page.
 
 ## Architecture
 
-Two independent halves connected by one generated JSON file:
+Three parts connected by generated JSON files:
 
-1. **Scraper** (`scrape.py`) — a single-file Python script that walks the MediaWiki category API starting from `वर्गः:ग्रन्थाः` (and separately injects `वर्गः:धर्मशास्त्रम्` as a top-level sibling, since it isn't actually nested under ग्रन्थाः on the source site). It recursively builds a `CatSkeleton` tree (categories + pages, also descending into MediaWiki subpages — see below), fetching each page's byte-size/timestamp inline as it's discovered (no separate page-metadata pass), computes recursive size/count stats per category, and writes the result to `docs/data/tree.json`. This is the *only* input the frontend consumes.
+1. **Pipeline** (`pipeline/`) — a multi-stage Python pipeline, run stage by stage via the `Makefile` targets below, that turns a downloaded MediaWiki XML dump into `docs/data/tree.json`:
+   - **Fetch** (`pipeline/fetch.py`) — locates, downloads, verifies, and decompresses the current monthly Content File Export for sa.wikisource.org from `dumps.wikimedia.org/other/mediawiki_content_current/`. Only a 3-month rolling window is available at this endpoint. Discovery has no API: generation starts monthly on the 1st, and a run is only complete once `SHA256SUMS` appears alongside it, so `find_latest_export` checks candidate month directories for that file's presence rather than trusting a listing. The single XML export covers every namespace the pipeline needs (Main, Category, Index, Page, Template, Module) in one download.
+   - **Parse** (`pipeline/parse_dump.py`) — stream-parses the dump XML (`iterparse`, one `<page>` at a time, O(1) memory) into per-namespace page records (`DumpIndex`).
+   - **Build tree** (`pipeline/build_tree.py`) — constructs the Main-namespace subpage tree (pure tree, split on `/` — a page's parent is the *nearest existing ancestor path*, redirect-resolved at every level, see "Subpage parenting" below) and the Category digraph (manually-maintained, not guaranteed acyclic or fully connected — see "Multi-parented categories" below).
+   - **Transclusion** (`pipeline/transclusion.py`) — detects ProofreadPage `<pages index="..." />` transclusion links between Main-namespace pages and Index-namespace scan items, and derives content→category membership.
+   - **Content size** (`pipeline/content_size.py`) — real per-page size computation: parse wikitext with `mwparserfromhell`, expand templates by looking up and substituting the matching Template page from the same dump, and transliterate via `skrutable` for the IAST byte count. No heuristics/estimates (unlike the retired v1 scraper).
+   - **Process** (`pipeline/process.py`) — runs the above in sequence and assembles a single JSON tree (`docs/data/tree.json`). This is the *only* input the frontend consumes for the live corpus view. See "Key data shape" below for the schema.
 
-   `build_skeleton()` traverses **depth-first**: for each subcategory it finds, it fully recurses into that subcategory (including all of *its* subcategories and page/subpage discovery) before moving on to the next sibling. This means the live category-count progress line's counter and current-activity text (see `ActivityStatus`/`activity` in `scrape.py`) can appear "stuck" deep in one branch (e.g. working through every work under a single niche subcategory) for a while before surfacing back up to a sibling at a shallower level — that's expected, not a hang. A genuine rate-limit stall is distinguishable from this: the status line shows `RATE-LIMITED: waiting Ns` and counts down live, rather than just showing the same category/activity text motionlessly.
+2. **Frontend** (`docs/`) — a static, dependency-free vanilla JS app. `app.js` fetches `data/tree.json` client-side and renders a two-pane UI: an expandable/collapsible sidebar tree and a main content pane. `about.js` fetches `data/changelog.json` and renders the historical changelog plus trend charts on `about.html`. No build step, no bundler, no framework — `docs/` is served as-is by GitHub Pages. The only external dependency is the Sanscript CDN script (loaded in `index.html`/`about.html`) used for on-the-fly Devanagari → IAST/ITRANS/HK/ISO/SLP1 transliteration, applied purely in the browser (source data is always stored in Devanagari).
 
-2. **Frontend** (`docs/`) — a static, dependency-free vanilla JS app (`app.js`) that fetches `data/tree.json` client-side and renders a two-pane UI: an expandable/collapsible sidebar tree and a main content pane. No build step, no bundler, no framework — `docs/` is served as-is by GitHub Pages. The only external dependency is the Sanscript CDN script (loaded in `index.html`) used for on-the-fly Devanagari → IAST/ITRANS/HK/ISO/SLP1 transliteration, applied purely in the browser (source data is always stored in Devanagari).
+3. **Historical backfill / changelog** (`pipeline/backfill.py` and friends) — walks backward through every available historical monthly dump, builds a throwaway `tree.json`-shaped snapshot for each month, and appends a pairwise size/count/item-level diff between consecutive months to `docs/data/changelog.json`. See "Historical backfill and the changelog" below for the full design.
 
-Because the frontend has no build step, `docs/` (including `docs/data/tree.json`) is what's actually deployed — regenerating `tree.json` and committing it *is* the deploy step for content updates.
+Because the frontend has no build step, `docs/` (including `docs/data/tree.json` and `docs/data/changelog.json`) is what's actually deployed — regenerating these and committing them *is* the deploy step for content updates.
 
 ## Commands
 
-Run the scraper (regenerates `docs/data/tree.json`):
 ```
-make scrape
+make refresh-dump         # download/verify/decompress the current monthly dump into dump/
+make refresh-dump-force   # same, but force re-download/re-verify/re-decompress
+make process               # build docs/data/tree.json from the downloaded dump
+make backfill               # walk the full historical range, rebuild docs/data/changelog.json from scratch
+make regen-changelog         # rebuild docs/data/changelog.json from already-cached snapshots only, no network access
+make serve                 # serve docs/ locally on port 8000
+make ngrok                 # expose the local server via a public ngrok tunnel (for mobile testing)
 ```
-equivalent to:
+
+### The monthly update sequence
+
+When a new monthly dump appears, run these four in order, then bump
+`__code_version__` in `docs/VERSION` by hand if the frontend changed
+(`process.py` deliberately never touches that field):
+
 ```
-python scrape.py
+make refresh-dump        # discover + download the new month; deletes the prior month's .xml/.bz2
+make process             # build docs/data/tree.json, stamp VERSION's __content_version__ to the new month
+make backfill            # rebuild docs/data/changelog.json, now including the new month-to-month transition
+make audit-update-about  # re-run the structural audit against the new dump, refresh its findings in about.html
 ```
 
-Useful scraper flags:
-- `--out PATH` — output path (default `docs/data/tree.json`)
-- `--delay SECONDS` — delay between category/page-listing API requests (default `0.5`; the scraper is deliberately polite/single-threaded against the live Wikisource API)
-- `--subpage-delay SECONDS` — delay for the MediaWiki subpage-discovery loop specifically (defaults to `--delay` if unset); see "Wikisource API etiquette / rate limiting" below for why this is worth tuning separately. `0.2`–`0.3` has performed well in practice.
-- `--debug` — log every API call (cache hit/miss, timing, retries) to stderr
+`make audit-update-about` goes last because it reads the dump XML directly (not `tree.json`), so it needs `refresh-dump` to have landed the new month, and its regenerated findings should describe the same dump the rest of the run just published. It rewrites only the `<ul>` between the `AUDIT:START`/`AUDIT:END` markers in `docs/about.html` — never the dump or `tree.json`.
 
-There is no test suite, linter, or build step in this repo. To preview the frontend locally, serve `docs/` with any static file server (e.g. `python -m http.server`) from within that directory, since `app.js` fetches `./data/tree.json` via a relative path (won't work from `file://`).
+Two things about this sequence are easy to get wrong:
 
-## Disk-backed API response cache (`.api_cache/`)
+- **`make process` is what demotes the previous month**, not `make backfill`. Restamping `__content_version__` is the whole mechanism: the prior month stops matching `ensure_snapshot`'s route 2 and becomes an ordinary history month resolved by route 1. `make process` also writes `content-<date>.json.gz`, which pre-positions the new month for cheap reassembly later.
+- **`make regen-changelog` cannot substitute for `make backfill` here.** `make process` writes `docs/data/tree.json` and the content cache, but never `dump/_backfill_snapshots/tree-<date>.json.gz` — snapshots are backfill's own storage layer. Since `regen-changelog` derives its month list by globbing that directory, a brand-new month is absent from the list entirely and its transition is silently never diffed. Only a real `pipeline.backfill` run creates the snapshot, via route 2's copy of the live `tree.json`. Use `regen-changelog` only when every month involved *already* has a snapshot.
 
-`api_get()` persists every raw API response to `.api_cache/<sha256-of-params>.json` (gitignored) and checks disk before making a request. This means: reruns of the scraper (during dev iteration, or resuming after a rate-limit interruption) replay already-answered requests from disk instantly instead of re-hitting the live API, and only genuinely new requests (new categories, new pages, code changes that add new API calls) touch the network. Delete `.api_cache/` to force a fully fresh crawl. This cache holds **metadata only** — category listings, page sizes, timestamps — never article content/wikitext/HTML; the scraper has no code path that fetches page bodies at all (see "What this is").
+There is no test suite, linter, or build step in this repo. `app.js`/`about.js` fetch their JSON data via relative paths, so `docs/` must be served over HTTP (`make serve`), not opened via `file://`.
 
-## Wikisource API etiquette / rate limiting
-
-Every request from `api_get()` sends `maxlag=5`, the standard MediaWiki bot-etiquette signal for non-interactive tasks (see [API:Etiquette](https://www.mediawiki.org/wiki/API:Etiquette)).
-
-**The rate limiter and its actual numbers are documented** at https://www.mediawiki.org/wiki/Wikimedia_APIs/Rate_limits (dated 2026, "subject to experimentation and change"). It's Wikimedia's edge/CDN limiter (Envoy) — 429 responses carry `x-envoy-ratelimited: true` and a `Retry-After: <seconds>` header. `Retry-After` is **not a fixed backoff constant**; it's remaining time in Wikimedia's rolling per-minute window, which is why observed values vary a lot (26s, 34s, 38s, 39s, 45-95s across different trips). **`api_get()` reads and honors this header exactly**, rather than guessing a backoff duration; it only falls back to `delay_s * 2**attempt` if the header is absent or unparseable.
-
-Limits are enforced **per client identity, per minute** — not a single global threshold:
-- **Unidentified** (no identifying User-Agent info beyond IP): **10 req/min**.
-- **User-Agent only** (unauthenticated, but with a compliant User-Agent — contact info/URL in the `Name/version (URL; contact)` format): **200 req/min**.
-- Authenticated/bot-flagged accounts get higher still (2000/min or exempt), not applicable here since the scraper is unauthenticated.
-
-**This fully explains what was previously an open mystery in this file: `scrape.py`'s `session.headers["User-Agent"]` had no contact info, which put it in the 10 req/min "Unidentified" bucket.** Confirmed live by burst-testing sa.wikisource.org directly: with the old User-Agent, requests tripped a 429 by request #11; after adding the repo URL to the User-Agent (see `scrape.py`'s `session` setup), 60/60 rapid-fire requests succeeded with zero 429s. This is the primary reason subpage descent (see below) previously tripped the rate limiter reliably on deeply-nested works — not fundamentally a pacing problem, a *client-identification* problem. Always keep the User-Agent's contact info current/valid; removing it would silently regress the crawl back to the 10 req/min tier.
-
-At the 200 req/min tier, a steady-state pace faster than ~0.3s/request risks tripping the limiter again if sustained continuously; `--delay 0.2` has performed well in practice for the category-tree walk specifically (real request patterns have natural gaps, e.g. local processing between requests, that a raw synthetic burst test doesn't have). If exploring the live API by hand (e.g. `curl`), use the same compliant User-Agent and throttle yourself the same way the scraper does — a burst of bare `curl` calls with a generic/default User-Agent can still trip the 10 req/min bucket and affect a subsequent scraper run sharing the same source IP, since the limit is per-client-identity, and an unidentified curl call doesn't share the scraper's compliant identity.
-
-`scrape.py` reports live activity (`ActivityStatus`/`activity`) so a rate-limit backoff is visibly distinguishable from a hang — see the "Architecture" section above.
+The `make` targets above are run by hand today. A GitHub Action driving fetch → process → publish on the dump's own monthly cadence is the intended eventual automation, not yet implemented.
 
 ## Key data shape (`docs/data/tree.json`)
 
 ```
 { "root": Node }
 
-Node (category/collection):
-  { id: "cat:<path>", type: "category"|"collection", title, children: [Node], pages: [Page], stats: { bytes, content_bytes_est, count, last_changed } }
+Node (category):
+  { id, type: "category", title, children: [Node],
+    pages: [PageNode], index_items: [IndexItemNode], stats }
 
-Category-pointer (a second+ filing of a category already inlined elsewhere):
-  { id: "cat:<path>", type: "category-pointer", title, points_to: "cat:<other id>", stats: { bytes, content_bytes_est, count, last_changed } }
+Node (category-pointer): a second+ filing of a category already emitted
+elsewhere in the tree (multi-parent category). Appears inline among its
+parent's own `children`, alongside real category nodes.
+  { id, type: "category-pointer", title, points_to: <id>, stats }
 
-Page:
-  { id: "page:<title>", type: "page", title, url, stats: { bytes, content_bytes_est, last_changed } }
+PageNode (Main-namespace page, filed into this category via its own direct
+[[वर्गः:...]] tag):
+  { id, type: "page", title, url, stats, subpages: [PageNode] }
+  subpages come from the Main-namespace subpage tree (title split on "/").
+
+Node (page-pointer): a second+ filing of a page already emitted elsewhere in
+the tree (a page tagged with >1 category directly).
+  { id, type: "page-pointer", title, url, points_to: <id> }
+  No stats/subpages of its own; resolve via points_to.
+
+IndexItemNode (Index-namespace item with ZERO transclusion anywhere in
+Main-namespace content -- i.e. raw/unpublished OCR):
+  { id, type: "index-item", title, url, stats }
+  Never expandable into individual पृष्ठम्:Title/N (scanned-leaf) rows --
+  those are only ever summed into this node's own stats, never listed.
+
+Node (index-item-pointer): a second+ filing of an Index item already
+emitted elsewhere in the tree. Same shape/resolution as page-pointer.
+  { id, type: "index-item-pointer", title, url, points_to: <id> }
+
+stats: { raw_bytes, content_bytes, transliterated_bytes, count, text_count, last_changed }
 ```
-- `title` fields are raw Devanagari (the `वर्गः:` / `Category:` namespace prefix is stripped); the frontend transliterates on render, never the scraper.
-- Category `id`s are **path-derived**, not title-only: `cat_id_for_path()` joins the full chain of ancestor titles from root down to that occurrence (e.g. `cat:उपनिषदः/प्रमुखोपनिषदः/कठोपनिषत्`). This is what makes two occurrences of the same category (see below) distinguishable by id.
-- The scraper hardcodes an exclusion list of Wikisource maintenance/junk categories (e.g. `निष्कासनाय`, `अनिर्दिष्टानि पुटानि`) — if new junk categories appear in scraped output, add them to that list in `build_skeleton()` rather than filtering in the frontend.
-- `stats.bytes` is raw MediaWiki wikitext size (`rvprop=size` on the latest revision) — **not a meaningful "how much content" number on its own**, since it's dominated by markup/templates/category-tag overhead on short pages and includes redirects/deletion-stubs/bare-transclusion pointers that carry zero real text. `stats.content_bytes_est` is the frontend-facing, meaningful number: `estimate_content_bytes()` in `scrape.py` subtracts an estimated overhead (`413.49 + 0.04558 × raw_bytes`, fit by linear regression against a live sample of 70 real content pages, R²=0.956; ~17% of an 84-page sample were non-content pages, which this formula does not specifically detect — it just naturally floors near-zero for tiny stub/redirect pages, which mostly is the right direction). This is a whole-corpus statistical estimate, not a real per-page measurement (that would require fetching and parsing every page's actual wikitext via `rvprop=content`, which the scraper deliberately does not do — see the disk-cache section above). The frontend (`app.js`/`about.js`) displays `content_bytes_est`, falling back to `bytes` only if it's absent (e.g. pre-existing data from before this field was added).
 
-### Multi-parented categories (`category-pointer`)
+- `title` fields are raw Devanagari (the `वर्गः:`/`अनुक्रमणिका:` namespace prefix is stripped); the frontend transliterates on render, never the pipeline.
+- `stats.raw_bytes` is raw MediaWiki wikitext size — dominated by markup/template/category-tag overhead on short pages, not a meaningful "how much content" number on its own. `stats.content_bytes` is real, locally-computed content size after markup stripping and template expansion. `stats.transliterated_bytes` is the IAST byte count of that same content — the frontend's headline "effective size" figure, since IAST is smaller on disk (~51% of the Devanāgarī byte count; the About page rounds this to "approximately 50%") and more common for cross-collection comparison.
+- `count` = number of distinct Main pages + Index items reachable from a node, including every subpage individually. Dedup is enforced at build time: the first depth-first occurrence of a category/page/Index-item builds real content and folds its stats into every ancestor's rollup; every later occurrence anywhere else in the tree is emitted as a `-pointer` node instead and skipped when summing ancestor stats — so an item reachable via two paths is counted exactly once, at whichever ancestor its two paths first converge (not only at root).
+- `text_count` = number of distinct top-level *texts* reachable from a node — a Main page with no `/`-parent (breadcrumb subpages don't count separately even when independently filed under their own category tag, see "Silent subpage category divergence" below), or an Index item (always top-level). This is what the frontend sidebar shows as the browsable text count, since `count`'s per-subpage granularity overcounts what a reader would call one text.
+- The pipeline hardcodes an exclusion list of Wikisource maintenance/junk categories (e.g. `निष्कासनाय`, `अनिर्दिष्टानि पुटानि`) in `parse_dump.py`'s `EXCLUDED_CATEGORIES` — add new junk categories there, not in the frontend.
 
-Wikisource's category graph is not a strict tree: a category can legitimately be filed under more than one parent (confirmed 15 real cases as of the 2026-07 crawl — see `notes/multi_parent_categories_plan.md` for the full table and the दर्शन/उपनिषत्/रचनाः clusters they fall into). Neither occurrence is more "real" or "canonical" than the other — which one ends up holding the actual content in the JSON is purely an artifact of depth-first crawl order, not a meaningful distinction.
+### Subpage parenting (`build_main_tree` / `_resolve_ancestor`)
 
-`build_skeleton()` tracks a `full_title -> id` map (`seen_cats`) across the whole crawl. The first time a category is reached, it gets a normal `category` node with real `children`/`pages`. Every subsequent time the *same* category is reached (via a different parent), it instead returns a `category-pointer` node: no `children`/`pages` of its own, just a `points_to` field naming the id of the occurrence that holds them. This keeps `tree.json` free of duplicated content — nothing downstream has to remember to dedupe a subtree by hand.
+A Main page's parent is **the nearest ancestor path that actually exists as a page**, not simply "everything before the last `/`". `_resolve_ancestor` tries, in order: the exact literal immediate parent; then each higher ancestor, longest-first; and at every level it both redirect-resolves the candidate and allows a whitespace-normalized match (`_normalize_path` strips spaces around each `/` segment — sa.wikisource has real titles like `अब्धिनौयानमीमांसा /चतुर्थं खण्डम्`, which MediaWiki itself normalizes when resolving subpages on the live wiki). If nothing resolves, the page stays top-level — a parent is **never synthesized**, and those genuinely-stranded pages are reported by `pipeline.audit`'s `find_unresolvable_slash_paths` instead.
 
-**Stats are still real on every occurrence, including pointers.** `attach_stats()` runs as a separate pass after the tree is built: for every node (including pointers, which resolve through `points_to`), it walks the full deduped set of distinct pages reachable from that node and sums bytes/count/max(last_changed) over that set — not a naive bottom-up sum of children's precomputed totals, which would double-count a shared category at whichever ancestor happens to contain both its occurrences. Concretely: if two occurrences of a shared category share a close common ancestor (e.g. both under `उपनिषदः`), the dedup happens right there and nothing above needs special handling; if they don't converge until root (e.g. one under `धर्मशास्त्रम्`, the other under `वेदाः > ब्राह्मणम्`), each ancestor along the way legitimately counts the shared category in full, and only root dedupes. This also fixed a pre-existing, unrelated bug: pages that are genuine members of more than one category were being counted twice in every ancestor's rollup (root count dropped from an inflated 4,786 to the true distinct-page count of 4,625 once this landed).
+Three constraints worth preserving if this is ever touched again:
 
-The frontend (`app.js`) builds an id→node index (`state.byId`) and a sibling-id map (`state.siblingIds`) at load time. Both occurrences of a shared category are independently selectable/expandable in the sidebar and show their own real stats (no "canonical vs. duplicate" treatment) — hovering either one highlights its sibling(s) elsewhere via a shared `data-shared-group` attribute, with a tooltip naming where the sibling(s) live even when not currently visible on screen. The main pane renders full content at every occurrence it encounters (never collapses one in favor of the other) and adds a "see also: <location>" link next to a shared category's stats, which jumps the main pane to the sibling occurrence when clicked.
+- **Exact-literal-first is load-bearing, not an optimization.** `भविष्यपुराणम् /पर्व १ (ब्राह्मपर्व)` is itself a real page whose *own title* carries a stray space, with 226 chapters nesting under it by exact match. Normalizing the path before trying it verbatim would miss, fall through to the shallow root, and pull all of them up a level. There are 73 such normalized-key collisions, which is why `titles_by_normalized` maps to a *list* of real titles rather than one.
+- **Redirect resolution happens at every level, not just the immediate parent.** `श्रीमद्भागवत महापुराण/स्कंध ०१/अध्यायः ०१` only reaches its real home by resolving the *root* segment's redirect to `श्रीमद्भागवतपुराणम्`.
+- **A candidate resolving to the title itself is rejected.** `कथासरित्सागरः/लम्बकः १३` is a redirect pointing *down* at its own child, which otherwise makes that child its own parent — it then belongs to no root and disappears from the tree entirely (it was absent from a shipped `tree.json` for exactly this reason).
 
-### Category/page title collisions (`index_page`)
+Because `parent_title is None` is simultaneously the predicate for `text_count`, orphan-bucket eligibility, the "parent already carries this tag" filing suppression, and the audit's candidate pool, a parenting miss inflates the text count, pollutes the orphan bucket, *and* corrupts the audit's input at once. Deliberately **not** inferred as a general rule: non-`/` separators, since a hyphen or space carries no structural meaning on MediaWiki — those stay flat and are reported by `find_separator_family_candidates` for a human to fix upstream with a page move. See `notes/wikisource-editing-plan.md`.
 
-A category can also collide with a same-titled *page* rather than another category: e.g. category `वर्गः:किरातार्जुनीयम्` (18 सर्गः as direct categorymembers) and a page `किरातार्जुनीयम्` whose own MediaWiki subpages are those same 18 सर्गः — two independent discovery paths (categorymembers vs. subpage-title-prefix matching) landing on the same underlying content. `merge_index_pages()` (runs once at root, before `attach_stats`) removes the page from its parent's `pages` list and attaches it as `index_page` on the same-titled category node instead, so it renders once (category + a small "index page: ..." link) rather than as a second, fully-duplicated expandable block.
+#### The flat-family allowlist (`FLAT_FAMILY_PATTERNS`)
 
-**Fixed 2026-07-12: the merge used to require the page's own subpages to already be a subset of the category's *other* direct page members, which does not hold in general** — confirmed live on कुमारसम्भवम्, where the category's only direct members were the index page itself plus one unrelated loose सर्ग, never the 6 सर्गः that were actually the index page's subpages. That subset check silently blocked the merge in this shape even though the title match was exact. Fixed by merging unconditionally on exact title match, and having `attach_stats()` flatten the index page's own subpages directly (`flatten_page`, with `setdefault` so a subpage title separately double-filed as a direct category member isn't double-counted) rather than assuming the category's `pages` already accounted for them.
+The one exception to that, and deliberately an **allowlist rather than a rule**. Two works encode a chapter hierarchy in a separator `_resolve_ancestor` can never see, at a scale that dominates the whole corpus's text count:
 
-**Known remaining gap, NOT fixed, out of scope for now:** this only matches on exact title equality. कुमारसम्भवम् is actually a *second*, harder problem layered on the same example: the category itself is titled with one legitimate Devanagari spelling (`कुमारसम्भवम्`, म् + भ conjunct) while its index page uses a different legitimate spelling (`कुमारसंभवम्`, ं anusvāra + भ) — genuinely different Unicode strings for the same work title, so `merge_index_pages()`'s title match never fires for this pair at all, and it still renders as a duplicate. Fixing this needs orthographic/Unicode-normalization-aware title matching (or a hardcoded alias table), which risks false-positive merges across genuinely different works with coincidentally similar spellings — deliberately not attempted here.
+| Pattern | Destination | Pages |
+|---|---|---|
+| `महाभारतम्-NN-<parva>-NNN` | `महाभारतम्/<parva>` (18 pages) | 2,315 |
+| `ऋग्वेदः सूक्तं M.S` | `ऋग्वेदः मण्डल M` (10 pages) | 1,028 |
+
+Both were verified against the 2026-07-01 dump before being added, and the bar for adding a row is that same evidence: **every destination already exists on-wiki** as a real non-redirect page, the pattern matches the family exhaustively (2,315/2,315 and 1,028/1,028, no exceptions), and the resulting child counts match the works' real structure (ऋग्वेदः reproduces the canonical saṃhitā's per-maṇḍala counts exactly: 191/43/62/58/87/75/104/103/114/191). `महाभारतम्/आदिपर्व/००१` is one chapter an editor already converted to `/` form by hand, and sa.wikisource carries 18 redirects from the hyphen form to the slash form — so this transcribes a relationship the wiki already asserts elsewhere, rather than inventing one. It is not a licence to infer structure generally.
+
+Why it can't be generalized: below these two families the shapes stop being regular — stems that don't exist at all (`समराङ्गणसूत्रधार अध्याय`), chapter *ranges* rather than chapters (`अष्टाङ्गसंग्रहः ... अध्याय १-५`), naive splits landing mid-parenthetical (`सिद्धान्तकौमुदी (बालमनोरमा पूर्व २-२)`) — and 2,544 flat titles have an inferred stem that coincidentally *is* a real page, so "the stem exists" cannot tell a chapter from a shared prefix (`ऋग्वेदः देवतासूची` is a standalone index sharing the `ऋग्वेदः` prefix). A rule loose enough to catch these two would silently mis-nest hundreds of others, and the failure would be invisible — the tree would look plausible and be wrong.
+
+`_resolve_flat_family` never synthesizes a parent: if a destination stops existing, its pages fall back to top-level exactly like an unresolvable `/` path. `pipeline.audit`'s `check_flat_family_allowlist` asserts every row is still live on each run — a row matching zero pages ("dead, remove it"), pages falling back to top-level, or a destination that became a redirect all surface as loud audit lines rather than a quietly wrong tree. Adding a row therefore costs one table entry and no new machinery; **verify the destination exists and the match count equals the family's real size first.**
+
+### Multi-parented categories (`category-pointer`) and multi-filed pages (`page-pointer`)
+
+Wikisource's category graph is not a strict tree: a category can legitimately be filed under more than one parent, and a page/Index item can legitimately carry more than one category tag. Neither occurrence is more "real" or "canonical" than the other — which one ends up holding the actual content in the JSON is purely an artifact of depth-first build order, not a meaningful distinction. The frontend renders every occurrence as independently selectable/expandable with its own real stats, linking sibling occurrences via a "see also" pointer.
+
+### Untranscluded Index items and OCR content
+
+Wikisource's OCR/"Proofreading" workflow stores scanned page images as `Index:` items (namespace `अनुक्रमणिका`), with individual scanned/proofread leaves as `Page:` items (namespace `पृष्ठम्`, titled `Title/N`). When an Index item's content has been transcluded into a real Main-namespace page (via a ProofreadPage `<pages index="..." />` tag), the atlas shows the Main-namespace page as the real content and skips listing the Index item separately, since it would just be a duplicate. When an Index item has **zero** transclusion anywhere in Main content, it's shown as its own `index-item` node, with stats summed from its untranscluded `पृष्ठम्:Title/N` leaf pages (never listed individually — only rolled up into the Index item's own stats).
+
+### Orphan bucket (`असम्बद्धवर्गीकृतम्`)
+
+Any Main page or untranscluded Index item unreachable from the root category (`वर्गसर्वस्वम्`) by category descent — either zero category tags, or tags that only point to categories themselves never filed under any reachable parent — is collected into an artificial top-level category, `असम्बद्धवर्गीकृतम्` ("improperly categorized"), appended as a sibling of the real category tree under root. It's listed and browsable in the frontend, but root's own headline stats deliberately exclude its totals, since it isn't part of the "central," properly-organized corpus.
+
+## Historical backfill and the changelog (`pipeline/backfill.py`)
+
+`docs/data/changelog.json` is an append-only array of pairwise month-to-month comparisons (`pipeline/compare.py`'s `build_report()`), each carrying old/new size and count totals plus item-level added/removed/changed-timestamp lists. The About page (`docs/about.html`/`about.js`) renders this as a browsable history plus trend charts, with a "Granularity: Month/Quarter/Year" control that nets adjacent months together client-side (see `about.js`'s `groupEntries`/`reduceGroup`) — no separate precomputed granularity in the JSON itself.
+
+Building this history uses **two** source kinds, both handled by `pipeline/backfill.py`:
+
+1. **Current era** (`pipeline/fetch.py` / `mediawiki_content_current`) — only a 3-month rolling window is available. Used for dates ≥ `LEGACY_CUTOVER`.
+2. **Materialized** (`_ensure_materialized_month`) — **every** month older than that, back to `MATERIALIZED_FLOOR` (2012-02 — `वर्गसर्वस्वम्`'s earliest revision is 2012-01-20T10:18:19Z, so a 2012-01-01 cutoff predates the root category by 19 days and can only raise `RootCategoryMissing`; 2012-02-01 is the first cutoff that lands after it).
+
+   **Internet Archive and legacy-format dumps are deliberately no longer used**, even for the many months where a real archived dump exists. An archived dump records the titles pages bore *at that date*; a reconstruction records the titles they bear *today*. Since `text_count` derives from title breadcrumbs, the two count the same corpus differently, and a series that switched sources stepped by hundreds of texts at every switch — artifacts that looked like corpus events. One method applied uniformly is less faithful per month but is the only way months compare to each other. See `notes/interpretive-decisions.md` §6 for the full rationale and what it costs, and `notes/internet-archive-dumps.md` for which months IA actually covers and how to fetch one if a period-accurate snapshot is ever needed. `ensure_month` therefore has no era-detection logic: `>= LEGACY_CUTOVER` → live fetch, everything else → materialize. `default_months()` is a plain calendar enumeration (no network query), so coverage is gap-free by construction — there is no longer any such thing as a "hole" to detect.
+
+   `compute_materialized_months()`, `materialized_months()`, `_ensure_legacy_month`, and the `fetch_legacy` import still exist but are **no longer consulted by routing**; `pipeline/update_source_eras.py` and `run_backfill_sequence.sh` still reference some of them.
+
+   `pipeline/materialize_snapshots.py` reconstructs each month on demand from `sawikisource-latest-pages-meta-history.xml.bz2` (every surviving revision ever made): for a cutoff date D, a page's state is the newest revision with timestamp ≤ D. Each month's reconstruction is generated on demand, one at a time, right when `ensure_month` needs it, and its raw XML is deleted again immediately after its snapshot is written — never more than one materialized dump on disk at a time. The underlying meta-history dump itself (~533MB) is downloaded once and cached, since re-downloading it is the expensive part. See `pipeline/materialize_snapshots.py`'s docstring for known deviations from a genuine dump of that month, and `pipeline/validate_materialization.py` (kept in the repo for future re-validation, not run automatically) for accuracy validation against real dumps at the era boundaries — confirmed within ~0.5-0.6% on every metric for the 2022-2025 gap; re-run against other era boundaries (2014-07, 2018-03/2018-08, 2019-03/2020-07) before trusting those ranges equally.
+
+   **Dump vintage.** Every materialized month inherits the vintage of whichever meta-history run happens to be cached, and nothing in the code or its outputs records which one that is: `MATERIALIZE_SOURCE_URL` fetches the undated `latest/` alias, the file is saved under that same undated name, and `_ensure_materialize_source` is `if dest.exists(): return dest` — no freshness check, by design (`cleanup_raw_dump` never touches it). So the vintage has to be derived from the newest `<timestamp>` in the 6.5GB decompressed file, and no tree snapshot, `changelog.json` entry, or `source_eras.json` field carries it. **The currently cached dump is the 2026-07-01 run** (newest revision 2026-07-02, since runs cut at run time rather than midnight; `<generator>MediaWiki 1.46.0-wmf.26</generator>`) — established in `notes/pre-2012/pre-2012-corpus-history.md`'s "Files" section, which is also where the category-free stats path used to validate this method byte-for-byte against `changelog.json` lives. Two consequences: `materialize_snapshots.py`'s deviation #1 (pages deleted before the dump was taken are absent) makes every materialized month a **lower bound** as of that date, and the ~0.5-0.6% validation figure above was measured against that specific vintage. Refreshing the cached dump therefore invalidates all 91 materialized months (the six ranges above, as currently detected) — deliberately re-download it only if the deleted-page drift matters more than reproducibility, then delete both `dump/_backfill_snapshots/tree-<date>.json.gz` *and* `dump/_backfill_content_cache/content-<date>.json.gz` for every materialized month, re-run scoped `pipeline.backfill --months` walks, `make regen-changelog`, and re-note the new vintage here. This is the one genuinely expensive kind of rebuild (~3-5 min per month plus re-materialization): a new vintage invalidates the *cached inputs*, so route 3 can't be used and each month must go through `process_dump` again. Contrast a tree-assembly fix, which reuses those same caches and re-derives the full history in ~3 minutes — see "Two on-disk layers per month" below.
+
+`ensure_month` dispatches purely on the date: `>= LEGACY_CUTOVER` → live fetch into `1_current_format_live/<date>/`; anything older → materialize into `3_materialized/<date>/`. The other two era folders (`2_legacy_format_live/`, `4_legacy_format_archive/`) are **dead** — nothing writes to them any more, though `DEFAULT_*_ROOT` constants and the corresponding `ensure_month` parameters still exist. Once a month's snapshot is written, its raw dump directory is deleted immediately (`cleanup_raw_dump`) — pass `--keep-raw-dumps` to disable this.
+
+**Genuinely too-early dumps**: sa.wikisource's category system, and later the ProofreadPage extension (Index/Page namespaces), didn't always exist. The oldest available Internet Archive dump (2011-10-13) predates both — confirmed only 3 categories existed on the entire site at that point, none of them `वर्गसर्वस्वम्`. `parse_dump.py`'s `index_ns_id()`/`page_ns_id()` return `None` (not an error) when those namespaces are genuinely absent from a dump's siteinfo, and `process_dump()` raises a distinct `RootCategoryMissing` when the root category itself doesn't exist yet, which `backfill.py`'s `main()` catches and skips (logging a note) rather than aborting the whole run.
+
+`pipeline/run_backfill_sequence.sh` drives `pipeline.backfill` one month-pair at a time (so a failure on one pair doesn't lose earlier progress), starting from the newest anchored current-era month and walking backward through every legacy + materialized month. Deletes and rebuilds `docs/data/changelog.json` from scratch on every run (see below). Safe to interrupt and rerun — already-fetched/materialized dumps and already-built snapshots are skipped/reused, not redone; the changelog itself is always fully rebuilt, which is cheap.
+
+`pipeline/backfill.py` deliberately does NOT write `docs/data/tree.json` or `docs/VERSION` — those reflect the live, current-month pipeline state, not a historical replay.
+
+`docs/data/source_eras.json` (read by `about.html`'s Snapshots section, to describe era 1/era 2's current live-rolling-window start dates) is refreshed by a separate module, `pipeline/update_source_eras.py`, not by `pipeline.backfill` itself — it does two live network lookups (~1 minute total) that have nothing to do with any particular month-pair, so folding it into every `pipeline.backfill` invocation would mean paying that cost on every one of `run_backfill_sequence.sh`'s 150+ per-step calls for no reason. `run_backfill_sequence.sh` runs it once, standalone, after its whole walk finishes.
+
+`pipeline/fetch_legacy.py`'s `list_available_months()` (merged live-rolling-window + Internet Archive month listing, used by `_ensure_legacy_month`, `default_months()`, `update_source_eras`, and `run_backfill_sequence.sh`'s own upfront `--list` call) is genuinely expensive — 2 listing requests plus one more request *per date* in each listing, dozens total, not just 2. Since `run_backfill_sequence.sh` spawns a fresh `python -m pipeline.backfill` subprocess per step, an in-memory cache wouldn't help; it's cached to disk instead (`dump/_fetch_legacy_months_cache.json`, 24h TTL — see `LIST_AVAILABLE_MONTHS_CACHE`/`LIST_AVAILABLE_MONTHS_CACHE_TTL`), so every caller across an entire `run_backfill_sequence.sh` walk shares one query instead of re-deriving the identical listing on every step. Pass `use_cache=False` (or `fetch_legacy --list --no-cache`) to force a fresh query.
+
+### Two on-disk layers per month, and what deleting each one triggers
+
+For each backfilled month, `ensure_snapshot` writes two separate gitignored, gzipped files under `dump/`, plus one shared, git-tracked output:
+
+- **`dump/_backfill_content_cache/content-<date>.json.gz`** (the *input* layer) — the small, cheap-to-derive-but-annoying-to-lose inputs `build_tree_json` needs: per-page byte counts (raw/content/transliterated — the output of `compute_all_content_sizes`, the genuinely slow step: `mwparserfromhell` parsing, template expansion, `skrutable` transliteration), category tags, redirect targets, timestamps, and transclusion results. See `pipeline/content_cache.py`.
+- **`dump/_backfill_snapshots/tree-<date>.json.gz`** (the *output* layer) — the fully assembled `tree.json`-shaped snapshot, same schema as `docs/data/tree.json`. What `pipeline/compare.py` actually diffs pairwise.
+- **`docs/data/changelog.json`** (git-tracked, not gitignored) — the append-only pairwise diffs between consecutive snapshots, keyed by `(old_date, date)`. This is the only one of the three that's committed and deployed.
+
+`ensure_snapshot` skips a month entirely (both the cache and the tree snapshot) if `tree-<date>.json[.gz]` already exists. `docs/data/changelog.json` itself is deleted at the start of every `run_backfill_sequence.sh` run and rebuilt from scratch: `pipeline.backfill`'s `main()` always recomputes and overwrites (not skips) the changelog entry for every consecutive snapshot pair it sees, matched by `(old_date, date)` — cheap, since it's just a diff of two already-cached snapshots, no XML parsing — so every run reflects the current tree-assembly logic (`build_tree_json`/`build_category_graph`), never a stale entry left over from before a rollup/dedup/assembly fix (e.g. the redirect-parenting or subpage-category-divergence fixes, or the orphan-bucket `all_stats` fix). `id`s are stable across a rerun as long as the changelog isn't deleted mid-sequence by hand; deleting it (as `run_backfill_sequence.sh` does up front) does reset `next_id` to 1 and renumber every entry on that walk — harmless for display, since the changelog viewer sorts by `date`, not `id`.
+
+Deleting `dump/_backfill_snapshots/tree-<date>.json.gz` is **cheap**, not a full reprocess. `ensure_snapshot` resolves each month by the cheapest route that works, trying four in order:
+
+1. An existing `tree-<date>.json.gz` → reused as-is.
+2. The live `docs/data/tree.json`, when `date_str` matches `docs/VERSION`'s `__content_version__` → copied into a snapshot.
+3. The cached `content-<date>.json.gz` → reassembled via `rebuild_tree_from_cache` (`build_tree_json` only, **no network, seconds per month**).
+4. A full fetch + `process_dump` → the slow path (download, `parse_dump`, `compute_all_content_sizes`), and the only one that needs the raw dump.
+
+Route 3 is the one that matters: it makes a **tree-assembly** fix (`build_main_tree`/`build_tree_json`/`build_category_graph`/rollup/dedup/parenting) propagate across every already-backfilled month for the cost of re-running assembly alone. Deleting all snapshots and re-running the full range took **~3 minutes** for 174 months as of 2026-07-30 (173 via route 3, 1 via route 2, zero fetches, zero re-materializations) — so a retroactive rebuild is the *default* response to an assembly change, not a last resort. There is no reason to accept a step discontinuity in `changelog.json` to avoid this cost.
+
+Route 3 only applies when the cached *inputs* are still valid. When they aren't — a change to `compute_all_content_sizes`, `parse_dump`, `transclusion.py`, or a refreshed meta-history dump for materialized months — pass `force_reprocess=True` to skip routes 2–3 and go straight to the dump. That path *is* genuinely slow (~3-5 min per month, plus re-download/re-materialization) and is the only situation where scoping tightly with `--months` is worth it.
+
+Deleting `dump/_backfill_content_cache/content-<date>.json.gz` alone (without also deleting the tree snapshot) has no effect on the next run, since `ensure_snapshot` never re-derives a snapshot that already exists — the cache is only read when a snapshot is actually being rebuilt (i.e. also deleted).
+
+In short: **`make backfill` always redoes the changelog** (deleted and rebuilt every run); **to redo tree snapshots after an assembly-logic change, delete them and rerun** — route 3 rebuilds them from the content cache in seconds each, so doing the whole history costs ~3 minutes and is the normal thing to do. Only a change to the cached *inputs* themselves needs `force_reprocess` and a real re-fetch.
+
+`make regen-changelog` is a narrower, fully offline variant of the same rebuild: it lists whatever dates already have a snapshot under `dump/_backfill_snapshots/` (no network calls — not even `fetch_legacy.list_available_months()`) and passes exactly those as `--months` to `pipeline.backfill`, so every month is an instant snapshot-reuse and the whole run is just re-diffing already-cached snapshots (well under a minute for the full range, as of this writing). Use it instead of `make backfill` whenever the snapshots themselves are already trusted and only `pipeline/compare.py`'s diffing logic (or something in `all_stats`/`build_tree_json`, if those snapshots already reflect the fix) needs to be picked up in the changelog — e.g. how this repo's `असम्बद्धवर्गीकृतम्` orphan-bucket trend-chart dips got fixed. It does not fetch, materialize, or rebuild any snapshot — if a month's snapshot is missing or wrong, it's silently excluded from the diff sequence (or diffed with wrong data) rather than fixed; use `make backfill` (or a scoped `python -m pipeline.backfill --months`) for that.
+
+**This makes it the wrong tool for a newly processed month.** `make process` writes `docs/data/tree.json` and `content-<date>.json.gz` but no snapshot, so immediately after processing a new month that month has no `tree-<date>.json.gz` — it therefore never appears in `regen-changelog`'s glob-derived `--months` list, and the newest transition is silently missing from the changelog with no error. The snapshot only comes into existence during a real `pipeline.backfill` run, where route 2 copies the live `tree.json` into it. See "The monthly update sequence" above.
 
 ## Notes
 
-- `docs/VERSION` holds a single `__version__ = "x.y.z"` line displayed in the UI header; bump it manually when making user-visible frontend changes.
-- `notes/` holds prototype/spec material not yet absorbed into the maintained codebase. `notes/get_uncategorized.ipynb` is a working prototype for roadmap item 5 (uncategorized-pages bucket) — `list=querypage&qppage=Uncategorizedpages` plus an `list=allpages` + `prop=categories` sweep to find pages invisible to category-tree walking; port its logic into `scrape.py` when implementing that item, then remove the notebook.
-
-## Implemented and ENABLED BY DEFAULT: scraper chasing MediaWiki subpages (the "conservatism problem")
-
-**Status: implemented, enabled by default (no opt-out flag), and validated against बैबल् (Bible), the deeply-nested case that originally blocked this.** Subpage descent is unconditional in `build_skeleton()` — there is no `recurse_subpages` parameter or `--recurse-subpages`/`--no-recurse-subpages` flag anymore; every `make scrape` / `python scrape.py` run exercises this path. `docs/data/tree.json` reflects subpage-descended content as of the run that produced changelog entry #3 (`docs/data/changelog.json`), which isolates the resulting jump (+14,159 pages, +122.9% bytes) as newly-discovered real content, not a bug.
-
-`build_skeleton()` originally discovered pages *only* via `list=categorymembers` recursion, with no logic to follow MediaWiki's `Title/Subtitle` subpage convention — so any work organized as an index/ToC page with real content living in `/`-delimited subpages was badly undercounted; the scraper saw only the shallow index page and none of its children, even though the index page itself was reached correctly through the category tree.
-
-Concretely confirmed with नैषधीयचरितम् (Naiṣadhīyacarita), which exists on Wikisource in two organizational forms:
-- One version is tagged directly into category `वर्गः:महाकाव्यम्` as 6 flat pages (e.g. `नैषधीयचरितम् सर्गाः १-५`), ~877KB total — this one the scraper always captured correctly, since categorymembers sees all 6.
-- A second version is a single page titled `नैषधीयचरितम्‌` (note: has a trailing U+200C ZWNJ in its actual title — copy links carefully, a plain `नैषधीयचरितम्` lookup 404s) that is itself categorized into `महाकाव्यम्` but contains only a 2.1KB अनुक्रमणिका (table of contents) linking to 22 subpages named `नैषधीयचरितम्‌/प्रथमः सर्गः`, `नैषधीयचरितम्‌/द्वितीयः सर्गः`, ... `नैषधीयचरितम्‌/द्वाविंश: सर्गः`, each holding real verse text (~40-50KB apiece, comparable in total size to the first version). None of these 22 subpages were categorymembers of anything — they were invisible to the old scraper, which reported this whole second version as a single 2.1KB stray "page" with no real content.
-
-`fetch_subpages()` queries `list=allpages&apprefix=<title>/&apnamespace=0` for a given page title, and `collect_subpages_recursive()` recursively follows discovered subpages to any nesting depth (e.g. `Title/Part1/Section2`), guarded by a `seen_titles` set. `build_skeleton()` calls this for every page found via `categorymembers` and flattens the results in as ordinary sibling pages in the same category node (not nested under the index page as a distinct node type — that's deferred to roadmap item #3, consolidation). Validated in isolation against नैषधीयचरितम् (22 सर्गः subpages, plus a misspelled duplicate, अष्ठमः सर्गः, all appeared correctly) and against बैबल् (313 subpages found; see below).
-
-**What actually fixed the बैबल् rate-limiting failure — and it was not primarily about request pacing.** The scraper's `User-Agent` header (`session.headers` in `scrape.py`) previously had no contact info. Per Wikimedia's rate-limit docs (https://www.mediawiki.org/wiki/Wikimedia_APIs/Rate_limits, dated 2026), requests with no identifying User-Agent info are bucketed as "Unidentified": **10 requests/minute**. A request with a *compliant* User-Agent (contact info/URL in the `Name/version (URL; contact)` format) gets bucketed as "User-Agent only": **200 requests/minute** — a 20x difference. This was confirmed live by burst-testing sa.wikisource.org directly: 60/60 rapid requests succeeded with the fixed User-Agent, versus tripping a 429 by request #11 with the old one. The scraper's User-Agent now includes the repo URL. `Retry-After` values seen on a 429 (e.g. 26s, 34s, 38s, 49s across different trips) are not a fixed backoff constant on Wikimedia's side — they're remaining time in its rolling per-minute window, which is why they vary.
-
-A `--subpage-delay` flag (defaults to `--delay` if unset) exists as a secondary, independently-tunable pacing knob for the subpage-discovery loop specifically, since it's unbatched (one `list=allpages` request per page probed, unlike the batched-up-to-50 page-metadata fetches) and is the dominant source of request volume when descending into deeply-nested works. `--subpage-delay 0.2`–`0.3` has performed well in practice against the real 200 req/min ceiling.
-
-Since api_get() can now spend real time either fetching or sleeping out a rate-limit backoff, and both looked identical (silent) before, `scrape.py` also gained a live single-line activity status (`ActivityStatus`/`activity` in `scrape.py`) pinned below the scrolling category tree, showing whichever of "fetching:", "cached:", or "RATE-LIMITED: waiting Ns" is currently true, with the rate-limit wait counting down live rather than freezing silently. The status line is truncated to terminal width to avoid wrapping (a wrapped line can't be cleared correctly with a single carriage return).
-
-**Cost-control caveat — do not remove the size gate.** Probing *every* page unconditionally for subpages roughly doubles total API request volume. Both known index pages are tiny (433 B, 2.1 KB) versus real content pages (tens to hundreds of KB), so `build_skeleton()` and `collect_subpages_recursive()` fetch each page's byte size first (batched, via `fetch_page_meta()`) and only probe for subpages if the page is under `SUBPAGE_PROBE_MAX_BYTES` (5,000 bytes). If a legitimate index/ToC page ever exceeds 5KB, it would be silently skipped — if discovered, raise the threshold rather than removing the gate entirely.
-
-**There is no longer a separate page-metadata "phase 2."** Since subpage descent (now permanent) always pre-fetches every discovered page's metadata inline during the tree walk (`build_skeleton()`'s up-front `fetch_page_meta()` call), a standalone end-of-run metadata pass was always redundant once subpage descent covered the whole tree — removed, along with `--page-meta-delay` (nothing left to apply it to) and the `tqdm` progress-bar dependency it used. Verified via diff that output is byte-identical before/after this removal on the same cached data.
-
-## Implemented: latest-change datestamps per item (roadmap item #4)
-
-Roadmap item #4 ("compile overall latest-change datestamps for each item") is implemented and confirmed working. `fetch_page_meta()` fetches `rvprop=size|timestamp` (batched) per page; `build_skeleton()` rolls this up as `max()` over all descendant pages/subcategories into each node's `stats.last_changed`. Confirmed populated in generated `docs/data/tree.json` output (e.g. root `last_changed`).
-
-This design (rollup over content pages, not read off any single page) is deliberate, motivated by the following finding: for a multi-part work fronted by a manually-created index/ToC page, does MediaWiki's own `timestamp` on that index page ever update when a linked child/subpage is edited? Answer: **no**. An index page's revision timestamp reflects edits made directly to that page (its link list, formatting, category tag) and nothing else — it is not a reliable freshness signal for the work as a whole. Any "last changed" stat for a work must be computed by the scraper as `max()` over the timestamps of all actual content pages/subpages, not read off the index page.
-
-Confirmed via `prop=revisions&rvprop=timestamp` against both नैषधीयचरितम् organizational variants (see above):
-
-**Case 1 — `नैषधीयचरितम् सम्पूर्णम्` (index, 433 B) and its 5 linked `सर्गाः` pages, all under category node नैषधीयचरितम्:**
-
-| Page | Last changed | Size |
-|---|---|---|
-| नैषधीयचरितम् सम्पूर्णम् (index) | 2015-10-26T07:08:01Z | 433 B |
-| नैषधीयचरितम् सर्गाः १-५ | 2024-10-10T07:38:28Z | 199,386 B |
-| नैषधीयचरितम् सर्गाः ६-१० | 2015-10-26T07:26:50Z | 201,215 B |
-| नैषधीयचरितम् सर्गाः ११-१५ | 2018-11-01T07:14:38Z | 180,089 B |
-| नैषधीयचरितम् सर्गाः १६-२० | 2015-10-26T07:27:46Z | 211,707 B |
-| नैषधीयचरितम् सर्गाः २०-२२ | 2015-10-26T07:37:09Z | 104,699 B |
-
-The index's own timestamp (2015-10-26) predates the most recent real edit (सर्गाः १-५, 2024-10-10) by 9 years.
-
-**Case 2 — `नैषधीयचरितम्‌` (index, has trailing U+200C ZWNJ in its title, 2,140 B) and its 22 linked `/सर्गः` subpages:**
-
-| Page | Last changed | Size |
-|---|---|---|
-| नैषधीयचरितम्‌ (index) | 2018-03-01T14:29:02Z | 2,140 B |
-| नैषधीयचरितम्‌/प्रथमः सर्गः | 2012-06-27T11:06:58Z | 49,318 B |
-| नैषधीयचरितम्‌/द्वितीयः सर्गः | 2012-06-28T10:47:19Z | 32,921 B |
-| नैषधीयचरितम्‌/तृतीयः सर्गः | 2012-06-27T11:22:44Z | 47,030 B |
-| नैषधीयचरितम्‌/चतुर्थः सर्गः | 2012-06-27T11:22:58Z | 39,367 B |
-| नैषधीयचरितम्‌/पञ्चमः सर्गः | 2012-06-27T11:09:08Z | 42,884 B |
-| नैषधीयचरितम्‌/षष्ठः सर्गः | 2012-06-27T11:09:30Z | 37,734 B |
-| नैषधीयचरितम्‌/सप्तमः सर्गः | 2012-06-28T10:46:41Z | 36,893 B |
-| नैषधीयचरितम्‌/अष्टमः सर्गः | 2012-06-28T10:46:18Z | 36,233 B |
-| नैषधीयचरितम्‌/अष्ठमः सर्गः (misspelled duplicate) | 2012-06-28T10:45:46Z | 113 B |
-| नैषधीयचरितम्‌/नवमः सर्गः | 2012-06-27T11:12:27Z | 54,995 B |
-| नैषधीयचरितम्‌/दशमः सर्गः | 2012-06-27T11:12:48Z | 46,539 B |
-| नैषधीयचरितम्‌/एकादशः सर्गः | 2012-06-27T11:13:08Z | 50,327 B |
-| नैषधीयचरितम्‌/द्वादशः सर्गः | 2012-06-27T11:15:33Z | 48,957 B |
-| नैषधीयचरितम्‌/त्रयोदशः सर्गः | 2012-06-27T11:15:04Z | 21,632 B |
-| नैषधीयचरितम्‌/चतुर्दशः सर्गः | 2012-06-27T11:16:15Z | 35,490 B |
-| नैषधीयचरितम्‌/पञ्चदशः सर्गः | 2012-06-27T11:21:41Z | 36,171 B |
-| नैषधीयचरितम्‌/षोडशः सर्गः | 2012-06-27T11:21:54Z | 45,875 B |
-| नैषधीयचरितम्‌/सप्तदशः सर्गः | 2024-01-23T16:24:14Z | 58,438 B |
-| नैषधीयचरितम्‌/अष्टादशः सर्गः | 2012-06-27T11:20:45Z | 48,221 B |
-| नैषधीयचरितम्‌/एकोनविंश: सर्गः | 2012-06-27T11:20:57Z | 32,311 B |
-| नैषधीयचरितम्‌/विंश: सर्गः | 2012-06-27T11:19:33Z | 42,508 B |
-| नैषधीयचरितम्‌/एकविंश: सर्गः | 2012-06-27T11:19:49Z | 56,304 B |
-| नैषधीयचरितम्‌/द्वाविंश: सर्गः | 2012-06-27T11:20:01Z | 54,924 B |
-
-Here the index's own timestamp (2018-03-01) falls in the *middle* of the child edit range and still misses the outlier child (सप्तदशः सर्गः, edited 2024-01-23) by 6 years — confirming the index timestamp is just noise from unrelated edits to the index page itself (e.g. its category tag), not a rollup of anything.
-
-Side finding, orthogonal to datestamping but relevant to roadmap item #3 (consolidation): `नैषधीयचरितम्‌/अष्ठमः सर्गः` is a 113-byte near-empty misspelled duplicate of `नैषधीयचरितम्‌/अष्टमः सर्गः` (36,233 B) — one more instance of the duplication problem described in [Wikisource data-quality notes], now confirmed at the subpage level too, not just at the top-level-work level.
+- `docs/VERSION` holds `__code_version__` (bump manually on user-visible frontend changes), `__data_version__` (pipeline-run date, stamped automatically by `process.py`'s `_stamp_data_version`), and `__content_version__` (the Wikimedia dump export's own date, also stamped automatically) — three separate dates, since a pipeline run's date and the dump's own snapshot date can differ.
+- `notes/` holds prototype/spec material not yet absorbed into the maintained codebase, and one-off historical analysis scripts kept for the record (not meant to be re-run routinely).
+- **Deliberate non-goals**: sub-monthly freshness (would require live API + `list=recentchanges` deltas, not just dump exports); full revision history (the pipeline reads `mediawiki_content_current`, the current-state export, not `_history`); partial-transclusion coverage tracking at Page-namespace granularity (transcluded/untranscluded is tracked as binary per Index item, on purpose — see "Untranscluded Index items" above).

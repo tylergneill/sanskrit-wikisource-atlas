@@ -9,6 +9,18 @@
   --row-hover: rgba(255,255,255,0.04);
   --row-selected: rgba(102,163,255,0.18);
   --row-shared-highlight: rgba(255,196,102,0.18);
+  --row-shared-highlight-strong: rgba(255,196,102,0.4);
+  --series-1: #3987e5;
+  --series-2: #d95926;
+  --series-3: #199e70;
+  --series-4: #c98500;
+  --surface-uncovered: #222b36;
+  /* Only used where the topbar is pinned over scrolling content (phone widths):
+     a stronger edge than --border plus a shadow, so the bar reads as a layer
+     above the page. Both are theme-specific -- a shadow tuned for dark mode
+     turns into a grey smear on white. */
+  --border-strong: #3a4757;
+  --topbar-shadow: 0 4px 16px rgb(0 0 0 / 0.75), 0 1px 3px rgb(0 0 0 / 0.6);
 }
 
 :root[data-theme="light"]{
@@ -22,6 +34,14 @@
   --row-hover: rgba(0,0,0,0.04);
   --row-selected: rgba(36,100,199,0.14);
   --row-shared-highlight: rgba(199,130,36,0.16);
+  --row-shared-highlight-strong: rgba(199,130,36,0.4);
+  --series-1: #2a78d6;
+  --series-2: #eb6834;
+  --series-3: #1baf7a;
+  --series-4: #eda100;
+  --surface-uncovered: #d7dde3;
+  --border-strong: #b3bdc7;
+  --topbar-shadow: 0 4px 16px rgb(0 0 0 / 0.22), 0 1px 3px rgb(0 0 0 / 0.16);
 }
 
 * { box-sizing: border-box; }
@@ -44,7 +64,29 @@ body{
   border-bottom: 1px solid var(--border);
 }
 
-.brand{ font-weight: 600; }
+.brand{ font-weight: 600; display: flex; align-items: center; }
+.brand-title{ white-space: nowrap; }
+.brand-meta{ display: contents; }
+
+/* Subtle: same color/weight as plain text, just a pointer cursor -- unlike
+   .topbar-link (About), which is meant to visually announce itself as a link. */
+.brand-title-link{ cursor: pointer; color: inherit; text-decoration: none; }
+
+.sidebar-toggle{
+  display: none;
+  background: transparent;
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  width: 34px;
+  height: 34px;
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+  margin-right: 12px;
+  flex: 0 0 auto;
+}
+.sidebar-toggle:hover{ border-color: var(--accent); }
 .topbar-link {
   font-weight: normal;
   font-size: 16px;
@@ -54,6 +96,15 @@ body{
   vertical-align: middle;
 }
 a.topbar-link:hover { text-decoration: underline; }
+
+/* about.html's topbar has 3 direct children (.brand, .topnav, .about-back-link)
+   instead of index.html's 2 -- order restores the original visual arrangement
+   (title, back-link, then dropdown pushed right) on desktop; see the narrow
+   breakpoint below for the mobile swap. */
+.about-topbar{ flex-wrap: nowrap; }
+.about-topbar .brand{ order: 1; }
+.about-topbar .about-back-link{ order: 2; margin-right: auto; }
+.about-topbar .topnav{ order: 3; }
 
 .topnav{ display:flex; align-items:center; gap:10px; color: var(--muted); }
 .navlink{ color: var(--accent); text-decoration:none; }
@@ -68,11 +119,24 @@ a.topbar-link:hover { text-decoration: underline; }
   border-radius: 6px;
 }
 
+.search-wrap{
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+.search-wrap-icon{
+  position: absolute;
+  left: 8px;
+  width: 13px;
+  height: 13px;
+  opacity: 0.5;
+  pointer-events: none;
+}
 .search-input {
   background: var(--panel2);
   color: var(--text);
   border: 1px solid var(--border);
-  padding: 4px 8px;
+  padding: 4px 8px 4px 84px;
   border-radius: 6px;
   width: 320px;
   font-family: inherit;
@@ -80,6 +144,47 @@ a.topbar-link:hover { text-decoration: underline; }
 .search-input:focus {
   outline: 1px solid var(--accent);
   border-color: var(--accent);
+}
+.search-wrap:focus-within .search-wrap-icon{
+  opacity: 0.8;
+}
+.exactToggle{
+  position: absolute;
+  left: 27px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 7px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  font-size: 11px;
+  color: var(--muted);
+  cursor: pointer;
+  user-select: none;
+  white-space: nowrap;
+  background: var(--panel2);
+}
+.exactToggle:hover{
+  border-color: var(--accent);
+}
+.exactToggle:has(input:checked){
+  color: var(--bg);
+  background: var(--accent);
+  border-color: var(--accent);
+}
+/* Visually hidden but still focusable/keyboard-toggleable -- the pill itself
+   (the <label>) is the whole visible control, not a checkbox-plus-text. */
+.exactToggle input{
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0,0,0,0);
+  white-space: nowrap;
+  border: 0;
 }
 
 .theme-toggle{
@@ -91,13 +196,18 @@ a.topbar-link:hover { text-decoration: underline; }
   cursor: pointer;
   font-size: 15px;
   line-height: 1.3;
+  white-space: nowrap;
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
 }
 .theme-toggle:hover{ border-color: var(--accent); }
 
 .layout{
   height: calc(100% - 48px);
   display:grid;
-  grid-template-columns: 400px 1fr;
+  grid-template-columns: var(--sidebar-width, 400px) 6px 1fr;
 }
 
 .sidenav{
@@ -105,13 +215,64 @@ a.topbar-link:hover { text-decoration: underline; }
   background: var(--panel2);
   padding: 12px;
   overflow:auto;
+  /* Lets .allRow respond to the sidebar's own width rather than the viewport's --
+     the sidebar is user-draggable (--sidebar-width, see app.js), so it can get
+     narrow enough to wrap that row at any viewport size. See the container query
+     below .includeOrphansToggle. */
+  container-type: inline-size;
+  container-name: sidenav;
+}
+
+.sidebar-resizer{
+  cursor: col-resize;
+  background: transparent;
+  position: relative;
+}
+.sidebar-resizer::after{
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 2px;
+  width: 2px;
+  background: var(--border);
+}
+.sidebar-resizer:hover::after,
+.sidebar-resizer.dragging::after{
+  background: var(--accent);
+}
+
+.sidebar-backdrop{
+  display: none;
 }
 
 .panelTitle{ font-weight: 600; margin-bottom: 6px; }
+.panelTitleLink{ cursor: pointer; }
 .hint{ font-size: 14px; color: var(--muted); margin-bottom: 10px; }
+.expandAllButton{
+  font-size: 13px;
+  padding: 3px 10px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text);
+  cursor: pointer;
+}
+.expandAllButton:hover{ border-color: var(--accent); color: var(--accent); }
+.hint-touch{ display: none; }
+/* Coarse-pointer devices (touch, no hover) get the long-press hint instead of
+   the Option/Shift-click one -- keyed on pointer capability, not viewport width,
+   so it also applies to touch laptops/tablets at wide viewports. */
+@media (hover: none) and (pointer: coarse){
+  .hint-desktop{ display: none; }
+  .hint-touch{ display: inline; }
+}
+.loadingHint{ font-size: 14px; color: var(--muted); padding: 10px 4px; }
 .allRow{
   display:flex;
+  flex-wrap: wrap;
   align-items:center;
+  justify-content: space-between;
   gap: 6px;
   padding: 3px 2px;
   border-radius: 6px;
@@ -119,7 +280,76 @@ a.topbar-link:hover { text-decoration: underline; }
 }
 .allRow:hover{ background: var(--row-hover); }
 .allRow.selected{ background: var(--row-selected); }
+/* "All" itself must never shrink/truncate -- unlike nested category rows,
+   which legitimately compete with a long title for space, this row's title
+   is a fixed 3-character word and the thing actually short on space is
+   everything else (toggle pill, stats). DOM order is All / stats / toggle
+   (so the toggle wraps to its own line last on mobile, see the narrow
+   breakpoint below), but visually the toggle sits right before stats on
+   desktop, both pushed together to the row's right edge -- `order` plus
+   the toggle's own margin-left:auto (below) decouples visual placement
+   from DOM position. */
+.allRow .title.topLevel{ flex: 0 0 auto; order: 1; }
+.allStats{
+  order: 3;
+  padding-left: 10px;
+  opacity: 0.7;
+}
 .allDivider{ border: none; border-top: 1px solid var(--border); margin: 6px 0 10px; }
+.includeOrphansToggle{
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  order: 2;
+  margin-left: auto;
+  padding: 3px 9px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  font-size: 13px;
+  font-weight: normal;
+  color: var(--muted);
+  cursor: pointer;
+  user-select: none;
+  white-space: nowrap;
+  background: var(--panel2);
+  flex: 0 0 auto;
+}
+.includeOrphansToggle input{
+  margin: 0;
+  width: 13px;
+  height: 13px;
+}
+.includeOrphansToggle:hover{
+  border-color: var(--accent);
+}
+.includeOrphansToggle:has(input:checked){
+  color: var(--bg);
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+/* Once the sidebar is too narrow to fit All + stats + toggle on one line, use the
+   same arrangement the phone breakpoint uses: All + stats stay together on line 1
+   and the toggle drops to its own line below, right-aligned. Keyed to the
+   sidebar's inline size, not the viewport's, because the sidebar is
+   drag-resizable -- at a wide viewport with a dragged-in sidebar a viewport-only
+   rule leaves desktop's order in place, wrapping the *stats* to line 2 and
+   stranding them under the pill instead.
+
+   Threshold is 450px of *content*: a container query resolves against the
+   container's content box, and .sidenav is border-box with 12px side padding, so
+   this corresponds to a 474px sidebar as measured while dragging -- just under the
+   475px at which the desktop order fits on one line.
+
+   Between the wrap point and the threshold (~460-470px outer) all three still fit
+   on one line, in the swapped order All < stats < toggle. Left as-is: it reads
+   fine, and the alternatives (forcing the pill onto its own row with
+   flex-basis:100%) stretch the pill across the full row instead of letting it hug
+   its text. */
+@container sidenav (max-width: 450px){
+  .allStats{ order: 2; }
+  .includeOrphansToggle{ order: 3; margin-left: auto; }
+}
 
 .mainpane{
   overflow:auto;
@@ -143,6 +373,7 @@ a.topbar-link:hover { text-decoration: underline; }
 .toggleArrow{
   width: 28px;
   height: 28px;
+  flex-shrink: 0;
   display:inline-flex;
   align-items:center;
   justify-content:center;
@@ -157,9 +388,15 @@ a.topbar-link:hover { text-decoration: underline; }
   white-space:nowrap;
   overflow:hidden;
   text-overflow:ellipsis;
+  flex: 1 1 auto;
+  min-width: 0;
 }
 .title.topLevel, .small.topLevel{
   font-weight: bold;
+}
+.tree .row .small{
+  flex-shrink: 0;
+  white-space: nowrap;
 }
 .indent{ margin-left: 18px; }
 
@@ -171,6 +408,98 @@ a.topbar-link:hover { text-decoration: underline; }
   margin-bottom: 10px;
 }
 
+.content .block.collapsible{ padding: 10px 12px; }
+.content .block.collapsible > summary{
+  cursor: pointer;
+  list-style: none;
+  display: flex;
+  align-items: center;
+}
+.content .block.collapsible > summary::-webkit-details-marker{ display: none; }
+
+/* Sticky section headers (about.html): while a top-level section is open, pin its
+   own summary to the top of the scroll area so the reader always knows which
+   section they're in and can close it by clicking the same bar again -- the same
+   affordance sticky category headers give on index.html (see positionStickyHeaders
+   in app.js).
+
+   Only *open* summaries stick, and only top-level ones (:not(.block.collapsible
+   .block.collapsible) > summary): a closed summary is already in normal flow, and
+   pinning nested disclosures too -- the audit tree runs several deep -- would
+   stack a pile of bars down the viewport.
+
+   Negative margins cancel .block's 10px 12px padding so the bar spans the full
+   block width and fully masks the prose scrolling beneath it; the matching
+   positive padding puts the text back where it was. z-index keeps it above
+   sibling content but below index.html's sticky topbar (1000). */
+.content .block.collapsible:not(.block.collapsible .block.collapsible)[open] > summary{
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  background: var(--panel);
+  margin: -10px -12px 0;
+  padding: 10px 12px;
+  border-radius: 10px 10px 0 0;
+}
+
+/* Audit findings (about.html "Data Quality" section, generated by
+   pipeline/audit.py): every finding row -- whether it has results (a
+   <summary>) or not (a plain <div>) -- shares the same .audit-summary
+   element type/box model, so the text always lines up regardless of
+   whether a triangle is drawn. A finding with results shows a custom
+   disclosure triangle (same construction as .block.collapsible above) in
+   place of a bullet; a zero-count finding's ::before is left transparent,
+   acting as a same-size invisible spacer instead. */
+.audit-item{ list-style: none; }
+.audit-summary{
+  display: flex;
+  align-items: center;
+}
+.audit-summary:not(.audit-summary-empty){ cursor: pointer; }
+.audit-summary::-webkit-details-marker{ display: none; }
+.audit-summary::before{
+  content: "";
+  display: inline-block;
+  flex-shrink: 0;
+  width: 0.6em;
+  height: 0.6em;
+  margin-right: 10px;
+  border-right: 2px solid transparent;
+  border-bottom: 2px solid transparent;
+  transform: rotate(-45deg);
+  transition: transform 0.15s ease;
+}
+.audit-summary:not(.audit-summary-empty)::before{
+  border-right-color: var(--muted);
+  border-bottom-color: var(--muted);
+}
+details[open] > .audit-summary::before{ transform: rotate(45deg); }
+.content .block.collapsible > summary h2,
+.content .block.collapsible > summary h3{ margin: 0; }
+.content .block.collapsible > summary::before{
+  content: "";
+  display: inline-block;
+  flex-shrink: 0;
+  width: 0.6em;
+  height: 0.6em;
+  margin-right: 10px;
+  border-right: 2px solid var(--muted);
+  border-bottom: 2px solid var(--muted);
+  transform: rotate(-45deg);
+  transition: transform 0.15s ease;
+}
+.content .block.collapsible[open] > summary::before{ transform: rotate(45deg); }
+.content .block.collapsible h3{ margin: 14px 0 4px; }
+.content .block.collapsible h3:first-of-type{ margin-top: 14px; }
+.content .block.collapsible p{ margin: 4px 0 10px; }
+
+.content .block.collapsible .block.collapsible{
+  background: none;
+  border: none;
+  padding: 10px 0 0;
+  margin-bottom: 0;
+}
+
 .sticky-header{
   position: sticky;
   background: var(--panel);
@@ -180,6 +509,33 @@ a.topbar-link:hover { text-decoration: underline; }
 
 .content a{ color: var(--accent); text-decoration:none; }
 .content a:hover{ text-decoration:underline; }
+
+/* === External link icon === */
+a[target="_blank"]::after{
+  content: "";
+  display: inline-block;
+  width: 0.65em;
+  height: 0.65em;
+  margin-left: 0.15em;
+  vertical-align: middle;
+  position: relative;
+  top: -0.05em;
+  background-color: currentColor;
+  -webkit-mask-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 10 10' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 9 L9 1 M5 1 L9 1 L9 5' stroke='black' stroke-width='1.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  mask-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 10 10' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 9 L9 1 M5 1 L9 1 L9 5' stroke='black' stroke-width='1.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  -webkit-mask-size: contain;
+  mask-size: contain;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+}
+
+.catLinkArrow{
+  display: inline-block;
+  margin-left: 4px;
+  opacity: 0.6;
+  vertical-align: middle;
+}
+.catLinkArrow:hover{ opacity: 1; }
 
 .content ul {
   list-style: none;
@@ -200,20 +556,87 @@ a.topbar-link:hover { text-decoration: underline; }
   display: flex;
   align-items: center;
   gap: 4px;
+  border-radius: 6px;
 }
+.pageRow.shared-highlight{ background: var(--row-shared-highlight); }
 .pageRowMain{
   min-width: 0;
+  /* The link text/meta reads as sitting slightly below the magnifying-glass
+     icon's true visual center (font line-box asymmetry) -- nudge it and the
+     disclosure triangle (below) up together to line up with the icon. */
+  transform: translateY(-1px);
+}
+.subpageToggleGroup{
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 0;
+  cursor: pointer;
 }
 .subpageToggle{
   flex: 0 0 auto;
-  width: 20px;
-  height: 20px;
-  font-size: 1.2rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  transform: translateY(1px);
+}
+/* Filled-triangle SVG mask (rather than the Unicode ▸/▾ glyphs, which
+   carry a lot of built-in whitespace inside their own em-box at any
+   font-size) -- fills its box tightly, so a bigger visible glyph doesn't
+   also mean a bigger (row-height-inflating) box. Points right by default,
+   rotates to point down when expanded -- one shape, no separate asset. */
+.triangleIcon{
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  background-color: currentColor;
+  opacity: 0.7;
+  transition: transform 0.1s ease;
+  -webkit-mask-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 10 10' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M2.5 1 L8 5 L2.5 9 Z'/%3E%3C/svg%3E");
+  mask-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 10 10' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M2.5 1 L8 5 L2.5 9 Z'/%3E%3C/svg%3E");
+  -webkit-mask-size: contain;
+  mask-size: contain;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+}
+.triangleIcon.expanded{
+  transform: rotate(90deg);
 }
 
 .small{ font-size: 14px; color: var(--muted); }
 
-.ocrBadge{
+/* Elements with a `title` attribute get a long-press popup instead (see
+   initLongPressTooltips in app.js) -- suppress iOS/Safari's native
+   long-press text-selection callout and copy/search context menu so it
+   doesn't show up alongside our own popup. .selectable-title opts an
+   element back into normal text selection (e.g. #dataUpdated, whose text
+   is itself useful to copy) while still getting the long-press popup. */
+[title]:not(.selectable-title){
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.touch-tooltip{
+  position: fixed;
+  z-index: 3000;
+  max-width: min(80vw, 320px);
+  transform: translate(-50%, -100%) translateY(-10px);
+  background: var(--panel2);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 6px 10px;
+  font-size: 13px;
+  line-height: 1.4;
+  white-space: pre-line;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+  pointer-events: none;
+}
+
+.ocrBadge, .indexBadge{
   font-size: 11px;
   font-weight: 600;
   letter-spacing: 0.02em;
@@ -223,9 +646,471 @@ a.topbar-link:hover { text-decoration: underline; }
   border: 1px solid rgba(199,130,36,0.35);
   border-radius: 4px;
   padding: 1px 6px;
-  margin-left: 8px;
+  margin-right: 6px;
   white-space: nowrap;
 }
-:root[data-theme="light"] .ocrBadge{
+:root[data-theme="light"] .ocrBadge, :root[data-theme="light"] .indexBadge{
   color: #8a5a10;
 }
+
+.multiCatBtn{
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  color: inherit;
+  opacity: 0.5;
+  background: none;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+}
+.multiCatBtn:hover{
+  opacity: 1;
+}
+.pageRow.shared-highlight .multiCatBtn{
+  opacity: 1;
+  background: var(--row-shared-highlight-strong);
+}
+.searchIcon{
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  background-color: currentColor;
+  -webkit-mask-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 10 10' xmlns='http://www.w3.org/2000/svg'%3E%3Ccircle cx='4.2' cy='4.2' r='3.2' stroke='black' stroke-width='1.2' fill='none'/%3E%3Cpath d='M6.6 6.6 L9.2 9.2' stroke='black' stroke-width='1.2' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+  mask-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 10 10' xmlns='http://www.w3.org/2000/svg'%3E%3Ccircle cx='4.2' cy='4.2' r='3.2' stroke='black' stroke-width='1.2' fill='none'/%3E%3Cpath d='M6.6 6.6 L9.2 9.2' stroke='black' stroke-width='1.2' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+  -webkit-mask-size: contain;
+  mask-size: contain;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+}
+
+.sourceIndexLinks{
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: 6px;
+}
+.sourceIndexLink{
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  opacity: 0.5;
+}
+.sourceIndexLink:hover{
+  opacity: 1;
+}
+.scanIcon{
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  background-color: currentColor;
+  -webkit-mask-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 10 10' xmlns='http://www.w3.org/2000/svg'%3E%3Crect x='1.5' y='0.5' width='7' height='9' rx='0.6' stroke='black' stroke-width='1' fill='none'/%3E%3Cpath d='M3.2 3.2 H6.8 M3.2 5 H6.8 M3.2 6.8 H5.4' stroke='black' stroke-width='0.8' stroke-linecap='round'/%3E%3C/svg%3E");
+  mask-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 10 10' xmlns='http://www.w3.org/2000/svg'%3E%3Crect x='1.5' y='0.5' width='7' height='9' rx='0.6' stroke='black' stroke-width='1' fill='none'/%3E%3Cpath d='M3.2 3.2 H6.8 M3.2 5 H6.8 M3.2 6.8 H5.4' stroke='black' stroke-width='0.8' stroke-linecap='round'/%3E%3C/svg%3E");
+  -webkit-mask-size: contain;
+  mask-size: contain;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+}
+
+/* Mid-size: topbar wraps to 2 rows, but sidebar stays visible in the grid
+   (no hamburger/off-canvas -- that's reserved for the narrower tier below). */
+@media (max-width: 1100px){
+  .topbar{ flex-wrap: wrap; height: auto; row-gap: 6px; padding: 8px 10px; }
+  .brand{ flex: 1 1 100%; align-items: baseline; column-gap: 10px; }
+
+  /* about.html only: title + dropdown share row 1 (title shrinks to fit,
+     dropdown pushed to the row's far right); "Back to tree" moves to its
+     own row 2 below, left-aligned -- see the desktop-order rules above
+     .topnav for why this page's topbar has 3 direct children instead of
+     index.html's 2. */
+  .about-topbar{ flex-wrap: wrap; }
+  /* The brand shrinks (flex-shrink:1) while .topnav is pushed right by its
+     margin-left:auto, so without a floor between them the ellipsized title runs
+     straight into the select with no gap at all. column-gap alone won't do it --
+     the auto margin absorbs the free space first -- so the title needs its own
+     right margin. */
+  .about-topbar .brand{ flex: 0 1 auto; margin-right: 14px; min-width: 0; }
+  .about-topbar .topnav{ flex: 0 0 auto; margin-left: auto; order: 2; }
+  .about-topbar .about-back-link{ order: 3; flex: 1 1 100%; margin-right: 0; }
+  .brand-title{ flex: 0 1 auto; overflow: hidden; text-overflow: ellipsis; font-size: 17px; }
+  .topnav{ flex: 1 1 100%; display: flex; align-items: center; column-gap: 6px; flex-wrap: nowrap; }
+  .search-wrap{ flex: 1 1 auto; min-width: 0; order: 1; }
+  .search-input{ width: auto; flex: 1 1 auto; min-width: 0; }
+  .topnav .sep-search{ order: 2; }
+  /* Scoped to the topbar: this hides the "अ→a" caption to buy horizontal space in
+     a cramped nav, but .navlabel is also used for the changelog's
+     "include असम्बद्धवर्गीकृतम्" checkbox down in about.html's Data Quantity
+     section, which has a full-width row to itself and no reason to disappear. An
+     unscoped rule here hid that toggle -- and with it the only way to include the
+     orphan bucket in the trends -- at every width below 1100px. */
+  .topnav .navlabel{ display: none; }
+  #schemeSelect{ order: 4; flex: 0 1 auto; min-width: 0; max-width: 160px; }
+
+  /* A <select> sizes itself to its *longest* option, not the selected one, so
+     the box stayed wide while showing a 4-character "IAST". Shortening the two
+     worst labels ("Harvard-Kyoto" -> "HK", "Devanagari" -> "देवनागरी", which is
+     both narrower and self-demonstrating) shrinks it at the source, leaving
+     "ISO 15919" as the widest -- no max-width clamp needed. */
+  .about-topbar #schemeSelect{
+    font-size: 14px;
+    padding: 4px 6px;
+  }
+  .topnav .sep:last-of-type{ order: 5; }
+  .theme-toggle{
+    order: 6;
+    flex: 0 0 auto;
+    width: 34px;
+    height: 34px;
+    padding: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .theme-toggle .toggle-label{ display: none; }
+
+  /* about.html's nav is just the scheme dropdown + this button (no search box),
+     so the toggle sits directly beside #schemeSelect rather than after a
+     separator. A fixed 34px box next to the dropdown reads as oversized and
+     empty on a phone, so match the dropdown's own height instead and let the
+     icon center itself. */
+  .about-topbar .theme-toggle{
+    width: auto;
+    height: auto;
+    aspect-ratio: 1;
+    padding: 4px 8px;
+  }
+
+  .layout{ height: calc(100% - 76px); }
+}
+
+/* Narrow (phone): hide version/date, switch sidebar to off-canvas hamburger. */
+@media (max-width: 800px){
+  .sidebar-toggle{ display: inline-flex; align-items: center; justify-content: center; }
+  .brand-meta{ display: none; }
+
+  /* Body (not .mainpane) scrolls at this width (see .layout below), so the
+     topbar needs its own sticky pin here -- above sticky category headers
+     (max z-index ~999, see renderCategoryBlock in app.js) but below the
+     off-canvas sidebar/backdrop (1900/2000) so an open sidebar still overlays it. */
+  /* Content scrolls *under* this bar at phone widths, so the 1px --border alone
+     wasn't enough separation -- --panel and --bg differ by only a few points of
+     luminance, leaving text appearing to bleed through the boundary. Give the
+     bar its own slightly-lifted surface plus a drop shadow so it reads as a
+     layer above the page rather than part of it. */
+  .topbar{
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+    background: var(--panel);
+    border-bottom-color: var(--border-strong);
+    box-shadow: var(--topbar-shadow);
+  }
+
+  /* The document (not .mainpane) scrolls here and the topbar is pinned over it,
+     so sticky section headers must come to rest *below* that bar rather than at
+     top:0, where they'd slide underneath it. --topbar-h is measured and set on
+     :root by about.html, since this topbar wraps to a variable height. */
+  .content .block.collapsible:not(.block.collapsible .block.collapsible)[open] > summary{
+    top: var(--topbar-h, 48px);
+  }
+
+  /* ...and .mainpane must stop being an overflow container at this width, or the
+     sticky headers above have nothing to stick to. A position:sticky element
+     anchors to its nearest *scrolling* ancestor, and an overflow:auto box counts
+     as one even when it has nothing to scroll -- which is the case here, since
+     about.html's inline `height: calc(100% - 48px)` resolves against an auto-height
+     body and lets .mainpane grow to full content height. The header would then
+     stick relative to .mainpane and scroll out of view along with it, landing
+     underneath the topbar. Handing the scroll to the document instead makes the
+     viewport the anchor. `height: auto` also overrides that inline height, which a
+     media query otherwise loses to. */
+  .mainpane{
+    overflow: visible;
+    height: auto !important;
+  }
+
+  /* With the off-canvas sidebar open, prevent the background (mainpane/body) from
+     scrolling underneath it -- html, not just body, since body's own box isn't
+     what's scrolling here (see .layout below: document/viewport scroll is used). */
+  html:has(body.sidebar-open-lock){ overflow: hidden; }
+  body.sidebar-open-lock{ overflow: hidden; }
+
+  body{ height: auto; min-height: 100%; }
+  .layout{
+    height: auto;
+    min-height: calc(100vh - 48px);
+    display: block;
+    position: relative;
+  }
+
+  .sidebar-resizer{ display: none; }
+
+  .sidenav{
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 100%;
+    width: min(85vw, 340px);
+    /* Sticky category headers in the main pane use z-index up to ~999
+       (1000 - depth, see renderCategoryBlock in app.js) -- the mobile sidebar
+       and its backdrop must stay above that ceiling or a deep-scrolled sticky
+       header punches through the open sidebar. */
+    z-index: 2000;
+    transform: translateX(-100%);
+    transition: transform 0.2s ease;
+    box-shadow: 2px 0 12px rgba(0,0,0,0.3);
+  }
+  .sidenav.open{
+    transform: translateX(0);
+  }
+
+  .sidebar-backdrop{
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.45);
+    z-index: 1900;
+  }
+  .sidebar-backdrop.open{
+    display: block;
+  }
+
+  .mainpane{
+    height: 100%;
+  }
+
+  /* The All-row stats/toggle reflow that used to live here is now handled by the
+     @container sidenav rule up by .includeOrphansToggle: the off-canvas sidebar is
+     min(85vw, 340px) at this width, comfortably under that query's threshold, so
+     phones get the same arrangement without a second copy of the rule. */
+
+  /* about.html readability at phone widths. Section <h2>s inherit the UA's 1.5em,
+     which at this width wraps a title like "Data Quality: Structural Errors and
+     Provenance Hints" to three lines and costs most of the viewport before any
+     content shows. Scale the headings down and tighten their leading; the sticky
+     bar they sit in shrinks with them. */
+  .content .block.collapsible > summary h2{
+    font-size: 19px;
+    line-height: 1.25;
+  }
+  .content .block.collapsible > summary h3{
+    font-size: 16px;
+    line-height: 1.3;
+  }
+  .content .block.collapsible{ padding: 8px 10px; }
+  .content .block.collapsible:not(.block.collapsible .block.collapsible)[open] > summary{
+    /* Keep the negative margins matched to the reduced padding above, or the
+       pinned bar stops spanning the block's full width. */
+    margin: -8px -10px 0;
+    padding: 8px 10px;
+  }
+  /* The disclosure triangle is sized in em, so it shrank with the heading -- give
+     it back a little breathing room from the now-tighter title. */
+  .content .block.collapsible > summary::before{ margin-right: 8px; }
+
+  /* Granularity + orphan-bucket toggle: on one cramped line the label wraps mid-
+     phrase, stranding "asambaddhavargīkṛtam" on its own row away from its
+     checkbox. Give each control its own full-width row instead, and keep each
+     checkbox next to its own text. */
+  #changelogGranularity{ margin-left: 6px; }
+  label[for="changelogIncludeOrphans"]{
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-left: 0 !important;
+    margin-top: 8px;
+  }
+  label[for="changelogIncludeOrphans"] input{ flex: 0 0 auto; }
+
+  .chart-card h4{ font-size: 12px; }
+}
+
+/* === Changelog trend charts === */
+.chart-card{
+  margin: 10px 0 16px;
+}
+.chart-card h4{
+  margin: 0 0 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--muted);
+}
+.chart-svg{
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+.chart-svg .chart-grid{
+  stroke: var(--border);
+  stroke-width: 1px;
+  shape-rendering: crispEdges;
+}
+.chart-svg .chart-axis-text{
+  fill: var(--muted);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Chart text is authored in the SVG's 720px user-space coordinates and the SVG is
+   then scaled to fit (.chart-svg is width:100%), so these font sizes are NOT
+   on-screen pixels -- they shrink with the chart. On a 390px phone the chart
+   renders ~341px wide, a 0.47x scale, which turns the 11px above into ~5px on
+   screen against 18px body text: unreadable.
+   Counter-scale so the labels land near 12px actual. Must be declared after the
+   base rule above -- a media query adds no specificity, so an identical selector
+   later in the file would otherwise win. */
+@media (max-width: 800px){
+  .chart-svg .chart-axis-text{ font-size: 24px; }
+}
+.chart-svg .chart-line{
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 2px;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+.chart-svg .chart-area{
+  fill: var(--accent);
+  opacity: 0.1;
+}
+.chart-svg .chart-dot{
+  fill: var(--accent);
+  stroke: var(--panel);
+  stroke-width: 2px;
+}
+.chart-svg .chart-crosshair{
+  stroke: var(--muted);
+  stroke-width: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+.chart-svg .chart-hover-dot{
+  fill: var(--accent);
+  stroke: var(--panel);
+  stroke-width: 2px;
+  opacity: 0;
+  pointer-events: none;
+}
+.chart-svg .chart-hit{
+  fill: transparent;
+  cursor: crosshair;
+}
+.chart-tooltip{
+  position: absolute;
+  pointer-events: none;
+  background: var(--panel2);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 6px 8px;
+  font-size: 12px;
+  color: var(--text);
+  white-space: nowrap;
+  opacity: 0;
+  transition: opacity 0.1s ease;
+  z-index: 10;
+}
+.chart-tooltip .chart-tooltip-date{
+  color: var(--muted);
+  margin-bottom: 2px;
+}
+.chart-tooltip .chart-tooltip-value{
+  font-weight: 600;
+}
+.chart-wrap{
+  position: relative;
+}
+.sourceTimeline{
+  position: relative;
+  margin: 14px 0 10px;
+  max-width: 100%;
+}
+.sourceTimelineRow{
+  display: flex;
+  align-items: stretch;
+}
+.sourceTimelinePre{
+  flex: none;
+  width: 28px;
+  height: 28px;
+  margin-right: 2px; /* surface gap, same as between two real segments */
+  border-radius: 4px 0 0 4px;
+  background: var(--surface-uncovered);
+  cursor: default;
+}
+.sourceTimelineBar{
+  position: relative;
+  display: flex;
+  flex: 1 1 auto;
+  min-width: 0;
+  height: 28px;
+  border-radius: 0 4px 4px 0;
+  overflow: hidden;
+  background: var(--panel2);
+}
+.sourceTimelineSeg{
+  position: relative;
+  height: 100%;
+  margin-right: 2px; /* surface gap between touching segments */
+  cursor: default;
+}
+.sourceTimelineSeg:last-child{ margin-right: 0; }
+.sourceTimelineAxis{
+  position: relative;
+  height: 16px;
+  margin-top: 4px;
+  font-size: 12px;
+  color: var(--muted);
+}
+.sourceTimelineAxis span{
+  position: absolute;
+  transform: translateX(-50%);
+  white-space: nowrap;
+}
+.sourceTimelineAxis span:first-child{ transform: translateX(0); }
+.sourceTimelineAxis span:last-child{ transform: translateX(-100%); }
+.sourceTimelineLegend{
+  display: flex;
+  /* Right-aligned so the legend's end lines up with the bar's present-day
+     end. Item order (materialized -> legacy-live -> current-live, matching
+     the bar's oldest-to-newest layout) comes from the markup, not from
+     flex-direction -- reversing via row-reverse looked right on one line but
+     flipped back to newest-first as soon as the legend wrapped. */
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 6px 16px;
+  margin-top: 10px;
+  font-size: 14px;
+  color: var(--text);
+}
+.legendItem{
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.legendSwatch{
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  flex: none;
+}
+.sourceTimelineTooltip{
+  position: absolute;
+  z-index: 20;
+  pointer-events: none;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 6px 10px;
+  font-size: 13px;
+  color: var(--text);
+  box-shadow: 0 4px 16px rgba(0,0,0,0.25);
+  white-space: normal;
+  width: max-content;
+  max-width: min(360px, calc(100vw - 48px));
+}
+.sourceTimelineTooltip .ttLabel{ color: var(--muted); }

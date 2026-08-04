@@ -1,5 +1,60 @@
-scrape:
-	python scrape.py
+.PHONY: refresh-dump refresh-dump-force process serve ngrok backfill regen-changelog audit audit-update-about
 
+# Resolve the latest complete monthly dump export on dumps.wikimedia.org and
+# compare it against dump/: download/verify/decompress whatever's missing or
+# stale, remove leftover files from a prior export, and no-op if everything
+# already matches.
+refresh-dump:
+	python -m pipeline.fetch
+
+# Same as refresh-dump, but re-download, re-verify, and re-decompress every
+# part file even if already present and verified locally.
+refresh-dump-force:
+	python -m pipeline.fetch --force
+
+# Build docs/data/tree.json from the downloaded dump. Override worker count
+# with e.g. `make process WORKERS=4` (default: os.cpu_count()).
+process:
+	python -m pipeline.process --out docs/data/tree.json $(if $(WORKERS),--workers $(WORKERS))
+
+# Report likely breadcrumb/category structural problems on the live wiki for
+# manual review -- never mutates the dump or docs/data/tree.json. See
+# notes/wikisource-editing-plan.md.
+audit:
+	python -m pipeline.audit
+
+# Same as audit, but also regenerates the audit findings section of
+# docs/about.html.
+audit-update-about:
+	python -m pipeline.audit --update-about
+
+# Walk the full historical range and rebuild docs/data/changelog.json from
+# scratch. Safe to interrupt and rerun; already-downloaded/materialized
+# months are reused, not redone. Takes hours on a full run. See CLAUDE.md
+# for how this works internally.
+backfill:
+	bash pipeline/run_backfill_sequence.sh --workers 10
+
+# Rebuild docs/data/changelog.json from the historical snapshots already on
+# disk, with no downloading and no network access at all -- fast (under a
+# minute). Use this instead of `make backfill` when you trust the existing
+# snapshots and just want the changelog regenerated, e.g. after a fix to how
+# entries are diffed/compared.
+regen-changelog:
+	rm -f docs/data/changelog.json
+	python -m pipeline.backfill --months $(shell ls dump/_backfill_snapshots | sed -E 's/^tree-(.+)\.json(\.gz)?$$/\1/' | sort -u)
+
+# Serve the frontend (docs/) locally, on port 8000. Unlike plain
+# `python -m http.server`, gzip-compresses JSON/JS/HTML/CSS responses and
+# sets Cache-Control -- matters most when tunneling over ngrok on a mobile
+# data plan, where re-transferring uncompressed tree.json/changelog.json on
+# every reload burns through a data cap fast.
 serve:
-	cd docs && python -m http.server
+	cd docs && python ../serve_docs.py
+
+# Expose the local server (port 8000) via a public ngrok tunnel.
+ngrok:
+	ngrok http 8000
+
+free-server-port:
+	kill $$(lsof -ti tcp:8000)

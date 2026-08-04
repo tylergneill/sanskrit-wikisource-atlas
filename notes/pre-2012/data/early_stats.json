@@ -1,0 +1,90 @@
+{
+  "2004-07-23": {
+    "raw_bytes": 0,
+    "content_bytes": 0,
+    "transliterated_bytes": 0,
+    "pages": 0,
+    "texts": 0,
+    "untranscluded_index_items": 0,
+    "categories_on_site": 0,
+    "proofreadpage_enabled": true,
+    "main_records_incl_redirects": 0
+  },
+  "2005-07-23": {
+    "raw_bytes": 3514936,
+    "content_bytes": 3179972,
+    "transliterated_bytes": 1648270,
+    "pages": 818,
+    "texts": 810,
+    "untranscluded_index_items": 0,
+    "categories_on_site": 0,
+    "proofreadpage_enabled": true,
+    "main_records_incl_redirects": 818
+  },
+  "2006-07-23": {
+    "raw_bytes": 10084870,
+    "content_bytes": 9871456,
+    "transliterated_bytes": 5122814,
+    "pages": 1576,
+    "texts": 1493,
+    "untranscluded_index_items": 0,
+    "categories_on_site": 1,
+    "proofreadpage_enabled": true,
+    "main_records_incl_redirects": 1577
+  },
+  "2007-07-23": {
+    "raw_bytes": 11905977,
+    "content_bytes": 11669404,
+    "transliterated_bytes": 6086147,
+    "pages": 1592,
+    "texts": 1509,
+    "untranscluded_index_items": 0,
+    "categories_on_site": 1,
+    "proofreadpage_enabled": true,
+    "main_records_incl_redirects": 1593
+  },
+  "2008-07-23": {
+    "raw_bytes": 12613901,
+    "content_bytes": 12352986,
+    "transliterated_bytes": 6421147,
+    "pages": 1625,
+    "texts": 1542,
+    "untranscluded_index_items": 0,
+    "categories_on_site": 1,
+    "proofreadpage_enabled": true,
+    "main_records_incl_redirects": 1626
+  },
+  "2009-07-23": {
+    "raw_bytes": 15635085,
+    "content_bytes": 14516748,
+    "transliterated_bytes": 7530334,
+    "pages": 1808,
+    "texts": 1701,
+    "untranscluded_index_items": 0,
+    "categories_on_site": 1,
+    "proofreadpage_enabled": true,
+    "main_records_incl_redirects": 1809
+  },
+  "2010-07-23": {
+    "raw_bytes": 15645388,
+    "content_bytes": 14528674,
+    "transliterated_bytes": 7536109,
+    "pages": 1810,
+    "texts": 1703,
+    "untranscluded_index_items": 0,
+    "categories_on_site": 1,
+    "proofreadpage_enabled": true,
+    "main_records_incl_redirects": 1811
+  },
+  "2011-07-23": {
+    "raw_bytes": 20810133,
+    "content_bytes": 19603026,
+    "transliterated_bytes": 10139400,
+    "pages": 1995,
+    "texts": 1887,
+    "untranscluded_index_items": 0,
+    "categories_on_site": 2,
+    "proofreadpage_enabled": true,
+    "main_records_incl_redirects": 2014
+  }
+}

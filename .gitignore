@@ -63,5 +63,16 @@ cover/
 # macOS
 .DS_Store
 
-# scrape.py disk-backed API response cache (regenerable; see API_CACHE_DIR)
+# Playwright (used ad hoc for visual verification of docs/ changes -- this
+# repo has no build step/dependencies of its own, so these aren't checked in;
+# reinstall with `npm install -D playwright` when needed)
+node_modules/
+package.json
+package-lock.json
+
+# pipeline/fetch.py downloaded MediaWiki dump exports (regenerable, large)
+dump/
+
+# leftover disk-backed API response cache from the retired v1 scraper
+# (scrape.py, deleted) -- dead weight, safe to remove from disk entirely
 .api_cache/

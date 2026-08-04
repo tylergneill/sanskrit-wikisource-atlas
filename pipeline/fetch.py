@@ -29,8 +29,8 @@ BASE_URL = "https://dumps.wikimedia.org/other"
 DEFAULT_OUT_DIR = Path(__file__).resolve().parent.parent / "dump" / "1_current_format_live"
 
 USER_AGENT = (
-    "sanskrit-wikisource-mirror/2.0 "
-    "(https://github.com/tylergneill/sanskrit-wikisource-mirror; polite; research use)"
+    "sanskrit-wikisource-atlas/2.0 "
+    "(https://github.com/tylergneill/sanskrit-wikisource-atlas; polite; research use)"
 )
 
 session = requests.Session()

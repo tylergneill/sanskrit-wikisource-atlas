@@ -52,7 +52,7 @@ Nine independent checks, run over a single dump:
    book that showing them all under a Category would be unusable).
 
 7. Multi-parented categories: a real Category-namespace page filed under
-   more than one parent via [[वर्गः:X]]. Not a defect in the mirror -- the
+   more than one parent via [[वर्गः:X]]. Not a defect in the atlas -- the
    frontend already handles this correctly, rendering every occurrence as
    independently selectable with a "see also" pointer to its siblings (see
    docs/about.html, "Cross-tree Connections") -- but it usually reflects
@@ -78,7 +78,7 @@ Nine independent checks, run over a single dump:
    with real पृष्ठम्:Title/N leaf content in the dump, whose backing scan
    file has been deleted/lost from Commons -- so the live wiki page renders
    completely empty (ProofreadPage's rendering depends on the file, not the
-   already-stored leaf wikitext) even though the mirror shows real content,
+   already-stored leaf wikitext) even though the atlas shows real content,
    since it reads leaf wikitext directly from the dump. See
    notes/broken-transclusion-audit-research.md for the discovery (जातकपद्धतिः)
    and why this is NOT detectable from the dump alone -- the file's absence
@@ -341,7 +341,7 @@ def find_redlink_categories(
 
 def find_multi_parented_categories(graph: CategoryGraph) -> dict[str, list[str]]:
     """Real Category-namespace pages filed under more than one parent via
-    [[वर्गः:X]]. Not a defect in the mirror itself -- the frontend already
+    [[वर्गः:X]]. Not a defect in the atlas itself -- the frontend already
     renders every occurrence independently with a "see also" pointer (see
     docs/about.html, "Cross-tree Connections") -- but usually reflects
     imprecise categorization upstream that's worth surfacing for the
@@ -434,13 +434,13 @@ def find_broken_commons_transclusions(
 ) -> dict[str, tuple[int, str, str]]:
     """Detects the "missing Commons file" pattern from
     notes/broken-transclusion-audit-research.md: an Index item that IS
-    transcluded into Main-namespace content (so the mirror already folds its
+    transcluded into Main-namespace content (so the atlas already folds its
     leaves' real text into that Main page, per
     process._augment_main_sizes_with_transclusion) and DOES have real
     पृष्ठम्:Title/N leaf pages in the dump, but whose backing scan file no
     longer exists on Commons -- so the live wiki renders the page as
     completely empty (ProofreadPage's rendering depends on the file, not the
-    already-stored leaf wikitext) even though the mirror shows real content.
+    already-stored leaf wikitext) even though the atlas shows real content.
 
     Confirmed (see the note) that this is NOT detectable from the dump alone:
     resolve_transcluded_leaves() resolves such an Index's leaves just fine
@@ -509,8 +509,8 @@ def find_broken_commons_transclusions(
             "https://commons.wikimedia.org/w/api.php",
             data=body,
             headers={"User-Agent": (
-                "sanskrit-wikisource-mirror/2.0 "
-                "(https://github.com/tylergneill/sanskrit-wikisource-mirror; polite; research use)"
+                "sanskrit-wikisource-atlas/2.0 "
+                "(https://github.com/tylergneill/sanskrit-wikisource-atlas; polite; research use)"
             )},
             method="POST",
         )
@@ -682,7 +682,7 @@ def print_report(
     print("=" * 70)
     print(f"MULTI-PARENTED CATEGORIES: {len(multi_parented_categories)}")
     print("=" * 70)
-    print("(filed under more than one parent Category -- not a mirror defect,")
+    print("(filed under more than one parent Category -- not an atlas defect,")
     print(" the frontend already handles this, but usually reflects imprecise")
     print(" categorization upstream worth reviewing on-wiki.)")
     print()
@@ -708,7 +708,7 @@ def print_report(
     print("=" * 70)
     print("(Index item is transcluded and has real leaf content in the dump,")
     print(" but its backing scan file no longer exists on Commons -- the live")
-    print(" wiki page renders empty even though the mirror shows real content.)")
+    print(" wiki page renders empty even though the atlas shows real content.)")
     print()
     for idx_title in sorted(broken_commons_transclusions):
         leaf_count, first_leaf, last_leaf = broken_commons_transclusions[idx_title]

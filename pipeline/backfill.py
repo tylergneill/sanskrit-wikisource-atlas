@@ -13,7 +13,7 @@ TWO source kinds, all handled here:
 
 2. **Materialized** (_ensure_materialized_month): EVERY month older than
    LEGACY_CUTOVER, back to MATERIALIZED_FLOOR (2012-02, the first month
-   whose cutoff is after वर्गसर्वस्वम् -- this mirror's tree model's root
+   whose cutoff is after वर्गसर्वस्वम् -- this atlas's tree model's root
    category -- first existed at 2012-01-20T10:18:19Z; see
    RootCategoryMissing). pipeline/materialize_snapshots.py reconstructs a
    month from sawikisource-latest-pages-meta-history.xml.bz2 (every
@@ -163,11 +163,11 @@ def current_era_months() -> list[str]:
 # live against archive.org's advancedsearch API to have zero
 # sawikisource-<date> item for any month in range, not merely undetected.
 #
-# Bounded at 2012-01: वर्गसर्वस्वम् (this mirror's tree model's root category)
+# Bounded at 2012-01: वर्गसर्वस्वम् (this atlas's tree model's root category)
 # doesn't exist before then (its earliest revision is
 # 2012-01-20T10:18:19Z, confirmed against the cached meta-history dump), so
 # earlier holes (e.g. 2011-11, 2011-12) are genuinely too early for this
-# mirror's tree model regardless of materialization -- process_dump already
+# atlas's tree model regardless of materialization -- process_dump already
 # catches this per-month via RootCategoryMissing rather than needing a
 # hole-detection cutoff here, but there's no point materializing a month
 # that will just be skipped.
@@ -187,7 +187,7 @@ def current_era_months() -> list[str]:
 # month's cutoff. See that script's module docstring for the known
 # deviations from a "real" dump of that month (deleted-page handling,
 # title/namespace drift, heuristic redirect re-derivation).
-# The earliest month whose cutoff is after वर्गसर्वस्वम् (this mirror's root
+# The earliest month whose cutoff is after वर्गसर्वस्वम् (this atlas's root
 # category) first existed: its very first revision is 2012-01-20T10:18:19Z,
 # verified against the cached meta-history dump. A 2012-01-01 cutoff predates
 # that by 19 days, so process_dump could only ever raise RootCategoryMissing
@@ -253,9 +253,9 @@ def _live_content_version() -> str | None:
 
 
 class RootCategoryMissing(Exception):
-    """Raised by process_dump when the mirror's organizing root category
+    """Raised by process_dump when the atlas's organizing root category
     (वर्गसर्वस्वम्) isn't present in a dump at all -- not a parse error, but a
-    real historical fact about sa.wikisource: this whole mirror's tree model
+    real historical fact about sa.wikisource: this whole atlas's tree model
     depends on that category existing, and it didn't yet in the site's
     earliest days (confirmed on the 2011-10-13 Internet Archive dump: only 3
     categories existed on the entire site at that point, none of them
@@ -283,7 +283,7 @@ def process_dump(xml_path: Path, workers: int | None = None) -> tuple[dict, dict
     if graph.root_title not in graph.nodes:
         raise RootCategoryMissing(
             f"root category '{graph.root_title}' not found in {xml_path} -- "
-            f"too early in sa.wikisource's history for this mirror's tree model"
+            f"too early in sa.wikisource's history for this atlas's tree model"
         )
 
     refile_category(graph, "धर्मशास्त्रम्", new_parent_title="ग्रन्थाः", old_parent_title=graph.root_title)
@@ -725,7 +725,7 @@ def main() -> None:
             snapshot_path = ensure_snapshot(date_str, get_xml_path, args.snapshot_dir, args.workers,
                                              args.content_cache_dir, args.force_reprocess)
         except RootCategoryMissing as e:
-            # Too early in sa.wikisource's history for this mirror's tree
+            # Too early in sa.wikisource's history for this atlas's tree
             # model (see RootCategoryMissing) -- skip this month rather than
             # aborting the whole run; any comparison pairs involving it are
             # dropped below.

@@ -1,8 +1,8 @@
-# sanskrit-wikisource-mirror
+# sanskrit-wikisource-atlas
 
 A more accessible interface for the text content at sa.wikisource.org
 
-Served at https://tylergneill.github.io/sanskrit-wikisource-mirror.
+Served at https://tylergneill.github.io/sanskrit-wikisource-atlas.
 
 # motivation
 

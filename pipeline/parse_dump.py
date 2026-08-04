@@ -27,7 +27,7 @@ DEFAULT_DUMP_GLOB = "sawikisource-*.xml"
 # ग्रन्थकर्तारः (author index), वर्गनिर्वहणम् (category-maintenance meta-tree), and
 # विकिस्रोतः (Wikisource-project meta pages) are top-level siblings of ग्रन्थाः
 # under root but carry no actual Sanskrit-text content -- excluded per explicit
-# user direction (this mirror favors a useful interface over slavish adherence
+# user direction (this atlas favors a useful interface over slavish adherence
 # to Wikisource's own category structure). Formatting templates/Index
 # Validated/Works/Works by year (English-named ProofreadPage/import
 # housekeeping categories) and टेम्पलेट लूप वाले पेज / अनुक्रमणिका - Unknown

@@ -400,7 +400,7 @@ def refile_category(graph: CategoryGraph, title: str, new_parent_title: str, old
     child edge sets in place. Used to fold धर्मशास्त्रम् under ग्रन्थाः: on the
     live site it's filed as a top-level sibling of ग्रन्थाः under root, but
     that's an artifact of Wikisource's own category structure, not a useful
-    grouping for this mirror's readers (same call scrape.py made previously
+    grouping for this atlas's readers (same call scrape.py made previously
     by injecting it as an extra child rather than following the site as-is).
     No-ops if the edge doesn't exist (e.g. upstream re-categorizes it), so a
     future dump doesn't need this call removed defensively.

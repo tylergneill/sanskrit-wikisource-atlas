@@ -74,7 +74,7 @@ def pct(delta: float, base: float):
 
 def diff_timestamps(old_items: Dict[str, dict], new_items: Dict[str, dict]) -> list:
     """Items present in both snapshots whose last_changed differs. Carries
-    each item's transliterated_bytes (the mirror's meaningful "how much real
+    each item's transliterated_bytes (the atlas's meaningful "how much real
     text" figure -- see about.html's "Calculating Size") old/new for display
     as a size delta alongside the timestamp change."""
     changed = []

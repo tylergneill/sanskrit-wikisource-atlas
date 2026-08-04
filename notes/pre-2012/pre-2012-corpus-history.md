@@ -1,7 +1,7 @@
 # The pre-2012 history of sa.wikisource
 
 A throwaway investigation into how the Sanskrit Wikisource corpus grew between
-its founding on **2004-07-23** and **2012-02**, the first month this mirror's
+its founding on **2004-07-23** and **2012-02**, the first month this atlas's
 changelog can cover.
 
 This is a one-off historical analysis kept for the record, not part of the
@@ -10,7 +10,7 @@ maintained pipeline. Nothing here runs routinely, and nothing here writes to
 
 ## Why the main pipeline can't reach this era
 
-The mirror's whole tree model descends from the root category **वर्गसर्वस्वम्**,
+The atlas's whole tree model descends from the root category **वर्गसर्वस्वम्**,
 whose earliest revision is 2012-01-20. Before that, there is no category
 structure to build a tree from at all — the site had exactly **1 category**
 from 2006 through early 2011, and **2** as late as 2011-12. `process_dump()`
@@ -152,7 +152,7 @@ matters because raw revision counts would otherwise read as growth
 site ran on 1–2 categories for seven years. Categories appear en masse only
 *after* the corpus had already quintupled: 2 → 29 in 2012-02, then 41, 54, 57.
 वर्गसर्वस्वम् itself is created 2012-01-20, right at the inflection. So the
-mirror's 2012-02 floor is not an arbitrary data-availability cutoff — it is
+atlas's 2012-02 floor is not an arbitrary data-availability cutoff — it is
 approximately the moment sa.wikisource first became organized enough to have a
 browsable structure at all.
 
@@ -162,7 +162,7 @@ This is in the committed changelog too (`text_count_pct: -7.17`). Nothing was
 deleted: pages that had been standalone top-level titles were re-titled into
 `Parent/Child` breadcrumb form, so they stopped counting as separate texts and
 started rolling up under their parents. A drop in "texts" here means
-consolidation, not loss — the same effect the mirror's own `text_count`
+consolidation, not loss — the same effect the atlas's own `text_count`
 definition produces by design.
 
 **ProofreadPage/OCR is essentially absent from this era.** The first

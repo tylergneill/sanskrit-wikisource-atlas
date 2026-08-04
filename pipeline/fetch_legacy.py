@@ -86,8 +86,8 @@ LIST_AVAILABLE_MONTHS_CACHE = Path(__file__).resolve().parent.parent / "dump" / 
 LIST_AVAILABLE_MONTHS_CACHE_TTL = 24 * 3600  # seconds -- a run_backfill_sequence.sh walk can span this long
 
 USER_AGENT = (
-    "sanskrit-wikisource-mirror/2.0 "
-    "(https://github.com/tylergneill/sanskrit-wikisource-mirror; polite; research use)"
+    "sanskrit-wikisource-atlas/2.0 "
+    "(https://github.com/tylergneill/sanskrit-wikisource-atlas; polite; research use)"
 )
 
 session = requests.Session()

@@ -624,7 +624,7 @@ function renderPageLi(p, ownPath) {
 // Renders a small scan-icon link per Index item this page transcludes leaves
 // from (build_tree_json's source_indexes -- see pipeline/process.py's
 // build_page_node), for a reader who wants to jump to the original scan even
-// though the mirror otherwise drops a transcluded Index item from display
+// though the atlas otherwise drops a transcluded Index item from display
 // entirely in favor of this page (see docs/about.html, "Transclusion").
 // Absent/empty for the overwhelming majority of pages (no ProofreadPage
 // involvement at all), so this returns null rather than an empty wrapper.

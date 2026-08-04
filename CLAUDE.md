@@ -116,7 +116,7 @@ Wikisource's category graph is not a strict tree: a category can legitimately be
 
 ### Untranscluded Index items and OCR content
 
-Wikisource's OCR/"Proofreading" workflow stores scanned page images as `Index:` items (namespace `अनुक्रमणिका`), with individual scanned/proofread leaves as `Page:` items (namespace `पृष्ठम्`, titled `Title/N`). When an Index item's content has been transcluded into a real Main-namespace page (via a ProofreadPage `<pages index="..." />` tag), the mirror shows the Main-namespace page as the real content and skips listing the Index item separately, since it would just be a duplicate. When an Index item has **zero** transclusion anywhere in Main content, it's shown as its own `index-item` node, with stats summed from its untranscluded `पृष्ठम्:Title/N` leaf pages (never listed individually — only rolled up into the Index item's own stats).
+Wikisource's OCR/"Proofreading" workflow stores scanned page images as `Index:` items (namespace `अनुक्रमणिका`), with individual scanned/proofread leaves as `Page:` items (namespace `पृष्ठम्`, titled `Title/N`). When an Index item's content has been transcluded into a real Main-namespace page (via a ProofreadPage `<pages index="..." />` tag), the atlas shows the Main-namespace page as the real content and skips listing the Index item separately, since it would just be a duplicate. When an Index item has **zero** transclusion anywhere in Main content, it's shown as its own `index-item` node, with stats summed from its untranscluded `पृष्ठम्:Title/N` leaf pages (never listed individually — only rolled up into the Index item's own stats).
 
 ### Orphan bucket (`असम्बद्धवर्गीकृतम्`)
 

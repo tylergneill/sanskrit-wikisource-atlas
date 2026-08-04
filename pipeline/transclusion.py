@@ -162,7 +162,7 @@ def build_reverse_transclusion_map(main_records: list[PageRecord]) -> dict[str, 
     leaf pages it transcludes a range of -- the reverse direction of
     build_transclusion_map, for surfacing a link back to the source scan/
     Index item from the Main page that superseded it in display (see
-    docs/about.html, "Transclusion": the mirror drops a transcluded Index
+    docs/about.html, "Transclusion": the atlas drops a transcluded Index
     item from display entirely in favor of the Main page, but a reader may
     still want to jump to the scan). A Main page never transcludes the
     Index item itself -- only individual leaf pages under it, named via the

@@ -43,8 +43,12 @@
       <div class="block">
         <h2 id="about" style="margin-top:0;">About</h2>
         <p>
-          This atlas offers a better way to explore the Sanskrit e-text content at <a href="https://sa.wikisource.org/" target="_blank">sa.wikisource.org</a>, with transliteration support, dynamic display of categories (see <a href="https://sa.wikisource.org/wiki/वर्गः:वर्गसर्वस्वम्" target="_blank">"<span class="sa">वर्गसर्वस्वम्</span>"</a>), additional abstraction to the "text" level, and clear size and date information. It also surfaces insights that will help to gradually improve the source collection itself. The data snapshot is refreshed semi-automatically on a monthly basis.
+          This web interface offers a better way to explore the Sanskrit e-text content at <a href="https://sa.wikisource.org/" target="_blank">sa.wikisource.org</a>, with transliteration support, dynamic display of categories (see <a href="https://sa.wikisource.org/wiki/वर्गः:वर्गसर्वस्वम्" target="_blank">"<span class="sa">वर्गसर्वस्वम्</span>"</a>), more intuitive abstraction to the "text" level, and clear size and date information. It also surfaces insights that will help to gradually improve the source collection itself. The data snapshot is refreshed semi-automatically on a monthly basis.
         </p>
+        <p>
+          This is an "atlas" in the sense that it both charts the navigable waters and plumbs their depths, with sizes, counts, and growth dynamics that the source collection doesn't surface on its own.
+        </p>
+
         <p>
           code: <span id="appVersion"></span>, <a href="https://github.com/tylergneill/sanskrit-wikisource-atlas" target="_blank">on GitHub</a>
         </p>
@@ -131,7 +135,7 @@
           <div class="sourceTimelineTooltip" id="sourceTimelineTooltip" hidden></div>
         </div>
         <p>
-          Although Internet Archive does also hold <a href="https://archive.org/search?query=identifier%3Asawikisource-2*&sort=identifier" target="_blank">additional legacy-format dumps</a> for 74 of the 95 months between 2014-07 and 2022-05, these suffer from the relatively poor organization of past years. By contrast, materialized data benefits from the relatively better organization of the present, which makes it easier abstract to the text level. For this reason, Internet Archive legacy-format data dumps are not used here.
+          Although Internet Archive does also hold <a href="https://archive.org/search?query=identifier%3Asawikisource-2*&sort=identifier" target="_blank">additional legacy-format dumps</a> for 74 of the 95 months between 2014-07 and 2022-05, these suffer from the relatively poor organization of past years. By contrast, materialized data benefits from the relatively better organization of the present, which makes it easier to abstract to the text level. For this reason, Internet Archive legacy-format data dumps are not used here.
         </p>
 
         <h3 id="pages-categories-texts">Pages, Categories, and Texts</h3>
@@ -152,12 +156,12 @@
         </p>
 
        <p>
-          A "text" in this atlas can be one of two things: 1) any Mainspace page with no "/" parent of its own, whether or not it collects real subpages under itself; or 2) an Index item still in the OCR "Proofreading" pipeline that hasn't yet been transcluded into a Mainspace page. The artificial <span class="sa">असम्बद्धवर्गीकृतम्</span> category contains the majority of completely unproofread OCR, and its Mainspace pages frequently suffer from poor organization, such that subpages don't "roll up" properly and instead get counted as full "texts." For these reasons, this category may optionally be excluded from size and text/page-count totals.
+          A "text" in this atlas can be one of two things: either 1) any Mainspace page with no "/" parent of its own, whether or not it collects real subpages under itself; or 2) an Index item still in the OCR "Proofreading" pipeline that hasn't yet been transcluded into a Mainspace page. The artificial <span class="sa">असम्बद्धवर्गीकृतम्</span> category contains the majority of completely unproofread OCR, and its Mainspace pages frequently suffer from poor organization, such that subpages don't "roll up" properly and instead get counted as full "texts." For these reasons, this category may optionally be excluded from size and text/page-count totals.
        </p>
 
         <h3 id="transclusion-issues">Transclusion Issues</h3>
         <p>
-          When OCR content has <em>not</em> been transcluded to Main, the atlas links to the Index page and flags it with a "Proofing" label. Meanwhile, it remains possible that the editor copy-pasted to Main.
+          When OCR content has <em>not</em> been transcluded to Main, the atlas links to the Index page and flags it with a "Proofing" label. Even so, it remains possible that the editor copy-pasted to Main.
         </p>
 
         <p>
@@ -179,7 +183,7 @@
 
         <h3 id="calculating-size">Calculating Size</h3>
         <p>
-          The size Wikisource itself reports for a page reflects stored "wikitext," including markup, templates, and Category tags. Importantly, transcluded content is NOT counted. In order to obtain a more meaningful measure how much "real" text the collection contains, this atlas parses the wikitext, strips out overhead, populates transcluded content, and transliterates from Devanāgarī to IAST. IAST text takes up less space (approximately 50% of the Devanāgarī byte count) and is more common for cross-collection comparison.
+          The size Wikisource itself reports for a page reflects stored "wikitext," including markup, templates, and Category tags. Importantly, transcluded content is NOT counted. In order to obtain a more meaningful measure of how much "real" text the collection contains, this atlas parses the wikitext, strips out overhead, populates transcluded content, and transliterates from Devanāgarī to IAST. IAST text takes up less space (approximately 50% of the Devanāgarī byte count) and is more common for cross-collection comparison.
         </p>
 
       </details>
@@ -195,10 +199,10 @@
         <!-- AUDIT:START -- generated by `python -m pipeline.audit --update-about`; do not hand-edit between these markers -->
         <ul style="list-style: none; padding-left: 0;">
           <li class="audit-item"><details>
-            <summary class="audit-summary">Pages that look like missed breadcrumb subpages (692 pages)</summary>
+            <summary class="audit-summary">Pages that look like missed breadcrumb subpages (701 pages)</summary>
           <ul style="margin-left: 1.6em; list-style: none; padding-left: 0;">
             <li class="audit-item"><details>
-<summary class="audit-summary">Space-separated title instead of a "/" (561 pages under 193 texts)</summary>
+<summary class="audit-summary">Space-separated title instead of a "/" (563 pages under 194 texts)</summary>
           <ul style="margin-left: 1.6em; list-style: none; padding-left: 0;">
             <li class="audit-item"><details>
 <summary class="audit-summary"><a href="https://sa.wikisource.org/wiki/%E0%A4%B8%E0%A4%AE%E0%A4%B0%E0%A4%BE%E0%A4%99%E0%A5%8D%E0%A4%97%E0%A4%A3%E0%A4%B8%E0%A5%82%E0%A4%A4%E0%A5%8D%E0%A4%B0%E0%A4%A7%E0%A4%BE%E0%A4%B0" target="_blank">samarāṅgaṇasūtradhāra</a> (83 candidate pages)</summary>
@@ -456,6 +460,10 @@
             <li class="audit-item"><details>
 <summary class="audit-summary"><a href="https://sa.wikisource.org/wiki/%E0%A4%B8%E0%A4%BE%E0%A4%B0%E0%A4%AE%E0%A4%9E%E0%A5%8D%E0%A4%9C%E0%A4%B0%E0%A5%80" target="_blank">sāramañjarī</a> (2 candidate pages)</summary>
 <ul style="margin-left: 1.6em; list-style: none; padding-left: 0;"><li><a href="https://sa.wikisource.org/wiki/%E0%A4%B8%E0%A4%BE%E0%A4%B0%E0%A4%AE%E0%A4%9E%E0%A5%8D%E0%A4%9C%E0%A4%B0%E0%A5%80_%28%E0%A4%86%E0%A4%B6%E0%A5%81%E0%A4%AC%E0%A5%8B%E0%A4%A7%E0%A4%B5%E0%A4%BF%E0%A4%A6%E0%A5%8D%E0%A4%AF%E0%A4%BE%E0%A4%AD%E0%A5%82%E0%A4%B7%E0%A4%A3%E0%A4%B5%E0%A4%BF%E0%A4%B0%E0%A4%9A%E0%A4%BF%E0%A4%A4%E0%A4%B5%E0%A5%8D%E0%A4%AF%E0%A4%BE%E0%A4%96%E0%A5%8D%E0%A4%AF%E0%A4%BE%E0%A4%B8%E0%A4%B9%E0%A4%BF%E0%A4%A4%E0%A4%BE%29" target="_blank">sāramañjarī (āśubodhavidyābhūṣaṇaviracitavyākhyāsahitā)</a></li><li><a href="https://sa.wikisource.org/wiki/%E0%A4%B8%E0%A4%BE%E0%A4%B0%E0%A4%AE%E0%A4%9E%E0%A5%8D%E0%A4%9C%E0%A4%B0%E0%A5%80_%28%E0%A4%B8%E0%A4%BE%E0%A4%B0%E0%A4%A6%E0%A5%80%E0%A4%AA%E0%A4%BF%E0%A4%95%E0%A4%BE%E0%A4%B5%E0%A5%8D%E0%A4%AF%E0%A4%BE%E0%A4%96%E0%A5%8D%E0%A4%AF%E0%A4%BE%E0%A4%B8%E0%A4%B9%E0%A4%BF%E0%A4%A4%E0%A4%BE%29" target="_blank">sāramañjarī (sāradīpikāvyākhyāsahitā)</a></li></ul>
+</details></li>
+            <li class="audit-item"><details>
+<summary class="audit-summary"><a href="https://sa.wikisource.org/wiki/%E0%A4%B8%E0%A5%8D%E0%A4%AA%E0%A4%A8%E0%A5%8D%E0%A4%A6%E0%A4%95%E0%A4%BE%E0%A4%B0%E0%A4%BF%E0%A4%95%E0%A4%BE" target="_blank">spandakārikā</a> (2 candidate pages)</summary>
+<ul style="margin-left: 1.6em; list-style: none; padding-left: 0;"><li><a href="https://sa.wikisource.org/wiki/%E0%A4%B8%E0%A5%8D%E0%A4%AA%E0%A4%A8%E0%A5%8D%E0%A4%A6%E0%A4%95%E0%A4%BE%E0%A4%B0%E0%A4%BF%E0%A4%95%E0%A4%BE_%28%E0%A4%95%E0%A4%B2%E0%A5%8D%E0%A4%B2%E0%A4%9F%E0%A4%BE%E0%A4%9A%E0%A4%BE%E0%A4%B0%E0%A5%8D%E0%A4%AF%E0%A4%B5%E0%A4%BF%E0%A4%B0%E0%A4%9A%E0%A4%BF%E0%A4%A4%E0%A4%B5%E0%A4%BF%E0%A4%B5%E0%A5%83%E0%A4%A4%E0%A5%8D%E0%A4%AF%E0%A5%81%E0%A4%AA%E0%A5%87%E0%A4%A4%E0%A4%BE%29" target="_blank">spandakārikā (kallaṭācāryaviracitavivṛtyupetā)</a></li><li><a href="https://sa.wikisource.org/wiki/%E0%A4%B8%E0%A5%8D%E0%A4%AA%E0%A4%A8%E0%A5%8D%E0%A4%A6%E0%A4%95%E0%A4%BE%E0%A4%B0%E0%A4%BF%E0%A4%95%E0%A4%BE_%28%E0%A4%B0%E0%A4%BE%E0%A4%AE%E0%A4%95%E0%A4%A3%E0%A5%8D%E0%A4%A0%E0%A4%BE%E0%A4%9A%E0%A4%BE%E0%A4%B0%E0%A5%8D%E0%A4%AF%E0%A4%B5%E0%A4%BF%E0%A4%B0%E0%A4%9A%E0%A4%BF%E0%A4%A4%E0%A4%B5%E0%A4%BF%E0%A4%B5%E0%A5%83%E0%A4%A4%E0%A5%8D%E0%A4%AF%E0%A5%81%E0%A4%AA%E0%A5%87%E0%A4%A4%E0%A4%BE%29" target="_blank">spandakārikā (rāmakaṇṭhācāryaviracitavivṛtyupetā)</a></li></ul>
 </details></li>
             <li class="audit-item"><details>
 <summary class="audit-summary"><a href="https://sa.wikisource.org/wiki/Ch%C3%A9zy" target="_blank">chahaéṣaya</a> (1 candidate pages)</summary>
@@ -986,8 +994,8 @@
 <ul style="margin-left: 1.6em; list-style: none; padding-left: 0;"><li><a href="https://sa.wikisource.org/wiki/%E0%A4%B8%E0%A5%81%E0%A4%B5%E0%A4%B0%E0%A5%8D%E0%A4%A3%E0%A4%AE%E0%A4%BE%E0%A4%B2%E0%A4%BE%E0%A4%B8%E0%A5%8D%E0%A4%A4%E0%A5%81%E0%A4%A4%E0%A4%BF%E0%A4%83_%28%E0%A4%AC%E0%A5%83%E0%A4%B9%E0%A4%A4%E0%A5%8D%E0%A4%B8%E0%A5%8D%E0%A4%A4%E0%A5%8B%E0%A4%A4%E0%A5%8D%E0%A4%B0%E0%A4%B0%E0%A4%A4%E0%A5%8D%E0%A4%A8%E0%A4%BE%E0%A4%95%E0%A4%B0%E0%A4%BE%E0%A4%A8%E0%A5%8D%E0%A4%A4%E0%A4%B0%E0%A5%8D%E0%A4%97%E0%A4%A4%E0%A4%BE%29" target="_blank">suvarṇamālāstutiḥ (bṛhatstotraratnākarāntargatā)</a></li></ul>
 </details></li>
             <li class="audit-item"><details>
-<summary class="audit-summary"><a href="https://sa.wikisource.org/wiki/%E0%A4%B8%E0%A5%8D%E0%A4%AA%E0%A4%A8%E0%A5%8D%E0%A4%A6%E0%A4%95%E0%A4%BE%E0%A4%B0%E0%A4%BF%E0%A4%95%E0%A4%BE" target="_blank">spandakārikā</a> (1 candidate pages)</summary>
-<ul style="margin-left: 1.6em; list-style: none; padding-left: 0;"><li><a href="https://sa.wikisource.org/wiki/%E0%A4%B8%E0%A5%8D%E0%A4%AA%E0%A4%A8%E0%A5%8D%E0%A4%A6%E0%A4%95%E0%A4%BE%E0%A4%B0%E0%A4%BF%E0%A4%95%E0%A4%BE_%E0%A4%B5%E0%A4%BF%E0%A4%B5%E0%A5%83%E0%A4%A4%E0%A5%8D%E0%A4%AF%E0%A5%81%E0%A4%AA%E0%A5%87%E0%A4%A4%E0%A4%BE" target="_blank">spandakārikā vivṛtyupetā</a></li></ul>
+<summary class="audit-summary"><a href="https://sa.wikisource.org/wiki/%E0%A4%B8%E0%A5%8C%E0%A4%A8%E0%A5%8D%E0%A4%A6%E0%A4%B0%E0%A5%8D%E0%A4%AF%E0%A4%B2%E0%A4%B9%E0%A4%B0%E0%A5%80" target="_blank">saundaryalaharī</a> (1 candidate pages)</summary>
+<ul style="margin-left: 1.6em; list-style: none; padding-left: 0;"><li><a href="https://sa.wikisource.org/wiki/%E0%A4%B8%E0%A5%8C%E0%A4%A8%E0%A5%8D%E0%A4%A6%E0%A4%B0%E0%A5%8D%E0%A4%AF%E0%A4%B2%E0%A4%B9%E0%A4%B0%E0%A5%80_%28%E0%A4%B2%E0%A4%95%E0%A5%8D%E0%A4%B7%E0%A5%8D%E0%A4%AE%E0%A5%80%E0%A4%A7%E0%A4%B0%E0%A4%B5%E0%A5%8D%E0%A4%AF%E0%A4%BE%E0%A4%96%E0%A5%8D%E0%A4%AF%E0%A4%BE%E0%A4%B8%E0%A4%AE%E0%A4%B2%E0%A4%99%E0%A5%8D%E0%A4%95%E0%A5%83%E0%A4%A4%E0%A4%BE%29" target="_blank">saundaryalaharī (lakṣmīdharavyākhyāsamalaṅkṛtā)</a></li></ul>
 </details></li>
             <li class="audit-item"><details>
 <summary class="audit-summary"><a href="https://sa.wikisource.org/wiki/%E0%A4%B8%E0%A5%8D%E0%A4%B5%E0%A4%BE%E0%A4%A4%E0%A5%8D%E0%A4%AE%E0%A4%A8%E0%A4%BF%E0%A4%B0%E0%A5%82%E0%A4%AA%E0%A4%A3%E0%A4%AE%E0%A5%8D" target="_blank">svātmanirūpaṇam</a> (1 candidate pages)</summary>
@@ -1049,7 +1057,7 @@
           </ul>
 </details></li>
             <li class="audit-item"><details>
-<summary class="audit-summary">Has a "/" breadcrumb, but it points at a page that does not exist (107 pages under 20 missing roots)</summary>
+<summary class="audit-summary">Has a "/" breadcrumb, but it points at a page that does not exist (114 pages under 21 missing roots)</summary>
           <ul style="margin-left: 1.6em; list-style: none; padding-left: 0;">
             <li class="audit-item"><details>
 <summary class="audit-summary"><a href="https://sa.wikisource.org/wiki/%E0%A4%9A%E0%A4%B0%E0%A5%8D%E0%A4%AF%E0%A4%BE%E0%A4%AA%E0%A4%BE%E0%A4%A6%E0%A4%83" target="_blank">caryāpādaḥ</a> (33 pages)</summary>
@@ -1134,6 +1142,18 @@
             <li><a href="https://sa.wikisource.org/wiki/%E0%A4%97%E0%A5%8C%E0%A4%A1%E0%A4%BC%E0%A4%B0%E0%A4%BE%E0%A4%9C%E0%A5%8D%E0%A4%9E%E0%A4%BE%E0%A4%AE%E0%A5%8D_%E0%A4%85%E0%A4%AD%E0%A4%BF%E0%A4%B2%E0%A5%87%E0%A4%96%E0%A4%BE%E0%A4%A8%E0%A4%BF/%E0%A4%A8%E0%A4%BE%E0%A4%B0%E0%A4%BE%E0%A4%AF%E0%A4%A3%E0%A4%AA%E0%A4%BE%E0%A4%B2%E0%A4%B8%E0%A5%8D%E0%A4%AF_%E0%A4%AD%E0%A4%BE%E0%A4%97%E0%A4%B2%E0%A4%AA%E0%A5%81%E0%A4%B0_%E0%A4%A4%E0%A4%BE%E0%A4%AE%E0%A5%8D%E0%A4%B0%E0%A4%B6%E0%A4%BE%E0%A4%B8%E0%A4%A8%E0%A4%AE%E0%A5%8D" target="_blank">gauḍa़rājñām abhilekhāni/nārāyaṇapālasya bhāgalapura tāmraśāsanam</a></li>
             <li><a href="https://sa.wikisource.org/wiki/%E0%A4%97%E0%A5%8C%E0%A4%A1%E0%A4%BC%E0%A4%B0%E0%A4%BE%E0%A4%9C%E0%A5%8D%E0%A4%9E%E0%A4%BE%E0%A4%AE%E0%A5%8D_%E0%A4%85%E0%A4%AD%E0%A4%BF%E0%A4%B2%E0%A5%87%E0%A4%96%E0%A4%BE%E0%A4%A8%E0%A4%BF/%E0%A4%AA%E0%A5%8D%E0%A4%B0%E0%A4%A5%E0%A4%AE_%E0%A4%B6%E0%A5%82%E0%A4%B0%E0%A4%AA%E0%A4%BE%E0%A4%B2%E0%A4%B8%E0%A5%8D%E0%A4%AF_%E0%A4%AE%E0%A4%BF%E0%A4%B0%E0%A5%8D%E0%A4%9C%E0%A4%BC%E0%A4%BE%E0%A4%AA%E0%A5%81%E0%A4%B0_%E0%A4%A4%E0%A4%BE%E0%A4%AE%E0%A5%8D%E0%A4%B0%E0%A4%B6%E0%A4%BE%E0%A4%B8%E0%A4%A8%E0%A4%AE%E0%A5%8D" target="_blank">gauḍa़rājñām abhilekhāni/prathama śūrapālasya mirja़āpura tāmraśāsanam</a></li>
             <li><a href="https://sa.wikisource.org/wiki/%E0%A4%97%E0%A5%8C%E0%A4%A1%E0%A4%BC%E0%A4%B0%E0%A4%BE%E0%A4%9C%E0%A5%8D%E0%A4%9E%E0%A4%BE%E0%A4%AE%E0%A5%8D_%E0%A4%85%E0%A4%AD%E0%A4%BF%E0%A4%B2%E0%A5%87%E0%A4%96%E0%A4%BE%E0%A4%A8%E0%A4%BF/%E0%A4%AE%E0%A4%B9%E0%A5%87%E0%A4%A8%E0%A5%8D%E0%A4%A6%E0%A5%8D%E0%A4%B0%E0%A4%AA%E0%A4%BE%E0%A4%B2%E0%A4%B8%E0%A5%8D%E0%A4%AF_%E0%A4%9C%E0%A4%97%E0%A4%9C%E0%A5%8D%E0%A4%9C%E0%A5%80%E0%A4%B5%E0%A4%A8%E0%A4%AA%E0%A5%81%E0%A4%B0_%E0%A4%A4%E0%A4%BE%E0%A4%AE%E0%A5%8D%E0%A4%B0%E0%A4%B6%E0%A4%BE%E0%A4%B8%E0%A4%A8%E0%A4%AE%E0%A5%8D" target="_blank">gauḍa़rājñām abhilekhāni/mahendrapālasya jagajjīvanapura tāmraśāsanam</a></li>
+          </ul>
+</details></li>
+            <li class="audit-item"><details>
+<summary class="audit-summary"><a href="https://sa.wikisource.org/wiki/%E0%A4%B6%E0%A4%BF%E0%A4%B5%E0%A4%AA%E0%A5%81%E0%A4%B0%E0%A4%BE%E0%A4%A3%E0%A4%AE%E0%A5%8D" target="_blank">śivapurāṇam</a> (7 pages)</summary>
+          <ul style="margin-left: 1.6em;">
+            <li><a href="https://sa.wikisource.org/wiki/%E0%A4%B6%E0%A4%BF%E0%A4%B5%E0%A4%AA%E0%A5%81%E0%A4%B0%E0%A4%BE%E0%A4%A3%E0%A4%AE%E0%A5%8D/%E0%A4%B8%E0%A4%82%E0%A4%B9%E0%A4%BF%E0%A4%A4%E0%A4%BE_%E0%A5%A7_%28%E0%A4%B5%E0%A4%BF%E0%A4%B6%E0%A5%8D%E0%A4%B5%E0%A5%87%E0%A4%B6%E0%A5%8D%E0%A4%B5%E0%A4%B0%E0%A4%B8%E0%A4%82%E0%A4%B9%E0%A4%BF%E0%A4%A4%E0%A4%BE%29" target="_blank">śivapurāṇam/saṃhitā 1 (viśveśvarasaṃhitā)</a></li>
+            <li><a href="https://sa.wikisource.org/wiki/%E0%A4%B6%E0%A4%BF%E0%A4%B5%E0%A4%AA%E0%A5%81%E0%A4%B0%E0%A4%BE%E0%A4%A3%E0%A4%AE%E0%A5%8D/%E0%A4%B8%E0%A4%82%E0%A4%B9%E0%A4%BF%E0%A4%A4%E0%A4%BE_%E0%A5%A8_%28%E0%A4%B0%E0%A5%81%E0%A4%A6%E0%A5%8D%E0%A4%B0%E0%A4%B8%E0%A4%82%E0%A4%B9%E0%A4%BF%E0%A4%A4%E0%A4%BE%29" target="_blank">śivapurāṇam/saṃhitā 2 (rudrasaṃhitā)</a></li>
+            <li><a href="https://sa.wikisource.org/wiki/%E0%A4%B6%E0%A4%BF%E0%A4%B5%E0%A4%AA%E0%A5%81%E0%A4%B0%E0%A4%BE%E0%A4%A3%E0%A4%AE%E0%A5%8D/%E0%A4%B8%E0%A4%82%E0%A4%B9%E0%A4%BF%E0%A4%A4%E0%A4%BE_%E0%A5%A9_%28%E0%A4%B6%E0%A4%A4%E0%A4%B0%E0%A5%81%E0%A4%A6%E0%A5%8D%E0%A4%B0%E0%A4%B8%E0%A4%82%E0%A4%B9%E0%A4%BF%E0%A4%A4%E0%A4%BE%29" target="_blank">śivapurāṇam/saṃhitā 3 (śatarudrasaṃhitā)</a></li>
+            <li><a href="https://sa.wikisource.org/wiki/%E0%A4%B6%E0%A4%BF%E0%A4%B5%E0%A4%AA%E0%A5%81%E0%A4%B0%E0%A4%BE%E0%A4%A3%E0%A4%AE%E0%A5%8D/%E0%A4%B8%E0%A4%82%E0%A4%B9%E0%A4%BF%E0%A4%A4%E0%A4%BE_%E0%A5%AA_%28%E0%A4%95%E0%A5%8B%E0%A4%9F%E0%A4%BF%E0%A4%B0%E0%A5%81%E0%A4%A6%E0%A5%8D%E0%A4%B0%E0%A4%B8%E0%A4%82%E0%A4%B9%E0%A4%BF%E0%A4%A4%E0%A4%BE%29" target="_blank">śivapurāṇam/saṃhitā 4 (koṭirudrasaṃhitā)</a></li>
+            <li><a href="https://sa.wikisource.org/wiki/%E0%A4%B6%E0%A4%BF%E0%A4%B5%E0%A4%AA%E0%A5%81%E0%A4%B0%E0%A4%BE%E0%A4%A3%E0%A4%AE%E0%A5%8D/%E0%A4%B8%E0%A4%82%E0%A4%B9%E0%A4%BF%E0%A4%A4%E0%A4%BE_%E0%A5%AB_%28%E0%A4%89%E0%A4%AE%E0%A4%BE%E0%A4%B8%E0%A4%82%E0%A4%B9%E0%A4%BF%E0%A4%A4%E0%A4%BE%29" target="_blank">śivapurāṇam/saṃhitā 5 (umāsaṃhitā)</a></li>
+            <li><a href="https://sa.wikisource.org/wiki/%E0%A4%B6%E0%A4%BF%E0%A4%B5%E0%A4%AA%E0%A5%81%E0%A4%B0%E0%A4%BE%E0%A4%A3%E0%A4%AE%E0%A5%8D/%E0%A4%B8%E0%A4%82%E0%A4%B9%E0%A4%BF%E0%A4%A4%E0%A4%BE_%E0%A5%AC_%28%E0%A4%95%E0%A5%88%E0%A4%B2%E0%A4%BE%E0%A4%B8%E0%A4%B8%E0%A4%82%E0%A4%B9%E0%A4%BF%E0%A4%A4%E0%A4%BE%29" target="_blank">śivapurāṇam/saṃhitā 6 (kailāsasaṃhitā)</a></li>
+            <li><a href="https://sa.wikisource.org/wiki/%E0%A4%B6%E0%A4%BF%E0%A4%B5%E0%A4%AA%E0%A5%81%E0%A4%B0%E0%A4%BE%E0%A4%A3%E0%A4%AE%E0%A5%8D/%E0%A4%B8%E0%A4%82%E0%A4%B9%E0%A4%BF%E0%A4%A4%E0%A4%BE_%E0%A5%AD_%28%E0%A4%B5%E0%A4%BE%E0%A4%AF%E0%A4%B5%E0%A5%80%E0%A4%AF%E0%A4%B8%E0%A4%82%E0%A4%B9%E0%A4%BF%E0%A4%A4%E0%A4%BE%29" target="_blank">śivapurāṇam/saṃhitā 7 (vāyavīyasaṃhitā)</a></li>
           </ul>
 </details></li>
             <li class="audit-item"><details>
@@ -1366,7 +1386,7 @@
           </ul>
           </details></li>
           <li class="audit-item"><details>
-            <summary class="audit-summary">Categories referenced but never created (red links) (36 categories)</summary>
+            <summary class="audit-summary">Categories referenced but never created (red links) (35 categories)</summary>
           <ul style="margin-left: 1.6em;">
             <li><a href="https://sa.wikisource.org/wiki/%E0%A4%B5%E0%A4%B0%E0%A5%8D%E0%A4%97%E0%A4%83%3AHinduism" target="_blank">ḥinadisama</a></li>
             <li><a href="https://sa.wikisource.org/wiki/%E0%A4%B5%E0%A4%B0%E0%A5%8D%E0%A4%97%E0%A4%83%3ARig_Veda" target="_blank">ṇga Veda</a></li>
@@ -1396,7 +1416,6 @@
             <li><a href="https://sa.wikisource.org/wiki/%E0%A4%B5%E0%A4%B0%E0%A5%8D%E0%A4%97%E0%A4%83%3A%E0%A4%AE%E0%A4%BE%E0%A4%B2%E0%A4%B5%E0%A4%BF%E0%A4%95%E0%A4%BE%E0%A4%97%E0%A5%8D%E0%A4%A8%E0%A4%BF%E0%A4%AE%E0%A4%BF%E0%A4%A4%E0%A5%8D%E0%A4%B0%E0%A4%AE%E0%A5%8D" target="_blank">mālavikāgnimitram</a></li>
             <li><a href="https://sa.wikisource.org/wiki/%E0%A4%B5%E0%A4%B0%E0%A5%8D%E0%A4%97%E0%A4%83%3A%E0%A4%AF%E0%A4%9C%E0%A5%81%E0%A4%B0%E0%A5%8D%E0%A4%B5%E0%A5%87%E0%A4%A6" target="_blank">yajurveda</a></li>
             <li><a href="https://sa.wikisource.org/wiki/%E0%A4%B5%E0%A4%B0%E0%A5%8D%E0%A4%97%E0%A4%83%3A%E0%A4%B0%E0%A4%B8%E0%A4%B0%E0%A4%A4%E0%A5%8D%E0%A4%A8%E0%A4%B8%E0%A4%AE%E0%A5%81%E0%A4%9A%E0%A5%8D%E0%A4%9A%E0%A4%AF%E0%A4%83%E2%80%8E" target="_blank">rasaratnasamuccayaḥ‎</a></li>
-            <li><a href="https://sa.wikisource.org/wiki/%E0%A4%B5%E0%A4%B0%E0%A5%8D%E0%A4%97%E0%A4%83%3A%E0%A4%B5%E0%A4%BF%E0%A4%B7%E0%A5%8D%E0%A4%A3%E0%A5%81%E0%A4%AA%E0%A5%81%E0%A4%B0%E0%A4%BE%E0%A4%A3%E0%A4%AE%E0%A5%8D" target="_blank">viṣṇupurāṇam</a></li>
             <li><a href="https://sa.wikisource.org/wiki/%E0%A4%B5%E0%A4%B0%E0%A5%8D%E0%A4%97%E0%A4%83%3A%E0%A4%B5%E0%A5%87%E0%A4%A6%E0%A4%BE%E0%A4%A8%E0%A5%8D%E0%A4%A4%E0%A4%A6%E0%A4%B0%E0%A5%8D%E0%A4%B6%E0%A4%A8%E0%A4%AE%E0%A5%8D" target="_blank">vedāntadarśanam</a></li>
             <li><a href="https://sa.wikisource.org/wiki/%E0%A4%B5%E0%A4%B0%E0%A5%8D%E0%A4%97%E0%A4%83%3A%E0%A4%B6%E0%A5%8D%E0%A4%B0%E0%A5%8C%E0%A4%A4%E0%A4%97%E0%A5%8D%E0%A4%B0%E0%A4%A8%E0%A5%8D%E0%A4%A5%E0%A4%BE%E0%A4%83" target="_blank">śrautagranthāḥ</a></li>
             <li><a href="https://sa.wikisource.org/wiki/%E0%A4%B5%E0%A4%B0%E0%A5%8D%E0%A4%97%E0%A4%83%3A%E0%A4%B8%E0%A4%82%E0%A4%B9%E0%A4%BF%E0%A4%A4%E0%A4%BE" target="_blank">saṃhitā</a></li>
@@ -1451,13 +1470,12 @@
           </details></li>
         </ul>
 
-        <h3 id="provenance-insights">Provenance Insights</h3>
         <p>
           The same audit pipeline also makes note of source links:
         </p>
         <ul style="list-style: none; padding-left: 0;">
           <li class="audit-item"><details>
-            <summary class="audit-summary">Pages likely imported from other online text collections (226)</summary>
+            <summary class="audit-summary">Pages likely imported from other online text collections (244)</summary>
           <ul style="margin-left: 1.6em; list-style: none; padding-left: 0;">
             <li class="audit-item"><details>
 <summary class="audit-summary">sanskritdocuments.org (108)</summary>
@@ -1573,7 +1591,7 @@
           </ul>
 </details></li>
             <li class="audit-item"><details>
-<summary class="audit-summary">muktalib7.com (74)</summary>
+<summary class="audit-summary">muktalib7.com (92)</summary>
           <ul style="margin-left: 1.6em;">
             <li><a href="https://sa.wikisource.org/wiki/%E0%A4%85%E0%A4%B5%E0%A4%A7%E0%A5%82%E0%A4%A4%E0%A5%8B%E0%A4%AA%E0%A4%A8%E0%A4%BF%E0%A4%B7%E0%A4%A4%E0%A5%8D_%28%E0%A4%B8%E0%A4%B5%E0%A5%8D%E0%A4%AF%E0%A4%BE%E0%A4%96%E0%A5%8D%E0%A4%AF%E0%A4%BE%29" target="_blank">avadhūtopaniṣat (savyākhyā)</a></li>
             <li><a href="https://sa.wikisource.org/wiki/%E0%A4%95%E0%A5%81%E0%A4%B2%E0%A4%BE%E0%A4%B0%E0%A5%8D%E0%A4%A3%E0%A4%B5%E0%A4%A4%E0%A4%A8%E0%A5%8D%E0%A4%A4%E0%A5%8D%E0%A4%B0%E0%A4%AE%E0%A5%8D" target="_blank">kulārṇavatantram</a></li>
@@ -1640,6 +1658,9 @@
             <li><a href="https://sa.wikisource.org/wiki/%E0%A4%AE%E0%A5%83%E0%A4%A4%E0%A5%8D%E0%A4%AF%E0%A5%81%E0%A4%9E%E0%A5%8D%E0%A4%9C%E0%A4%AF%E0%A4%A8%E0%A4%BF%E0%A4%A4%E0%A5%8D%E0%A4%AF%E0%A4%BE%E0%A4%B0%E0%A5%8D%E0%A4%9A%E0%A4%A8%E0%A4%B5%E0%A4%BF%E0%A4%A7%E0%A4%BF%E0%A4%83" target="_blank">mṛtyuñjayanityārcanavidhiḥ</a></li>
             <li><a href="https://sa.wikisource.org/wiki/%E0%A4%AE%E0%A5%8B%E0%A4%B9%E0%A4%9A%E0%A5%82%E0%A4%A1%E0%A5%8B%E0%A4%A4%E0%A5%8D%E0%A4%A4%E0%A4%B0%E0%A4%AE%E0%A5%8D" target="_blank">mohacūḍottaram</a></li>
             <li><a href="https://sa.wikisource.org/wiki/%E0%A4%B0%E0%A4%BE%E0%A4%AE%E0%A4%BE%E0%A4%B0%E0%A5%8D%E0%A4%9A%E0%A4%A8%E0%A4%9A%E0%A4%A8%E0%A5%8D%E0%A4%A6%E0%A5%8D%E0%A4%B0%E0%A4%BF%E0%A4%95%E0%A4%BE" target="_blank">rāmārcanacandrikā</a></li>
+            <li><a href="https://sa.wikisource.org/wiki/%E0%A4%B7%E0%A4%9F%E0%A5%8D%E0%A4%9A%E0%A4%95%E0%A5%8D%E0%A4%B0%E0%A4%A8%E0%A4%BF%E0%A4%B0%E0%A5%8D%E0%A4%A3%E0%A4%AF%E0%A4%83" target="_blank">ṣaṭcakranirṇayaḥ</a></li>
+            <li><a href="https://sa.wikisource.org/wiki/%E0%A4%B7%E0%A4%9F%E0%A5%8D%E0%A4%A4%E0%A5%8D%E0%A4%B0%E0%A4%BF%E0%A4%82%E0%A4%B6%E0%A4%A4%E0%A5%8D%E0%A4%A4%E0%A4%A4%E0%A5%8D%E0%A4%A4%E0%A5%8D%E0%A4%B5%E0%A4%B8%E0%A4%82%E0%A4%A6%E0%A5%8B%E0%A4%B9%E0%A4%83" target="_blank">ṣaṭtriṃśattattvasaṃdohaḥ</a></li>
+            <li><a href="https://sa.wikisource.org/wiki/%E0%A4%B7%E0%A4%9F%E0%A5%8D%E0%A4%B8%E0%A4%B9%E0%A4%B8%E0%A5%8D%E0%A4%B0%E0%A4%95%E0%A4%BE%E0%A4%B2%E0%A5%8B%E0%A4%A4%E0%A5%8D%E0%A4%A4%E0%A4%B0%E0%A4%BE%E0%A4%97%E0%A4%AE%E0%A4%83" target="_blank">ṣaṭsahasrakālottarāgamaḥ</a></li>
             <li><a href="https://sa.wikisource.org/wiki/%E0%A4%B7%E0%A4%A1%E0%A4%BE%E0%A4%AE%E0%A5%8D%E0%A4%A8%E0%A4%BE%E0%A4%AF%E0%A4%AA%E0%A5%82%E0%A4%9C%E0%A4%BE%E0%A4%B5%E0%A4%BF%E0%A4%A7%E0%A4%BF%E0%A4%83" target="_blank">ṣaḍāmnāyapūjāvidhiḥ</a></li>
             <li><a href="https://sa.wikisource.org/wiki/%E0%A4%B8%E0%A4%A8%E0%A4%A4%E0%A5%8D%E0%A4%95%E0%A5%81%E0%A4%AE%E0%A4%BE%E0%A4%B0%E0%A4%A4%E0%A4%A8%E0%A5%8D%E0%A4%A4%E0%A5%8D%E0%A4%B0%E0%A4%AE%E0%A5%8D" target="_blank">sanatkumāratantram</a></li>
             <li><a href="https://sa.wikisource.org/wiki/%E0%A4%B8%E0%A4%AE%E0%A5%8D%E0%A4%AC%E0%A4%A8%E0%A5%8D%E0%A4%A7%E0%A4%B8%E0%A4%BF%E0%A4%A6%E0%A5%8D%E0%A4%A7%E0%A4%BF%E0%A4%83" target="_blank">sambandhasiddhiḥ</a></li>
@@ -1649,6 +1670,21 @@
             <li><a href="https://sa.wikisource.org/wiki/%E0%A4%B8%E0%A4%BE%E0%A4%A7%E0%A4%A8%E0%A4%AE%E0%A4%BE%E0%A4%B2%E0%A4%BE_%28%E0%A4%AD%E0%A4%BE%E0%A4%97%E0%A4%83_%E0%A5%A7%29" target="_blank">sādhanamālā (bhāgaḥ 1)</a></li>
             <li><a href="https://sa.wikisource.org/wiki/%E0%A4%B8%E0%A4%BE%E0%A4%A7%E0%A4%A8%E0%A4%AE%E0%A4%BE%E0%A4%B2%E0%A4%BE_%28%E0%A4%AD%E0%A4%BE%E0%A4%97%E0%A4%83_%E0%A5%A8%29" target="_blank">sādhanamālā (bhāgaḥ 2)</a></li>
             <li><a href="https://sa.wikisource.org/wiki/%E0%A4%B8%E0%A4%BE%E0%A4%AE%E0%A5%8D%E0%A4%AC%E0%A4%AA%E0%A4%9E%E0%A5%8D%E0%A4%9A%E0%A4%BE%E0%A4%B6%E0%A4%BF%E0%A4%95%E0%A4%BE" target="_blank">sāmbapañcāśikā</a></li>
+            <li><a href="https://sa.wikisource.org/wiki/%E0%A4%B8%E0%A4%BE%E0%A4%B5%E0%A4%B0%E0%A4%A4%E0%A4%A8%E0%A5%8D%E0%A4%A4%E0%A5%8D%E0%A4%B0%E0%A4%AE%E0%A4%A8%E0%A5%8D%E0%A4%A4%E0%A5%8D%E0%A4%B0%E0%A4%B8%E0%A4%82%E0%A4%97%E0%A5%8D%E0%A4%B0%E0%A4%B9%E0%A4%83" target="_blank">sāvaratantramantrasaṃgrahaḥ</a></li>
+            <li><a href="https://sa.wikisource.org/wiki/%E0%A4%B8%E0%A4%BF%E0%A4%A6%E0%A5%8D%E0%A4%A7%E0%A4%B2%E0%A4%95%E0%A5%8D%E0%A4%B7%E0%A5%8D%E0%A4%AE%E0%A5%80%E0%A4%AA%E0%A5%82%E0%A4%9C%E0%A4%BE%E0%A4%AA%E0%A4%A6%E0%A5%8D%E0%A4%A7%E0%A4%A4%E0%A4%BF%E0%A4%83" target="_blank">siddhalakṣmīpūjāpaddhatiḥ</a></li>
+            <li><a href="https://sa.wikisource.org/wiki/%E0%A4%B8%E0%A4%BF%E0%A4%A6%E0%A5%8D%E0%A4%A7%E0%A4%BE%E0%A4%A8%E0%A5%8D%E0%A4%A4%E0%A4%B2%E0%A5%87%E0%A4%B6%E0%A4%B8%E0%A4%99%E0%A5%8D%E0%A4%97%E0%A5%8D%E0%A4%B0%E0%A4%B9%E0%A4%9F%E0%A5%80%E0%A4%95%E0%A4%BE_-_%E0%A4%AD%E0%A4%BE%E0%A4%97%E0%A4%83_%E0%A5%A7" target="_blank">siddhāntaleśasaṅgrahaṭīkā - bhāgaḥ 1</a></li>
+            <li><a href="https://sa.wikisource.org/wiki/%E0%A4%B8%E0%A4%BF%E0%A4%A6%E0%A5%8D%E0%A4%A7%E0%A4%BE%E0%A4%A8%E0%A5%8D%E0%A4%A4%E0%A4%B2%E0%A5%87%E0%A4%B6%E0%A4%B8%E0%A4%99%E0%A5%8D%E0%A4%97%E0%A5%8D%E0%A4%B0%E0%A4%B9%E0%A4%9F%E0%A5%80%E0%A4%95%E0%A4%BE_-_%E0%A4%AD%E0%A4%BE%E0%A4%97%E0%A4%83_%E0%A5%A8" target="_blank">siddhāntaleśasaṅgrahaṭīkā - bhāgaḥ 2</a></li>
+            <li><a href="https://sa.wikisource.org/wiki/%E0%A4%B8%E0%A4%BF%E0%A4%A6%E0%A5%8D%E0%A4%A7%E0%A4%BE%E0%A4%A8%E0%A5%8D%E0%A4%A4%E0%A4%B8%E0%A4%BE%E0%A4%B0%E0%A4%AA%E0%A4%A6%E0%A5%8D%E0%A4%A7%E0%A4%A4%E0%A4%BF%E0%A4%83" target="_blank">siddhāntasārapaddhatiḥ</a></li>
+            <li><a href="https://sa.wikisource.org/wiki/%E0%A4%B8%E0%A4%BF%E0%A4%A6%E0%A5%8D%E0%A4%A7%E0%A4%BE%E0%A4%A8%E0%A5%8D%E0%A4%A4%E0%A4%BE%E0%A4%B0%E0%A5%8D%E0%A4%A5%E0%A4%B8%E0%A4%AE%E0%A5%81%E0%A4%9A%E0%A5%8D%E0%A4%9A%E0%A4%AF%E0%A4%83" target="_blank">siddhāntārthasamuccayaḥ</a></li>
+            <li><a href="https://sa.wikisource.org/wiki/%E0%A4%B8%E0%A4%BF%E0%A4%A6%E0%A5%8D%E0%A4%A7%E0%A4%BF%E0%A4%B2%E0%A4%95%E0%A5%8D%E0%A4%B7%E0%A5%8D%E0%A4%AE%E0%A5%80_%E0%A4%86%E0%A4%B0%E0%A4%BE%E0%A4%AE%E0%A4%BF%E0%A4%95" target="_blank">siddhilakṣmī ārāmika</a></li>
+            <li><a href="https://sa.wikisource.org/wiki/%E0%A4%B8%E0%A4%BF%E0%A4%A6%E0%A5%8D%E0%A4%A7%E0%A4%BF%E0%A4%B2%E0%A4%95%E0%A5%8D%E0%A4%B7%E0%A5%8D%E0%A4%AE%E0%A5%8D%E0%A4%AF%E0%A4%AF%E0%A5%81%E0%A4%A4%E0%A4%BE%E0%A4%95%E0%A5%8D%E0%A4%B7%E0%A4%B0%E0%A5%80" target="_blank">siddhilakṣmyayutākṣarī</a></li>
+            <li><a href="https://sa.wikisource.org/wiki/%E0%A4%B8%E0%A5%8C%E0%A4%AD%E0%A4%BE%E0%A4%97%E0%A5%8D%E0%A4%AF%E0%A4%95%E0%A4%B2%E0%A5%8D%E0%A4%AA%E0%A4%A6%E0%A5%8D%E0%A4%B0%E0%A5%81%E0%A4%AE%E0%A4%83" target="_blank">saubhāgyakalpadrumaḥ</a></li>
+            <li><a href="https://sa.wikisource.org/wiki/%E0%A4%B8%E0%A5%8C%E0%A4%AD%E0%A4%BE%E0%A4%97%E0%A5%8D%E0%A4%AF%E0%A4%A4%E0%A4%A8%E0%A5%8D%E0%A4%A4%E0%A5%8D%E0%A4%B0%E0%A4%AE%E0%A5%8D" target="_blank">saubhāgyatantram</a></li>
+            <li><a href="https://sa.wikisource.org/wiki/%E0%A4%B8%E0%A5%8C%E0%A4%AD%E0%A4%BE%E0%A4%97%E0%A5%8D%E0%A4%AF%E0%A4%B0%E0%A4%A4%E0%A5%8D%E0%A4%A8%E0%A4%BE%E0%A4%95%E0%A4%B0%E0%A4%83" target="_blank">saubhāgyaratnākaraḥ</a></li>
+            <li><a href="https://sa.wikisource.org/wiki/%E0%A4%B8%E0%A5%8D%E0%A4%AA%E0%A4%A8%E0%A5%8D%E0%A4%A6%E0%A4%95%E0%A4%BE%E0%A4%B0%E0%A4%BF%E0%A4%95%E0%A4%BE_%28%E0%A4%95%E0%A4%B2%E0%A5%8D%E0%A4%B2%E0%A4%9F%E0%A4%BE%E0%A4%9A%E0%A4%BE%E0%A4%B0%E0%A5%8D%E0%A4%AF%E0%A4%B5%E0%A4%BF%E0%A4%B0%E0%A4%9A%E0%A4%BF%E0%A4%A4%E0%A4%B5%E0%A4%BF%E0%A4%B5%E0%A5%83%E0%A4%A4%E0%A5%8D%E0%A4%AF%E0%A5%81%E0%A4%AA%E0%A5%87%E0%A4%A4%E0%A4%BE%29" target="_blank">spandakārikā (kallaṭācāryaviracitavivṛtyupetā)</a></li>
+            <li><a href="https://sa.wikisource.org/wiki/%E0%A4%B8%E0%A5%8D%E0%A4%AA%E0%A4%A8%E0%A5%8D%E0%A4%A6%E0%A4%A8%E0%A4%BF%E0%A4%B0%E0%A5%8D%E0%A4%A3%E0%A4%AF%E0%A4%83" target="_blank">spandanirṇayaḥ</a></li>
+            <li><a href="https://sa.wikisource.org/wiki/%E0%A4%B8%E0%A5%8D%E0%A4%AA%E0%A4%A8%E0%A5%8D%E0%A4%A6%E0%A4%AA%E0%A5%8D%E0%A4%B0%E0%A4%A6%E0%A5%80%E0%A4%AA%E0%A4%BF%E0%A4%95%E0%A4%BE" target="_blank">spandapradīpikā</a></li>
+            <li><a href="https://sa.wikisource.org/wiki/%E0%A4%B8%E0%A5%8D%E0%A4%AA%E0%A4%A8%E0%A5%8D%E0%A4%A6%E0%A4%B8%E0%A4%A8%E0%A5%8D%E0%A4%A6%E0%A5%8B%E0%A4%B9%E0%A4%83" target="_blank">spandasandohaḥ</a></li>
           </ul>
 </details></li>
             <li class="audit-item"><details>
@@ -1779,7 +1815,7 @@
         </details>
 
         <details class="block collapsible" open>
-          <summary><h3 id="monthly-deltas" style="margin:0;">Monthly Deltas</h3></summary>
+          <summary><h3 id="monthly-deltas" style="margin:0;">Deltas</h3></summary>
           <div id="changelog">Loading…</div>
         </details>
       </details>

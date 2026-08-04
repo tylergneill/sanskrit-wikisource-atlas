@@ -1074,7 +1074,11 @@ def main() -> None:
         if not candidates:
             print("no dump/1_current_format_live/*.xml found", file=sys.stderr)
             sys.exit(1)
-        xml_path = candidates[0]
+        # Newest, not oldest -- same rationale as pipeline.process.main().
+        if len(candidates) > 1:
+            print(f"{len(candidates)} dumps present in dump/1_current_format_live; "
+                  f"using newest: {candidates[-1].name}", file=sys.stderr)
+        xml_path = candidates[-1]
 
     print(f"parsing {xml_path}", file=sys.stderr)
     # Page (104) is the ProofreadPage extension -- absent from early dumps,

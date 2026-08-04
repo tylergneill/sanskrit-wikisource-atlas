@@ -36,6 +36,26 @@ make serve                 # serve docs/ locally on port 8000
 make ngrok                 # expose the local server via a public ngrok tunnel (for mobile testing)
 ```
 
+### The monthly update sequence
+
+When a new monthly dump appears, run these four in order, then bump
+`__code_version__` in `docs/VERSION` by hand if the frontend changed
+(`process.py` deliberately never touches that field):
+
+```
+make refresh-dump        # discover + download the new month; deletes the prior month's .xml/.bz2
+make process             # build docs/data/tree.json, stamp VERSION's __content_version__ to the new month
+make backfill            # rebuild docs/data/changelog.json, now including the new month-to-month transition
+make audit-update-about  # re-run the structural audit against the new dump, refresh its findings in about.html
+```
+
+`make audit-update-about` goes last because it reads the dump XML directly (not `tree.json`), so it needs `refresh-dump` to have landed the new month, and its regenerated findings should describe the same dump the rest of the run just published. It rewrites only the `<ul>` between the `AUDIT:START`/`AUDIT:END` markers in `docs/about.html` — never the dump or `tree.json`.
+
+Two things about this sequence are easy to get wrong:
+
+- **`make process` is what demotes the previous month**, not `make backfill`. Restamping `__content_version__` is the whole mechanism: the prior month stops matching `ensure_snapshot`'s route 2 and becomes an ordinary history month resolved by route 1. `make process` also writes `content-<date>.json.gz`, which pre-positions the new month for cheap reassembly later.
+- **`make regen-changelog` cannot substitute for `make backfill` here.** `make process` writes `docs/data/tree.json` and the content cache, but never `dump/_backfill_snapshots/tree-<date>.json.gz` — snapshots are backfill's own storage layer. Since `regen-changelog` derives its month list by globbing that directory, a brand-new month is absent from the list entirely and its transition is silently never diffed. Only a real `pipeline.backfill` run creates the snapshot, via route 2's copy of the live `tree.json`. Use `regen-changelog` only when every month involved *already* has a snapshot.
+
 There is no test suite, linter, or build step in this repo. `app.js`/`about.js` fetch their JSON data via relative paths, so `docs/` must be served over HTTP (`make serve`), not opened via `file://`.
 
 The `make` targets above are run by hand today. A GitHub Action driving fetch → process → publish on the dump's own monthly cadence is the intended eventual automation, not yet implemented.
@@ -177,6 +197,8 @@ Deleting `dump/_backfill_content_cache/content-<date>.json.gz` alone (without al
 In short: **`make backfill` always redoes the changelog** (deleted and rebuilt every run); **to redo tree snapshots after an assembly-logic change, delete them and rerun** — route 3 rebuilds them from the content cache in seconds each, so doing the whole history costs ~3 minutes and is the normal thing to do. Only a change to the cached *inputs* themselves needs `force_reprocess` and a real re-fetch.
 
 `make regen-changelog` is a narrower, fully offline variant of the same rebuild: it lists whatever dates already have a snapshot under `dump/_backfill_snapshots/` (no network calls — not even `fetch_legacy.list_available_months()`) and passes exactly those as `--months` to `pipeline.backfill`, so every month is an instant snapshot-reuse and the whole run is just re-diffing already-cached snapshots (well under a minute for the full range, as of this writing). Use it instead of `make backfill` whenever the snapshots themselves are already trusted and only `pipeline/compare.py`'s diffing logic (or something in `all_stats`/`build_tree_json`, if those snapshots already reflect the fix) needs to be picked up in the changelog — e.g. how this repo's `असम्बद्धवर्गीकृतम्` orphan-bucket trend-chart dips got fixed. It does not fetch, materialize, or rebuild any snapshot — if a month's snapshot is missing or wrong, it's silently excluded from the diff sequence (or diffed with wrong data) rather than fixed; use `make backfill` (or a scoped `python -m pipeline.backfill --months`) for that.
+
+**This makes it the wrong tool for a newly processed month.** `make process` writes `docs/data/tree.json` and `content-<date>.json.gz` but no snapshot, so immediately after processing a new month that month has no `tree-<date>.json.gz` — it therefore never appears in `regen-changelog`'s glob-derived `--months` list, and the newest transition is silently missing from the changelog with no error. The snapshot only comes into existence during a real `pipeline.backfill` run, where route 2 copies the live `tree.json` into it. See "The monthly update sequence" above.
 
 ## Notes
 

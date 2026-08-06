@@ -1,6 +1,6 @@
 # Interpretive decisions
 
-Every number this atlas shows rests on a judgment call about what counts as
+Every number this Atlas shows rests on a judgment call about what counts as
 one text, where a page belongs, and which of several true statements to
 display. Wikisource does not answer those questions for us — its category
 graph is hand-maintained, incomplete, and internally inconsistent — so the
@@ -139,7 +139,7 @@ then recover to 168. The pages were always present and always counted; they
 were simply not reachable by category descent, which is precisely what the
 orphan bucket is for.
 
-So the atlas is reporting this correctly. Anyone reading the trend charts
+So the Atlas is reporting this correctly. Anyone reading the trend charts
 should know the mid-period orphan mass is a real, five-year gap in
 sa.wikisource's own category maintenance, not a defect in this pipeline.
 
@@ -458,7 +458,7 @@ Extracted from the decisions above, for judging future ones:
 3. **Suppress display, never content.** Every suppression here removes a
    duplicate route to something reachable elsewhere. No item should ever
    become unreachable or unsearchable — verify this explicitly, by count.
-4. **Surface upstream defects rather than hiding them.** The atlas is
+4. **Surface upstream defects rather than hiding them.** The Atlas is
    partly an instrument for improving the source.
 5. **Both numbers when both are true.** `count` and `text_count`, root
    stats and `all_stats` — where one figure would mislead, show the pair.

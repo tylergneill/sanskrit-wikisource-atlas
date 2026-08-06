@@ -1,7 +1,7 @@
 # Wikisource editing plan
 
-Plan for directly editing sa.wikisource.org content (not just the atlas
-pipeline) to fix structural gaps the atlas surfaces but can't paper over
+Plan for directly editing sa.wikisource.org content (not just the Atlas
+pipeline) to fix structural gaps the Atlas surfaces but can't paper over
 on its own. Started 2026-07-22 from a UI bug report: Tantrāloka's chapter
 pages showed up disconnected from their TOC page, in the orphan bucket
 (असम्बद्धवर्गीकृतम्).
@@ -32,7 +32,7 @@ no longer need any on-wiki action:
    first miss instead of walking further up. ~270 pages.
 2. **Whitespace around the slash.** `अब्धिनौयानमीमांसा /चतुर्थं खण्डम्`.
    MediaWiki normalizes this when resolving subpages, so the breadcrumb was
-   always genuinely correct on-wiki; only the atlas was failing. ~110 pages.
+   always genuinely correct on-wiki; only the Atlas was failing. ~110 pages.
 
 **Two are real wiki problems**, surfaced by the audit section on
 `docs/about.html` (see there for live counts, not this note):
@@ -40,7 +40,7 @@ no longer need any on-wiki action:
 3. **Non-slash separators.** `महाभारतम्-03-आरण्यकपर्व-001` and friends — a
    hyphen or dot where `/` belongs. A hyphen carries no structural meaning
    on MediaWiki, so nesting these would be a naming-convention guess; the
-   atlas deliberately leaves them flat. महाभारतम् alone accounts for ~2,314
+   Atlas deliberately leaves them flat. महाभारतम् alone accounts for ~2,314
    pages, so a single work's cleanup would reclaim most of this category.
 4. **Unresolvable paths.** Pages using `/` whose breadcrumb names a page that
    doesn't exist at any level. ~107 pages under ~20 missing roots.
@@ -109,13 +109,13 @@ Found via manual spot-check (जातकपद्धतिः): the Index item'
 file (e.g. `File:जातकपद्धतिः.pdf`) has been deleted/lost from Commons, so
 the live wiki page renders completely empty (ProofreadPage's rendering
 depends on the file, not the already-stored leaf wikitext) even though the
-atlas still shows real content, since it reads leaf wikitext directly from
+Atlas still shows real content, since it reads leaf wikitext directly from
 the dump rather than depending on live file rendering. See
 `pipeline/audit.py`'s `find_broken_commons_transclusions` docstring for the
 detection mechanism (a live, batched Commons `action=query` check — not
 detectable from the dump alone).
 
-This is purely an on-wiki fix, not something the atlas pipeline can paper
+This is purely an on-wiki fix, not something the Atlas pipeline can paper
 over:
 
 1. **Preferred**: someone re-uploads the missing scan file to Commons under

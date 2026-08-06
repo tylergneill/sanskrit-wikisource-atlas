@@ -34,7 +34,7 @@
 # The walk is floored at pipeline.backfill.MATERIALIZED_FLOOR (2012-02, the
 # first month whose cutoff lands after वर्गसर्वस्वम् was created on
 # 2012-01-20). Earlier months can only ever raise RootCategoryMissing -- the
-# root category this atlas's tree model depends on does not exist yet -- so
+# root category this Atlas's tree model depends on does not exist yet -- so
 # the floor avoids paying a full materialize + parse to rediscover that. The
 # floor is applied by default_months() itself, so this script inherits it
 # rather than reimplementing it. main() still catches RootCategoryMissing

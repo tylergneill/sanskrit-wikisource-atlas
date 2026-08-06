@@ -762,7 +762,7 @@ function monthIndex(yyyyMmDd) {
   return y * 12 + (m - 1);
 }
 
-// This atlas's tree-building depends on वर्गसर्वस्वम् (created 2012-01-20),
+// This Atlas's tree-building depends on वर्गसर्वस्वम् (created 2012-01-20),
 // so no month before this floor could ever produce a usable snapshot: the
 // root category doesn't exist yet, and process_dump raises
 // RootCategoryMissing (see pipeline/backfill.py's MATERIALIZED_FLOOR).
@@ -811,7 +811,7 @@ const TIMELINE_KIND_INFO = {
 const TIMELINE_PRE_TOOLTIP_HTML =
   `<span class="ttLabel">Before this changelog</span><br>` +
   `sa.wikisource's actual edit history goes back to 2004-07-23, roughly 7.5 years ` +
-  `before वर्गसर्वस्वम् (the root category this atlas's tree-building depends on) was ` +
+  `before वर्गसर्वस्वम् (the root category this Atlas's tree-building depends on) was ` +
   `created on 2012-01-20. The changelog can't reach earlier than 2012-02, not because ` +
   `the underlying revision data runs out, but because there's no category structure ` +
   `to build a tree from before then.`;

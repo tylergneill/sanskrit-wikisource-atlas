@@ -1037,6 +1037,7 @@ def render_audit_html(
         + "\n          </ul>",
     )
     bulk_section = (
+        '        <h3 id="provenance-insights">Provenance Insights</h3>\n'
         '        <p>\n'
         "          The same audit pipeline also makes note of source links:\n"
         "        </p>\n"

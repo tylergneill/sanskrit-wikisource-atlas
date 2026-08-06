@@ -32,7 +32,7 @@ PageNode (Main-namespace page, filed into this category via its own direct
   multi-tagged top-level pages (see build_category's page_jsons loop).
   source_indexes is present (non-empty) only when this page transcludes a
   range of पृष्ठम्:Title/N leaves belonging to one or more Index items, via
-  <pages index="..." /> -- a link back to the source scan, since the atlas
+  <pages index="..." /> -- a link back to the source scan, since the Atlas
   otherwise drops a transcluded Index item from display entirely in favor
   of this page (see build_reverse_transclusion_map).
 
@@ -428,7 +428,7 @@ def build_page_node(
         "subpages": subpage_jsons,
     }
     # Surfaces a link back to the source scan for a reader who wants it, even
-    # though the atlas otherwise drops a transcluded Index item from display
+    # though the Atlas otherwise drops a transcluded Index item from display
     # entirely in favor of this Main page (see docs/about.html,
     # "Transclusion"). A Main page never transcludes an Index item directly --
     # the <pages index="..." /> tag names the Index but what's actually

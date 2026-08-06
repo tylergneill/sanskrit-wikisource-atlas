@@ -107,7 +107,7 @@ Worth knowing about the first row: `वर्गः:महाभारतम्/
 breadcrumb to `महाभारतम्` on the live wiki, because MediaWiki gives Category-
 namespace titles the same `/` subpage breadcrumb as Main-namespace ones. That is
 a title-structure relationship, entirely separate from `[[वर्गः:...]]` membership
-— and the atlas's category graph is built purely from explicit tags. Applying
+— and the Atlas's category graph is built purely from explicit tags. Applying
 `_resolve_ancestor`-style `/` parenting to the Category namespace would follow
 MediaWiki's own semantics and reconnect all 10, with no allowlist. It would also
 produce a category hierarchy duplicating the page hierarchy those chapters now

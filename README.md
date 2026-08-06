@@ -17,9 +17,10 @@ See the blog post at https://tylerneill.info/blog/sanskrit-wikisource-and-atlas.
 A Makefile provides key commands:
 
 - `make refresh-dump` — downloads the newest sa.wikisource dump
-- `make process` — builds `docs/data/tree.json`, the current corpus tree, by parsing the downloaded dump: it resolves the Category graph and Main-namespace breadcrumb hierarchy, folds in ProofreadPage Index/Page items and their transclusions, and computes per-item size and page/text counts.
-- `make backfill` — builds `docs/data/changelog.json`, the historical month-over-month changelog, by walking the full range of monthly snapshots and diffing consecutive months into per-item added/removed/changed entries. Takes hours on a full run, but is safe to interrupt and rerun — already-downloaded and materialized months are reused rather than redone.
-- `make audit-update-about` — reports structural problems (breadcrumb gaps, orphaned and red-link categories, cycles, broken Commons transclusions) for a human to fix on-wiki, and regenerates the audit findings section of `docs/about.html`
+- `make process` — parses the downloaded dump and builds `docs/data/tree.json`, the main page's browsable tree
+- `make backfill` — walks the full range of historical monthly snapshots and fills any gaps (caches expensive content calculations, otherwise takes many hours to run from scratch)
+- `make regen-changelog` — builds `docs/data/changelog.json`, the month-over-month history of how the collection has changed
+- `make audit-update-about` — finds structural problems (with breadcrumb, categories, transclusions, etc.) and updates the relevant section of `docs/about.html`
 - `make serve` — serves `docs/` locally
 
 The site's own About page documents how the collection is modeled and what the data reports mean. See `CLAUDE.md` for full architecture, pipeline stages, and data shape details.

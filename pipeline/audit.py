@@ -117,22 +117,61 @@ from pipeline.process import _owning_index_title
 from pipeline.progress import to_iast
 from pipeline.transclusion import build_transclusion_map, direct_categories, infer_root_categories, is_transcluded
 
-# Domains confirmed (by manual spot-check against the 2026-07-01 dump) to host
-# machine-readable digitized Sanskrit text corpora, as opposed to sites that
-# merely get cited inline (avg-sanskrit.org's per-sutra cross-references) or
-# rehosted across many free-hosting mirrors as footnote targets (the
-# puranastudy.*/vedastudy.* cluster) -- neither of those is a "whole page
-# copy-pasted from here" signal, so they're deliberately excluded.
+# Domains confirmed (by manual spot-check against the 2026-07-01 and 2026-08-01
+# dumps) to host machine-readable digitized Sanskrit text corpora, as opposed to
+# sites that merely get cited inline (avg-sanskrit.org's per-sutra
+# cross-references) or rehosted across many free-hosting mirrors as footnote
+# targets (the puranastudy.*/vedastudy.* cluster) -- neither of those is a
+# "whole page copy-pasted from here" signal, so they're deliberately excluded.
+#
+# This is a hardcoded allowlist, so it is only ever as good as its last audit.
+# Re-derive it, don't extend it from memory: collect every domain appearing in a
+# Main-namespace page that has a _SOURCE_HEADER_RE section, rank by page count,
+# and inspect the wikitext around the header before adding a row. The bar is
+# that the link resolves to the *text itself* (a .txt/.htm/.xml full text or a
+# corpus entry page), not to a scan, a tool, or companion media.
+#
+# Deliberately excluded after inspection against the 2026-08-01 dump, each of
+# which a naive "appears under a source header" rule would wrongly admit:
+#   sanskrit.github.io (531 pages) -- by far the most frequent domain on the
+#     wiki, and not a source at all: every hit is the same Ramayana *audio
+#     recording* index, credited to its reciters, pasted into each sarga.
+#     Admitting it would bury the real signal under 2x its volume in noise.
+#   scriptoq.com (11) -- the diCrunch IAST->Devanagari conversion *tool*. The
+#     pages say so outright; their actual source is GRETIL, already covered.
+#   archive.org / ia*.us.archive.org (13) -- scan and PDF hosting, cited as
+#     bibliography rather than copy-pasted as machine-readable text.
+#   vishvasa.github.io (2) -- genuinely ambiguous: one page sources from
+#     sanskritworld.in and only lists vishvasa under "see also". Left out to
+#     keep the bar at "confirmed", not "plausible".
 BULK_TEXT_REPO_DOMAINS = {
     "gretil.sub.uni-goettingen.de", "sub.uni-goettingen.de", "detu.sub.uni-goettingen.de",
     "sanskritdocuments.org", "sarit.indology.info",
     "kjc-fs-cluster.kjc.uni-heidelberg.de",
     "muktalib7.com", "tipitakapali.org", "glossaries.dila.edu.tw",
     "titus.uni-frankfurt.de",
+    # Added 2026-08-07 from the survey described above; each verified to link
+    # directly at full text rather than at a scan/tool/media page.
+    "granthamandira.net",       # Gaudiya Grantha Mandira, ?show=entry&e_no=NNN
+    "peterffreund.com",         # Vedic Literature collection, direct .txt/.htm
+    "sanskritworld.in",         # direct .txt book downloads
+    "sanskrit.uohyd.ac.in",     # UoH CIIL corpus, direct .txt/.html
+    "guruguha.org",             # music-theory texts, *_roman.txt/*_devnag.txt
 }
 
 _URL_RE = re.compile(r"https?://[^\s\]\|\}\)]+")
-_SOURCE_HEADER_RE = re.compile(r"==\s*(स्रोतः|मूलपाठः|आधारः)\s*==")
+# Section headers used on-wiki to attribute a page's source. The spelling is not
+# standardized, so this matches the real variants rather than one citation form:
+# स्रोतः is much the most common (716 sitewide), but स्रोत (25), स्रोतम् (20) and
+# Sources (2) are all in genuine use and were silently missed while this matched
+# only the visarga form -- which is how the Gaudiya Grantha Mandira page
+# पातञ्जलयोगदर्शनम् ... (==स्रोतम्==) escaped the audit entirely. The heading level
+# is `={2,}` rather than a literal `==` for the same reason: `=== ... ===` and
+# padded forms are both attested.
+_SOURCE_HEADER_RE = re.compile(
+    r"={2,}\s*(स्रोतः|स्रोतम्|स्रोतस्|स्रोत|मूलपाठः|आधारः|Sources?)\s*={2,}",
+    re.IGNORECASE,
+)
 
 
 def find_breadcrumb_gap_candidates(

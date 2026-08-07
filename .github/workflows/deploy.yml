@@ -1,0 +1,58 @@
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  # Lets you re-run a deploy from the Actions tab without pushing a commit —
+  # the escape hatch the legacy Pages builder never gave us.
+  workflow_dispatch:
+
+# Least privilege: read the repo, mint an OIDC token, publish to Pages.
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Let an in-flight deploy finish rather than cancelling it, but never run two
+# at once. A stuck run here can be cancelled from the UI, unlike the legacy builder.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  # docs/ has no build step, so whatever is committed there is what ships.
+  # This is the only stage that can catch a half-finished monthly update
+  # (notably `make process` without `make backfill`) before it goes live.
+  verify-publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      # Checks only the committed contents of docs/ against each other. No
+      # dump, no network, no pipeline dependencies — runs in seconds.
+      - name: Verify docs/ artifacts are consistent
+        run: python -m pipeline.verify_publish
+
+  deploy:
+    needs: verify-publish
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/configure-pages@v5
+
+      # The site is dependency-free static HTML/JS served as-is, so docs/
+      # ships verbatim — same directory the legacy builder published.
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: 'docs'
+
+      - id: deployment
+        uses: actions/deploy-pages@v4

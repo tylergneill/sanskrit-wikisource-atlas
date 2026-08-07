@@ -32,6 +32,7 @@ make refresh-dump-force   # same, but force re-download/re-verify/re-decompress
 make process               # build docs/data/tree.json from the downloaded dump
 make backfill               # walk the full historical range, rebuild docs/data/changelog.json from scratch
 make regen-changelog         # rebuild docs/data/changelog.json from already-cached snapshots only, no network access
+make verify                # check the committed docs/ artifacts agree with each other (offline, seconds)
 make serve                 # serve docs/ locally on port 8000
 make ngrok                 # expose the local server via a public ngrok tunnel (for mobile testing)
 ```
@@ -56,9 +57,25 @@ Two things about this sequence are easy to get wrong:
 - **`make process` is what demotes the previous month**, not `make backfill`. Restamping `__content_version__` is the whole mechanism: the prior month stops matching `ensure_snapshot`'s route 2 and becomes an ordinary history month resolved by route 1. `make process` also writes `content-<date>.json.gz`, which pre-positions the new month for cheap reassembly later.
 - **`make regen-changelog` cannot substitute for `make backfill` here.** `make process` writes `docs/data/tree.json` and the content cache, but never `dump/_backfill_snapshots/tree-<date>.json.gz` — snapshots are backfill's own storage layer. Since `regen-changelog` derives its month list by globbing that directory, a brand-new month is absent from the list entirely and its transition is silently never diffed. Only a real `pipeline.backfill` run creates the snapshot, via route 2's copy of the live `tree.json`. Use `regen-changelog` only when every month involved *already* has a snapshot.
 
-There is no test suite, linter, or build step in this repo. `app.js`/`about.js` fetch their JSON data via relative paths, so `docs/` must be served over HTTP (`make serve`), not opened via `file://`.
+There is no test suite, linter, or build step in this repo — the one automated check is `make verify` (see "Deploy" below), which validates generated artifacts rather than code. `app.js`/`about.js` fetch their JSON data via relative paths, so `docs/` must be served over HTTP (`make serve`), not opened via `file://`.
 
-The `make` targets above are run by hand today. A GitHub Action driving fetch → process → publish on the dump's own monthly cadence is the intended eventual automation, not yet implemented.
+The `make` targets above are run by hand today. A GitHub Action driving fetch → process on the dump's own monthly cadence is the intended eventual automation, not yet implemented; publishing itself is already automated (below).
+
+## Deploy (`.github/workflows/deploy.yml`)
+
+GitHub Pages publishes `docs/` via GitHub Actions, not the legacy branch-and-folder builder. Every push to `main` runs two jobs: `verify-publish` (the gate) and then `deploy`. `workflow_dispatch` allows re-running a deploy from the Actions tab without pushing a commit, which the legacy builder never permitted.
+
+Because `docs/` has no build step, **what is committed there is exactly what ships** — there is no later stage that would notice a half-finished update. `pipeline/verify_publish.py` is that missing stage. It checks only the committed artifacts against each other (no dump, no network, seconds to run), so it can also be run locally as `make verify` before pushing:
+
+- the three files the frontend fetches (`tree.json`, `changelog.json`, `source_eras.json`) exist and are non-empty;
+- `docs/VERSION` has all three version fields, with the two dates well-formed;
+- **`changelog.json`'s newest entry matches `__content_version__`** — the check the module exists for, catching exactly the two footguns above: `make process` without `make backfill`, or `make regen-changelog` used in its place (which omits a brand-new month *silently*, with no error). Without this gate the About page ships a history that stops one month short of the corpus the rest of the site displays;
+- `changelog.json`'s entries chain without month gaps (`old_date` of each equals `date` of its predecessor);
+- `tree.json` has root, the schema fields `app.js` needs, and positive `count`/`text_count`.
+
+It deliberately asserts no absolute figures — the corpus grows monthly, so a fixed threshold would need constant bumping — only invariants that hold across any correct run. Zero, though, is treated as a broken build rather than a small corpus.
+
+Note that `tree.json` records no dump date of its own, so it cannot be cross-checked against `__content_version__`; that date lives only in `VERSION`, stamped by `process.py` from the dump filename. The changelog is the artifact carrying dates, which is why the staleness check is anchored there.
 
 ## Key data shape (`docs/data/tree.json`)
 

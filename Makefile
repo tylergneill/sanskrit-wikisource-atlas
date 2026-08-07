@@ -1,4 +1,4 @@
-.PHONY: refresh-dump refresh-dump-force process serve ngrok backfill regen-changelog audit audit-update-about
+.PHONY: refresh-dump refresh-dump-force process serve ngrok backfill regen-changelog audit audit-update-about verify
 
 # Resolve the latest complete monthly dump export on dumps.wikimedia.org and
 # compare it against dump/: download/verify/decompress whatever's missing or
@@ -27,6 +27,13 @@ audit:
 # docs/about.html.
 audit-update-about:
 	python -m pipeline.audit --update-about
+
+# Check that the generated artifacts committed under docs/ agree with each
+# other -- most importantly that changelog.json actually covers the dump
+# VERSION claims to be publishing. Offline and fast; the deploy workflow runs
+# this as a gate, so running it before pushing catches the same problems early.
+verify:
+	python -m pipeline.verify_publish
 
 # Walk the full historical range and rebuild docs/data/changelog.json from
 # scratch. Safe to interrupt and rerun; already-downloaded/materialized

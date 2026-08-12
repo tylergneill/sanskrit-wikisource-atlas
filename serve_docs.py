@@ -9,7 +9,7 @@ import sys
 from http.server import HTTPServer, SimpleHTTPRequestHandler
 from pathlib import Path
 
-PORT = 8000
+PORT = 8001
 CACHE_MAX_AGE = 60  # seconds; short, so edits during iteration aren't stale for long
 COMPRESSIBLE_SUFFIXES = {".json", ".js", ".html", ".css", ".svg"}
 

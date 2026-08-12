@@ -51,7 +51,7 @@ regen-changelog:
 	rm -f docs/data/changelog.json
 	python -m pipeline.backfill --months $(shell ls dump/_backfill_snapshots | sed -E 's/^tree-(.+)\.json(\.gz)?$$/\1/' | sort -u)
 
-# Serve the frontend (docs/) locally, on port 8000. Unlike plain
+# Serve the frontend (docs/) locally, on port 8001. Unlike plain
 # `python -m http.server`, gzip-compresses JSON/JS/HTML/CSS responses and
 # sets Cache-Control -- matters most when tunneling over ngrok on a mobile
 # data plan, where re-transferring uncompressed tree.json/changelog.json on
@@ -59,9 +59,9 @@ regen-changelog:
 serve:
 	cd docs && python ../serve_docs.py
 
-# Expose the local server (port 8000) via a public ngrok tunnel.
+# Expose the local server (port 8001) via a public ngrok tunnel.
 ngrok:
-	ngrok http 8000
+	ngrok http 8001
 
 free-server-port:
-	kill $$(lsof -ti tcp:8000)
+	kill $$(lsof -ti tcp:8001)

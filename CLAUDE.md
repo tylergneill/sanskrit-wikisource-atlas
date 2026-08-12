@@ -33,7 +33,7 @@ make process               # build docs/data/tree.json from the downloaded dump
 make backfill               # walk the full historical range, rebuild docs/data/changelog.json from scratch
 make regen-changelog         # rebuild docs/data/changelog.json from already-cached snapshots only, no network access
 make verify                # check the committed docs/ artifacts agree with each other (offline, seconds)
-make serve                 # serve docs/ locally on port 8000
+make serve                 # serve docs/ locally on port 8001
 make ngrok                 # expose the local server via a public ngrok tunnel (for mobile testing)
 ```
 

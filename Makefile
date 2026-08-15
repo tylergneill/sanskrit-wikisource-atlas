@@ -1,4 +1,4 @@
-.PHONY: refresh-dump refresh-dump-force process serve ngrok backfill regen-changelog audit audit-update-about verify
+.PHONY: refresh-dump refresh-dump-force process extract-text serve ngrok backfill regen-changelog audit audit-update-about verify
 
 # Resolve the latest complete monthly dump export on dumps.wikimedia.org and
 # compare it against dump/: download/verify/decompress whatever's missing or
@@ -16,6 +16,13 @@ refresh-dump-force:
 # with e.g. `make process WORKERS=4` (default: os.cpu_count()).
 process:
 	python -m pipeline.process --out docs/data/tree.json $(if $(WORKERS),--workers $(WORKERS))
+
+# Same as `process`, but ALSO writes the corpus text to
+# data/text_extract/{deva,iast}/{main,page}/ -- the text `process` already
+# computes for its size metric and then throws away. Adds only the file writes
+# to the run. Gitignored; this repo hosts no text.
+extract-text:
+	python -m pipeline.process --out docs/data/tree.json --extract-text $(if $(WORKERS),--workers $(WORKERS))
 
 # Report likely breadcrumb/category structural problems on the live wiki for
 # manual review -- never mutates the dump or docs/data/tree.json. See

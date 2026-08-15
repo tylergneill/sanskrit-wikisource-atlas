@@ -86,7 +86,7 @@ import json
 import re
 import sys
 import time
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 
 from pipeline.build_tree import (
@@ -142,6 +142,10 @@ class ContentIndex:
     index_categories: dict[str, set[str]]  # Index item bare title -> its own direct category tags
     index_timestamps: dict[str, str]  # Index item bare title -> its own revision timestamp
     index_page_rollup: dict[str, Stats]  # Index item bare title -> summed stats over its untranscluded पृष्ठम्:Title/N children
+    # Only --extract-text reads these two; nothing in tree assembly does. They
+    # carry the scan-leaf TEXT, which is otherwise discarded once counted.
+    page_sizes: dict[str, ContentSizeResult] = field(default_factory=dict)
+    page_records: list[PageRecord] = field(default_factory=list)
 
 
 def _owning_index_title(page_title: str, page_ns_name: str) -> str | None:
@@ -166,6 +170,8 @@ class LeafSizeIndex:
     untranscluded_index_rollup: dict[str, Stats]  # Index bare title -> summed stats over its leaves (untranscluded items only)
     leaves_by_index: dict[str, list[str]]  # Index bare title -> its leaf full-titles (पृष्ठम्:Title/N), transcluded indexes only
     leaf_sizes: dict[str, ContentSizeResult]  # leaf full-title -> its content size (transcluded-index leaves only)
+    all_leaf_sizes: dict[str, ContentSizeResult]  # every leaf, transcluded or not -- for --extract-text, which writes text the rollup only counts
+    all_leaf_records: list[PageRecord]  # the records behind all_leaf_sizes, in dump order
 
 
 def compute_page_ns_sizes(
@@ -236,6 +242,11 @@ def compute_page_ns_sizes(
         untranscluded_index_rollup=untranscluded_index_rollup,
         leaves_by_index=leaves_by_index,
         leaf_sizes=leaf_sizes,
+        # Every leaf, not just the transcluded ones: `leaf_sizes` is deliberately
+        # partial (untranscluded leaves are summed into the rollup and their
+        # text dropped), but --extract-text wants the text of all of them.
+        all_leaf_sizes=sizes,
+        all_leaf_records=owned_records,
     )
 
 
@@ -298,6 +309,8 @@ def compute_all_content_sizes(
         index_categories=index_categories,
         index_timestamps=index_timestamps,
         index_page_rollup=leaf_size_index.untranscluded_index_rollup,
+        page_sizes=leaf_size_index.all_leaf_sizes,
+        page_records=leaf_size_index.all_leaf_records,
     )
 
 
@@ -934,6 +947,13 @@ def main() -> None:
                          help="skip skrutable transliteration (faster, for quick iteration)")
     parser.add_argument("--workers", type=int, default=None,
                          help="worker processes for content-size computation (default: os.cpu_count())")
+    parser.add_argument("--extract-text", type=Path, nargs="?",
+                         const=Path("data/text_extract"), default=None,
+                         help="also write the corpus text to this directory "
+                              "(default data/text_extract): deva/ and iast/, "
+                              "split into main/ and page/. Costs only the file "
+                              "writes -- the text is already computed for the "
+                              "size metric and otherwise discarded.")
     args = parser.parse_args()
 
     run_start = time.time()
@@ -986,6 +1006,29 @@ def main() -> None:
         dump_index, transliterate=not args.no_transliterate,
         transclusion_map=transclusion_map, workers=args.workers,
     )
+
+    if args.extract_text:
+        # Before tree assembly, because this is the one consumer of the TEXT
+        # rather than the byte counts, and the text is in hand right now --
+        # nothing below reads it, and `content_cache` blanks it outright.
+        from pipeline.text_extract import write_text_extract
+        print(f"writing text extract to {args.extract_text}...", file=sys.stderr)
+        summary = write_text_extract(
+            args.extract_text,
+            dump_index.pages_by_ns[0], content_index.main_sizes,
+            content_index.page_records, content_index.page_sizes,
+        )
+        for label, s in summary["per_ns"].items():
+            print(f"  {label:5} {s['pages']:7} pages  "
+                  f"{s['content_bytes'] / 1e6:8.1f} MB deva  "
+                  f"{s['translit_bytes'] / 1e6:7.1f} MB iast", file=sys.stderr)
+        print(f"  written {summary['written']}, empty {summary['empty']} "
+              f"(redirects, stubs, markup-only)", file=sys.stderr)
+        if summary["collisions"]:
+            # Every write succeeds on a collision, so nothing else would say a
+            # page went missing. Loud by design.
+            print(f"  *** {len(summary['collisions'])} PATH COLLISIONS -- "
+                  f"pages lost to overwriting ***", file=sys.stderr)
 
     print("assembling tree...", file=sys.stderr)
     tree = build_tree_json(dump_index, graph, main_nodes, transclusion_map, content_index, reverse_transclusion_map)

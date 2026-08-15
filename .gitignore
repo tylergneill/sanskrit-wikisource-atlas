@@ -76,3 +76,8 @@ dump/
 # leftover disk-backed API response cache from the retired v1 scraper
 # (scrape.py, deleted) -- dead weight, safe to remove from disk entirely
 .api_cache/
+
+# pipeline/extract_fulltext.py output: the corpus text itself, hundreds of MB,
+# and a pure function of the dump plus the extractor. This repo hosts no text.
+# Leading slash so docs/data/ stays tracked.
+/data/

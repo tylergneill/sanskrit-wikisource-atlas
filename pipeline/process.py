@@ -351,6 +351,42 @@ def _augment_main_sizes_with_transclusion(
             size.transliterated_bytes += leaf.transliterated_bytes
 
 
+def count_scanned_works(root: dict) -> int:
+    """How many distinct scanned works the collection has -- its `pdf_count`.
+
+    A scan reaches the tree two ways, and the same work can arrive by both:
+
+      - `source_indexes` on a Main page, one entry per Index the page
+        transcludes (a page can cite several, and several pages can cite one)
+      - an `index-item` node, an Index nobody transcludes, standing on its own
+
+    So this counts the UNION of Index titles, not links or nodes: 755 links
+    across 856 nodes resolve to 543 distinct works. Subpages cite scans too
+    and are walked for it, though 36 of their 48 are already cited higher up
+    -- which is the point of taking a union. One work, counted once, however
+    it is reached.
+
+    "PDF" is the wiki's own idiom here -- the destination is an Index: page,
+    and its underlying media is .djvu about a fifth of the time -- but an
+    Index page IS the scan from a reader's point of view, which is what the
+    figure is for.
+    """
+    titles: set[str] = set()
+
+    def walk(node: dict) -> None:
+        if node.get("type") == "index-item":
+            titles.add(node.get("title", ""))
+        for src in node.get("source_indexes") or []:
+            titles.add(src.get("title", ""))
+        for field in ("children", "pages", "index_items", "subpages"):
+            for child in node.get(field) or []:
+                walk(child)
+
+    walk(root)
+    titles.discard("")
+    return len(titles)
+
+
 def _stats_dict(raw: int, content: int, translit: int, count: int, last_changed: str, text_count: int = 0) -> dict:
     return {
         "raw_bytes": raw,
@@ -934,6 +970,9 @@ def build_tree_json(
             # is `all_stats`, computed above before this splice discards it.
             "stats": granth["stats"],
         }
+
+    all_stats = dict(all_stats)
+    all_stats["pdf_count"] = count_scanned_works(root)
 
     return {"root": root, "all_stats": all_stats}
 

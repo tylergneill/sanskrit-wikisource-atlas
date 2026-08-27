@@ -1002,3 +1002,38 @@ narrowQuery.addEventListener("change", () => {
 // file is tiny, and a failed/slow load still resolves -- loadSourceEras
 // swallows its own errors -- so main() is never blocked by it.
 loadSourceEras().then(main);
+
+// The About page carries one link up to the parent site. The parent's own
+// local-links.js knows the published Atlas URLs and rewrites them down to ports
+// 8001-8003 when it is itself served locally; a single link going the other way
+// does not warrant a whole rewrite pass, so the markup carries the production
+// URL (the file that ships is the file that is deployed) and we swap in the
+// local parent only when this Atlas is being served from localhost. Port 8000
+// matches the parent's serve_docs.py and Makefile, where 8001 is us.
+const PARENT_LOCAL_PORT = 8000;
+
+/* Host test copied from the parent's local-links.js, deliberately identical --
+   including the private-IPv4 range, which the e-bharatisampat sibling's copy
+   drops. "Local" means reachable on this machine or this LAN, not just
+   loopback: browsing from a phone at 192.168.1.165:8001 is a normal way to work
+   here (see the Makefile's get-server-ip-address target), and a loopback-only
+   test sends those sessions to the public parent site instead. `127.` is inside
+   PRIVATE_IPV4, so it needs no separate clause. */
+const PRIVATE_IPV4 = /^(10\.|127\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.)/;
+
+function isLocal(hostname) {
+  return hostname === "localhost"
+      || hostname === "[::1]"
+      || hostname === "::1"
+      || hostname.endsWith(".localhost")
+      || hostname.endsWith(".local")   // mDNS, e.g. my-mac.local
+      || PRIVATE_IPV4.test(hostname);
+}
+
+if (isLocal(location.hostname)) {
+  const parentLink = document.getElementById("parentLink");
+  if (parentLink) {
+    parentLink.href = `http://${location.hostname}:${PARENT_LOCAL_PORT}/`;
+    parentLink.dataset.localized = "true";  // visible in devtools, as in the parent
+  }
+}

@@ -1325,10 +1325,36 @@ async function loadVersion() {
   }
 }
 
+
+// A `?q=` in the URL preloads the search box, so another page can deep-link a
+// specific title into this Atlas -- the parent's federated search sends every
+// result row here, which is the only way a hit over there reaches the item's
+// own collection. `?exact=1` additionally turns on exact mode, matching the
+// whole transliterated title rather than any substring; the parent uses it
+// because it knows the exact title it linked.
+//
+// Read once at startup and NOT written back as the user types: the query is a
+// handoff, not a synced piece of state, and rewriting the URL on every
+// keystroke would bury the page in history entries.
+function applyQueryFromURL() {
+  const params = new URLSearchParams(location.search);
+  const q = (params.get("q") || "").trim();
+  if (!q) return;
+  const input = document.getElementById("searchInput");
+  if (input) input.value = q;
+  state.searchQuery = q.toLowerCase();
+  if (params.get("exact") === "1") {
+    state.searchExact = true;
+    const exactToggle = document.getElementById("searchExactToggle");
+    if (exactToggle) exactToggle.checked = true;
+  }
+}
+
 (async function main() {
   initUI();
   loadVersion();
   await loadData();
+  applyQueryFromURL();
   renderSidebarTree();
   renderMain();
 })();

@@ -999,7 +999,7 @@ def main() -> None:
 
     xml_path = args.xml_path
     if xml_path is None:
-        candidates = sorted(Path("dump/1_current_format_live").glob("sawikisource-*.xml"))
+        candidates = sorted(Path("data/dump/1_current_format_live").glob("sawikisource-*.xml"))
         if not candidates:
             print("no dump/1_current_format_live/*.xml found", file=sys.stderr)
             sys.exit(1)
@@ -1098,7 +1098,7 @@ def main() -> None:
         from pipeline.content_cache import build_content_cache, write_content_cache
 
         content_cache = build_content_cache(dump_index, content_index, dump_index.pages_by_ns[0], dump_index.pages_by_ns[14])
-        content_cache_dir = Path("dump") / "_backfill_content_cache"
+        content_cache_dir = Path("data/dump") / "_backfill_content_cache"
         content_cache_dir.mkdir(parents=True, exist_ok=True)
         content_cache_path = content_cache_dir / f"content-{dump_date}.json.gz"
         write_content_cache(content_cache_path, content_cache)

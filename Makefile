@@ -1,7 +1,7 @@
 .PHONY: refresh-dump refresh-dump-force process extract-text serve ngrok backfill regen-changelog audit audit-update-about verify
 
 # Resolve the latest complete monthly dump export on dumps.wikimedia.org and
-# compare it against dump/: download/verify/decompress whatever's missing or
+# compare it against data/dump/: download/verify/decompress whatever's missing or
 # stale, remove leftover files from a prior export, and no-op if everything
 # already matches.
 refresh-dump:
@@ -60,7 +60,7 @@ backfill:
 # entries are diffed/compared.
 regen-changelog:
 	rm -f docs/data/changelog.json
-	python -m pipeline.backfill --months $(shell ls dump/_backfill_snapshots | sed -E 's/^tree-(.+)\.json(\.gz)?$$/\1/' | sort -u)
+	python -m pipeline.backfill --months $(shell ls data/dump/_backfill_snapshots | sed -E 's/^tree-(.+)\.json(\.gz)?$$/\1/' | sort -u)
 
 # Serve the frontend (docs/) locally, on port 8001. Unlike plain
 # `python -m http.server`, gzip-compresses JSON/JS/HTML/CSS responses and

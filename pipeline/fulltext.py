@@ -42,7 +42,7 @@ def load_writer():
     rivulet being installed.
     """
     try:
-        from rivulet.extract.wikisource import write_text_extract
+        from rivulet.extract.wikisource.text_extractor import write_text_extract
     except ImportError:
         print(_MISSING, file=sys.stderr)
         raise SystemExit(EXIT_NOT_INSTALLED)

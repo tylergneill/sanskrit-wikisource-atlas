@@ -1128,7 +1128,7 @@ def main() -> None:
 
     xml_path = args.xml_path
     if xml_path is None:
-        candidates = sorted(Path("dump/1_current_format_live").glob("sawikisource-*.xml"))
+        candidates = sorted(Path("data/dump/1_current_format_live").glob("sawikisource-*.xml"))
         if not candidates:
             print("no dump/1_current_format_live/*.xml found", file=sys.stderr)
             sys.exit(1)

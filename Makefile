@@ -21,6 +21,10 @@ process:
 # data/text_extract/{deva,iast}/{main,page}/ -- the text `process` already
 # computes for its size metric and then throws away. Adds only the file writes
 # to the run. Gitignored; this repo hosts no text.
+#
+# NEEDS the private `rivulet` package, which owns the writer. Without it this
+# EXITS 2 ("fulltext machinery not installed"), distinct from 1 = failure --
+# and `make process` itself is entirely unaffected either way.
 extract-text:
 	python -m pipeline.process --out docs/data/tree.json --extract-text $(if $(WORKERS),--workers $(WORKERS))
 

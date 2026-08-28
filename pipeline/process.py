@@ -1050,7 +1050,11 @@ def main() -> None:
         # Before tree assembly, because this is the one consumer of the TEXT
         # rather than the byte counts, and the text is in hand right now --
         # nothing below reads it, and `content_cache` blanks it outright.
-        from pipeline.text_extract import write_text_extract
+        # Lives in the private `rivulet` package; exits 2 if it is absent.
+        # See pipeline/fulltext.py -- nothing above this line needs it, so a
+        # checkout without rivulet still builds the tree and the sizes.
+        from pipeline.fulltext import load_writer
+        write_text_extract = load_writer()
         print(f"writing text extract to {args.extract_text}...", file=sys.stderr)
         summary = write_text_extract(
             args.extract_text,

@@ -33,6 +33,7 @@ make process               # build docs/data/tree.json from the downloaded dump
 make backfill               # walk the full historical range, rebuild docs/data/changelog.json from scratch
 make regen-changelog         # rebuild docs/data/changelog.json from already-cached snapshots only, no network access
 make verify                # check the committed docs/ artifacts agree with each other (offline, seconds)
+make extract-text          # process + write the corpus text out (NEEDS rivulet; exits 2 without it)
 make serve                 # serve docs/ locally on port 8001
 make ngrok                 # expose the local server via a public ngrok tunnel (for mobile testing)
 ```
@@ -60,6 +61,30 @@ Two things about this sequence are easy to get wrong:
 There is no test suite, linter, or build step in this repo — the one automated check is `make verify` (see "Deploy" below), which validates generated artifacts rather than code. `app.js`/`about.js` fetch their JSON data via relative paths, so `docs/` must be served over HTTP (`make serve`), not opened via `file://`.
 
 The `make` targets above are run by hand today. A GitHub Action driving fetch → process on the dump's own monthly cadence is the intended eventual automation, not yet implemented; publishing itself is already automated (below).
+
+## Text extraction lives in rivulet, and this repo does not require it
+
+`make process` computes the markup-free Devanāgarī and its IAST for every page,
+uses the byte counts, and drops the strings. `--extract-text` is the flag that
+writes them out — and **that writer moved to the private `rivulet` package**,
+because producing a redistributable corpus is a publishing act, while counting
+its bytes is not.
+
+Everything else stays here: the dump download, the tree build, the sizes. **The
+repo runs to completion without rivulet**; only `make extract-text` needs it,
+and it exits **2** rather than crashing when it is absent (see
+`pipeline/fulltext.py` — the one place this repo names rivulet).
+
+**It stays a flag on `process`, never a stage of its own.** The expansion is
+expensive and `process` already parallelizes it across a process pool; a
+standalone extractor has to redo the parse, the template index, the pool, the
+transclusion map and the augmentation. The first attempt did exactly that and
+took **17.7 minutes against `process`'s 3–5** for the same computation. Writing
+files is the only new work — everything else is already in hand by the time the
+writer is called.
+
+Dependency direction is one-way: **rivulet may import from this Atlas; this
+Atlas may never require rivulet.**
 
 ## Deploy (`.github/workflows/deploy.yml`)
 

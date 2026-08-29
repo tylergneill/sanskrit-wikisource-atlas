@@ -142,10 +142,13 @@ class ContentIndex:
     index_categories: dict[str, set[str]]  # Index item bare title -> its own direct category tags
     index_timestamps: dict[str, str]  # Index item bare title -> its own revision timestamp
     index_page_rollup: dict[str, Stats]  # Index item bare title -> summed stats over its untranscluded पृष्ठम्:Title/N children
-    # Only --extract-text reads these two; nothing in tree assembly does. They
-    # carry the scan-leaf TEXT, which is otherwise discarded once counted.
+    # Only --extract-text reads these three; nothing in tree assembly does.
+    # They carry the scan-leaf TEXT, which is otherwise discarded once counted,
+    # and the Index -> leaves mapping needed to tell which leaves a
+    # transclusion stub actually publishes.
     page_sizes: dict[str, ContentSizeResult] = field(default_factory=dict)
     page_records: list[PageRecord] = field(default_factory=list)
+    leaves_by_index: dict[str, list[str]] = field(default_factory=dict)
 
 
 def _owning_index_title(page_title: str, page_ns_name: str) -> str | None:
@@ -311,6 +314,7 @@ def compute_all_content_sizes(
         index_page_rollup=leaf_size_index.untranscluded_index_rollup,
         page_sizes=leaf_size_index.all_leaf_sizes,
         page_records=leaf_size_index.all_leaf_records,
+        leaves_by_index=leaf_size_index.leaves_by_index,
     )
 
 
@@ -430,6 +434,13 @@ def load_has_text(extract_dir: Path) -> set[int] | None:
 
     The index is the only reliable link: filenames embed a lossy, sanitized
     title (`<pageid> - <Title>.txt`) that nothing downstream reconstructs.
+
+    **Rollup parents count as having text.** A work that is a container plus
+    chapters holds no text of its own and gets no file, but it does get an
+    index entry carrying `parts` -- and asking for it returns the whole work.
+    So the test is presence in the index, not presence of a file: the question
+    this answers is "can a reader open this", and for those 191 works the
+    answer is yes.
     """
     index = extract_dir / "index.jsonl"
     if not index.exists():
@@ -1096,10 +1107,36 @@ def main() -> None:
         from pipeline.fulltext import load_writer
         write_text_extract = load_writer()
         print(f"writing text extract to {args.extract_text}...", file=sys.stderr)
+        # title -> the scan leaves it transcludes, resolved exactly as
+        # _augment_main_sizes_with_transclusion resolves them for the byte
+        # rollup. A page whose text is 205 transcluded leaves must be openable,
+        # not just countable -- the Atlas already points at it.
+        transcluded_leaves = {}
+        if content_index.leaves_by_index:
+            for rec in dump_index.pages_by_ns[0]:
+                ranges = transclusion_ranges(rec.text)
+                if not ranges:
+                    continue
+                leaves = resolve_transcluded_leaves(
+                    ranges, content_index.leaves_by_index)
+                if leaves:
+                    # Reading order: leaf N sorts numerically, not as a string.
+                    transcluded_leaves[rec.title] = sorted(
+                        leaves,
+                        key=lambda t: (t.rsplit("/", 1)[0],
+                                       int(m.group()) if (m := __import__("re").search(
+                                           r"\d+$", t)) else 0))
+
         summary = write_text_extract(
             args.extract_text,
             dump_index.pages_by_ns[0], content_index.main_sizes,
             content_index.page_records, content_index.page_sizes,
+            # The redirect-resolved subpage tree, so a work's parts are found
+            # the way this Atlas already finds them. Title prefixes disagree:
+            # वाल्मीकिरामायणम्'s kandas are titled रामायणम्/... and a prefix
+            # match finds none of them.
+            main_nodes=main_nodes,
+            transcluded_leaves=transcluded_leaves,
         )
         for label, s in summary["per_ns"].items():
             print(f"  {label:5} {s['pages']:7} pages  "

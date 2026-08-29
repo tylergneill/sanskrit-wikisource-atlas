@@ -42,7 +42,7 @@ TEXT_PREFIX = "/text/"
 SCRIPTS = ("deva", "iast")
 
 
-def load_text_index(root: Path) -> dict[str, dict[str, Path]]:
+def load_text_index(root: Path) -> dict[str, dict[str, list[Path]]]:
     """pageid -> {script: file}, from the extract's own index.
 
     Main namespace only. A `page/` entry is one leaf of a scan whose text
@@ -52,7 +52,7 @@ def load_text_index(root: Path) -> dict[str, dict[str, Path]]:
     index_path = root / TEXT_DIR / "index.jsonl"
     if not index_path.exists():
         return {}
-    index: dict[str, dict[str, Path]] = {}
+    index: dict[str, dict[str, list[Path]]] = {}
     for line in index_path.read_text(encoding="utf-8").splitlines():
         if not line.strip():
             continue
@@ -63,10 +63,21 @@ def load_text_index(root: Path) -> dict[str, dict[str, Path]]:
         if row.get("ns") != "main" or row.get("pageid") is None:
             continue
         found = {}
-        for script in SCRIPTS:
-            candidate = root / TEXT_DIR / script / row["path"]
-            if candidate.is_file():
-                found[script] = candidate
+        if row.get("parts"):
+            # A work whose text lives in its subpages: the extractor wrote no
+            # file for it, deliberately -- copying the chapters here would
+            # store every one of them twice. Serve the parts in order instead,
+            # so one request still returns the whole work.
+            for script in SCRIPTS:
+                paths = [root / TEXT_DIR / script / part for part in row["parts"]]
+                present = [q for q in paths if q.is_file()]
+                if present:
+                    found[script] = present
+        else:
+            for script in SCRIPTS:
+                candidate = root / TEXT_DIR / script / row["path"]
+                if candidate.is_file():
+                    found[script] = [candidate]
         if not found:
             continue
         index[str(row["pageid"])] = found
@@ -96,7 +107,7 @@ def _is_local_origin(origin: str) -> bool:
 
 class CachingGzipHandler(SimpleHTTPRequestHandler):
     fulltext = False
-    text_index: dict[str, dict[str, Path]] = {}
+    text_index: dict[str, dict[str, list[Path]]] = {}
 
     def end_headers(self):
         self.send_header("Cache-Control", f"max-age={CACHE_MAX_AGE}")
@@ -151,8 +162,11 @@ class CachingGzipHandler(SimpleHTTPRequestHandler):
             self.send_error(404, "no text for that pageid")
             return
         wanted = "iast" if "script=iast" in query else "deva"
-        path = scripts.get(wanted) or next(iter(scripts.values()))
-        raw = path.read_bytes()
+        paths = scripts.get(wanted) or next(iter(scripts.values()))
+        # One file for an ordinary page; a work's chapters in order for a
+        # rollup. Joined with a blank line, which is how the chapters read as
+        # one text.
+        raw = b"\n\n".join(q.read_bytes().strip() for q in paths)
         body = gzip.compress(raw) if "gzip" in self.headers.get("Accept-Encoding", "") else raw
         self.send_response(200)
         self.send_header("Content-Type", "text/plain; charset=utf-8")

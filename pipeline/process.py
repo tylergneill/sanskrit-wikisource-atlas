@@ -413,6 +413,40 @@ def _merge_stats(a: dict, b: dict) -> dict:
     )
 
 
+# Pageids whose extracted text is on THIS machine, or None if unknowable.
+# Module-level rather than threaded through build_page_node/build_tree_json:
+# it is a fact about the local filesystem, not about the corpus, and the tree
+# builders take enough parameters already.
+#
+# None means "no extract directory" -- the flag is then omitted from every page
+# rather than published as False everywhere, because those are different
+# claims. A public checkout with no data/ is the former, and must not be read
+# as an authoritative "no text exists".
+_HAS_TEXT: set[int] | None = None
+
+
+def load_has_text(extract_dir: Path) -> set[int] | None:
+    """Pageids present in a `text_extract/` tree, read from its index.jsonl.
+
+    The index is the only reliable link: filenames embed a lossy, sanitized
+    title (`<pageid> - <Title>.txt`) that nothing downstream reconstructs.
+    """
+    index = extract_dir / "index.jsonl"
+    if not index.exists():
+        return None
+    present: set[int] = set()
+    for line in index.read_text(encoding="utf-8").splitlines():
+        if not line.strip():
+            continue
+        try:
+            row = json.loads(line)
+        except json.JSONDecodeError:
+            continue
+        if row.get("ns") == "main" and row.get("pageid") is not None:
+            present.add(row["pageid"])
+    return present
+
+
 def build_page_node(
     main_node: MainPageNode,
     owning_cat_id: str,
@@ -465,6 +499,12 @@ def build_page_node(
     node = {
         "id": f"page:{main_node.title}",
         "type": "page",
+        # Set only when this build could see the extracted text on disk; see
+        # _HAS_TEXT. Lets a local --fulltext server offer a link without the
+        # frontend or Sagarasangama reading data/ themselves.
+        **({"has_text": True}
+           if _HAS_TEXT is not None and main_node.record.pageid in _HAS_TEXT
+           else {}),
         "title": main_node.title,
         "url": page_url(main_node.title),
         "stats": own_stats,
@@ -1072,6 +1112,15 @@ def main() -> None:
             # page went missing. Loud by design.
             print(f"  *** {len(summary['collisions'])} PATH COLLISIONS -- "
                   f"pages lost to overwriting ***", file=sys.stderr)
+
+    # Which pages have extracted text on THIS machine. Read even when
+    # --extract-text was not passed: the extract may have been written by an
+    # earlier run, and the flag describes the disk, not this invocation.
+    global _HAS_TEXT
+    _HAS_TEXT = load_has_text(args.extract_text or Path("data/text_extract"))
+    if _HAS_TEXT is not None:
+        print(f"  {len(_HAS_TEXT)} main-namespace pages have extracted text on disk",
+              file=sys.stderr)
 
     print("assembling tree...", file=sys.stderr)
     tree = build_tree_json(dump_index, graph, main_nodes, transclusion_map, content_index, reverse_transclusion_map)

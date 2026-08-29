@@ -1,4 +1,4 @@
-.PHONY: refresh-dump refresh-dump-force process extract-text serve ngrok backfill regen-changelog audit audit-update-about verify
+.PHONY: serve-fulltext refresh-dump refresh-dump-force process extract-text serve ngrok backfill regen-changelog audit audit-update-about verify
 
 # Resolve the latest complete monthly dump export on dumps.wikimedia.org and
 # compare it against data/dump/: download/verify/decompress whatever's missing or
@@ -67,6 +67,12 @@ regen-changelog:
 # sets Cache-Control -- matters most when tunneling over ngrok on a mobile
 # data plan, where re-transferring uncompressed tree.json/changelog.json on
 # every reload burns through a data cap fast.
+# Same server, plus the extracted text at /text/<pageid>, so each page gets a
+# `txt` badge. LOCALHOST ONLY -- binds 127.0.0.1, and the text lives outside
+# docs/ so no deploy can pick it up. Needs `make extract-text` to have run.
+serve-fulltext:
+	cd docs && python ../serve_docs.py --fulltext $(ARGS)
+
 serve:
 	cd docs && python ../serve_docs.py
 

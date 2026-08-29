@@ -19,6 +19,9 @@ something this repo should be handing out over a network.
 pageid -> filename comes from `index.jsonl`, because filenames embed a lossy,
 sanitized title (`<pageid> - <Title>.txt`) that cannot be reconstructed. The
 frontend therefore asks for `/text/1` and never needs to know the filename.
+
+The corpus is IAST only -- the frontend transliterates on the fly, so a stored
+Devanagari twin was 2.4 GB of the same text under a reversible mapping.
 """
 import argparse
 import gzip
@@ -37,12 +40,12 @@ COMPRESSIBLE_SUFFIXES = {".json", ".js", ".html", ".css", ".svg"}
 TEXT_DIR = "data/text_extract"
 TEXT_PREFIX = "/text/"
 
-# Devanagari is the source script; `?script=iast` asks for the transliterated
-# twin the extractor wrote alongside it.
-SCRIPTS = ("deva", "iast")
+# IAST only. The extractor used to write a Devanagari twin as well, which
+# doubled the corpus for no new information -- same text, reversible mapping,
+# and the frontend transliterates on the fly.
 
 
-def load_text_index(root: Path) -> dict[str, dict[str, list[Path]]]:
+def load_text_index(root: Path) -> dict[str, Path]:
     """pageid -> {script: file}, from the extract's own index.
 
     Main namespace only. A `page/` entry is one leaf of a scan whose text
@@ -52,7 +55,7 @@ def load_text_index(root: Path) -> dict[str, dict[str, list[Path]]]:
     index_path = root / TEXT_DIR / "index.jsonl"
     if not index_path.exists():
         return {}
-    index: dict[str, dict[str, list[Path]]] = {}
+    index: dict[str, Path] = {}
     for line in index_path.read_text(encoding="utf-8").splitlines():
         if not line.strip():
             continue
@@ -60,26 +63,20 @@ def load_text_index(root: Path) -> dict[str, dict[str, list[Path]]]:
             row = json.loads(line)
         except json.JSONDecodeError:
             continue
-        if row.get("ns") != "main" or row.get("pageid") is None:
+        # `main` works and `index` scans are both browsable items with a file
+        # of their own. `page` rows are scan leaves, which are folded into
+        # whichever work publishes them and are not offered separately.
+        if row.get("ns") not in ("main", "index") or row.get("pageid") is None:
             continue
-        found = {}
-        if row.get("parts"):
-            # A work whose text lives in its subpages: the extractor wrote no
-            # file for it, deliberately -- copying the chapters here would
-            # store every one of them twice. Serve the parts in order instead,
-            # so one request still returns the whole work.
-            for script in SCRIPTS:
-                paths = [root / TEXT_DIR / script / part for part in row["parts"]]
-                present = [q for q in paths if q.is_file()]
-                if present:
-                    found[script] = present
-        else:
-            for script in SCRIPTS:
-                candidate = root / TEXT_DIR / script / row["path"]
-                if candidate.is_file():
-                    found[script] = [candidate]
-        if not found:
+        # Every entry addresses one real file, including an assembled work --
+        # the extractor folds a work's chapters into its file and does not
+        # write them separately. An earlier version stored pointers and
+        # streamed the pieces; it broke silently, serving a 6 MB Rāmāyaṇa as
+        # 601 bytes with a 200.
+        candidate = root / TEXT_DIR / row["path"]
+        if not candidate.is_file():
             continue
+        found = candidate
         index[str(row["pageid"])] = found
         # Also keyed by TITLE, because that is what the tree carries: a page
         # node is `page:<title>` and holds no pageid, and adding 12413 pageids
@@ -88,6 +85,12 @@ def load_text_index(root: Path) -> dict[str, dict[str, list[Path]]]:
         # absorbs the mapping instead.
         if row.get("title"):
             index[row["title"]] = found
+            # An Index row's title carries its namespace prefix
+            # (`अनुक्रमणिका:मेदिनीकोशः.djvu`) while the tree and the search
+            # index use the bare form, which is what a link asks for.
+            bare = row["title"].split(":", 1)[-1]
+            if bare != row["title"]:
+                index.setdefault(bare, found)
     return index
 
 
@@ -107,7 +110,7 @@ def _is_local_origin(origin: str) -> bool:
 
 class CachingGzipHandler(SimpleHTTPRequestHandler):
     fulltext = False
-    text_index: dict[str, dict[str, list[Path]]] = {}
+    text_index: dict[str, Path] = {}
 
     def end_headers(self):
         self.send_header("Cache-Control", f"max-age={CACHE_MAX_AGE}")
@@ -151,22 +154,17 @@ class CachingGzipHandler(SimpleHTTPRequestHandler):
         super().do_HEAD()
 
     def _serve_text(self, pageid, query):
-        """`/text/<pageid>[?script=iast]` -> the extracted text, as UTF-8.
+        """`/text/<pageid>` -> the extracted text (IAST), as UTF-8.
 
         The pageid is looked up in a prebuilt index, never joined onto a path,
         so a crafted `/text/../../etc/passwd` finds no key and gets a 404. No
         user-supplied string ever reaches the filesystem.
         """
-        scripts = self.text_index.get(unquote(pageid).strip("/"))
-        if not scripts:
+        path = self.text_index.get(unquote(pageid).strip("/"))
+        if path is None:
             self.send_error(404, "no text for that pageid")
             return
-        wanted = "iast" if "script=iast" in query else "deva"
-        paths = scripts.get(wanted) or next(iter(scripts.values()))
-        # One file for an ordinary page; a work's chapters in order for a
-        # rollup. Joined with a blank line, which is how the chapters read as
-        # one text.
-        raw = b"\n\n".join(q.read_bytes().strip() for q in paths)
+        raw = path.read_bytes()
         body = gzip.compress(raw) if "gzip" in self.headers.get("Accept-Encoding", "") else raw
         self.send_response(200)
         self.send_header("Content-Type", "text/plain; charset=utf-8")

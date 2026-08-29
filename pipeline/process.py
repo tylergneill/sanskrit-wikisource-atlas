@@ -149,6 +149,8 @@ class ContentIndex:
     page_sizes: dict[str, ContentSizeResult] = field(default_factory=dict)
     page_records: list[PageRecord] = field(default_factory=list)
     leaves_by_index: dict[str, list[str]] = field(default_factory=dict)
+    index_records: list[PageRecord] = field(default_factory=list)
+    untranscluded_leaves_by_index: dict[str, list[str]] = field(default_factory=dict)
 
 
 def _owning_index_title(page_title: str, page_ns_name: str) -> str | None:
@@ -175,6 +177,8 @@ class LeafSizeIndex:
     leaf_sizes: dict[str, ContentSizeResult]  # leaf full-title -> its content size (transcluded-index leaves only)
     all_leaf_sizes: dict[str, ContentSizeResult]  # every leaf, transcluded or not -- for --extract-text, which writes text the rollup only counts
     all_leaf_records: list[PageRecord]  # the records behind all_leaf_sizes, in dump order
+    # Defaulted, so it must follow every non-default field above.
+    untranscluded_leaves_by_index: dict[str, list[str]] = field(default_factory=dict)  # the same leaves as titles, for --extract-text
 
 
 def compute_page_ns_sizes(
@@ -227,6 +231,9 @@ def compute_page_ns_sizes(
 
     untranscluded_index_rollup: dict[str, Stats] = {}
     leaves_by_index: dict[str, list[str]] = {}
+    # The same leaves, kept as titles: --extract-text folds them into the Index
+    # item's own file so a scan nobody has assembled is still openable.
+    untranscluded_leaves_by_index: dict[str, list[str]] = {}
     leaf_sizes: dict[str, ContentSizeResult] = {}
     for rec in owned_records:
         owner = _owning_index_title(rec.title, page_ns_name)
@@ -235,6 +242,7 @@ def compute_page_ns_sizes(
             leaves_by_index.setdefault(owner, []).append(rec.title)
             leaf_sizes[rec.title] = size
         else:
+            untranscluded_leaves_by_index.setdefault(owner, []).append(rec.title)
             current = untranscluded_index_rollup.get(owner) or _empty_stats()
             untranscluded_index_rollup[owner] = _merge_stats(current, _stats_dict(
                 size.raw_wikitext_bytes, size.content_bytes, size.transliterated_bytes,
@@ -242,6 +250,7 @@ def compute_page_ns_sizes(
                 rec.timestamp,
             ))
     return LeafSizeIndex(
+        untranscluded_leaves_by_index=untranscluded_leaves_by_index,
         untranscluded_index_rollup=untranscluded_index_rollup,
         leaves_by_index=leaves_by_index,
         leaf_sizes=leaf_sizes,
@@ -315,6 +324,8 @@ def compute_all_content_sizes(
         page_sizes=leaf_size_index.all_leaf_sizes,
         page_records=leaf_size_index.all_leaf_records,
         leaves_by_index=leaf_size_index.leaves_by_index,
+        index_records=index_records,
+        untranscluded_leaves_by_index=leaf_size_index.untranscluded_leaves_by_index,
     )
 
 
@@ -435,6 +446,11 @@ def load_has_text(extract_dir: Path) -> set[int] | None:
     The index is the only reliable link: filenames embed a lossy, sanitized
     title (`<pageid> - <Title>.txt`) that nothing downstream reconstructs.
 
+    **Index items count too.** An untranscluded scan is a browsable item whose
+    text is its leaves; the extractor folds those into a file for it, so it is
+    openable and belongs here. Keyed by pageid, so the namespace prefix on its
+    title (`अनुक्रमणिका:`) never has to be matched.
+
     **Rollup parents count as having text.** A work that is a container plus
     chapters holds no text of its own and gets no file, but it does get an
     index entry carrying `parts` -- and asking for it returns the whole work.
@@ -453,7 +469,7 @@ def load_has_text(extract_dir: Path) -> set[int] | None:
             row = json.loads(line)
         except json.JSONDecodeError:
             continue
-        if row.get("ns") == "main" and row.get("pageid") is not None:
+        if row.get("ns") in ("main", "index") and row.get("pageid") is not None:
             present.add(row["pageid"])
     return present
 
@@ -562,11 +578,17 @@ def build_index_item_node(bare_title: str, content_index: ContentIndex, index_ns
     # scan, not just the Index page shell.
     page_rollup = content_index.index_page_rollup.get(bare_title)
     stats = _merge_stats(own_stats, page_rollup) if page_rollup else own_stats
+    # Its pageid, so the has_text lookup needs no namespace-prefix matching.
+    pageid = next((r.pageid for r in content_index.index_records
+                   if r.title.split(":", 1)[-1] == bare_title), None)
     return {
         "id": f"index-item:{bare_title}",
         "type": "index-item",
         "title": bare_title,
         "url": index_url(bare_title, index_ns_name),
+        # An untranscluded scan whose leaves were folded into a file for it.
+        **({"has_text": True}
+           if _HAS_TEXT is not None and pageid in _HAS_TEXT else {}),
         "stats": stats,
     }
 
@@ -1137,6 +1159,12 @@ def main() -> None:
             # match finds none of them.
             main_nodes=main_nodes,
             transcluded_leaves=transcluded_leaves,
+            # Scans nobody has assembled into a Main page: the Atlas lists them
+            # as items, so they get a fulltext too.
+            index_items=content_index.index_records,
+            index_leaves={r.title: content_index.untranscluded_leaves_by_index.get(
+                              r.title.split(":", 1)[-1], [])
+                          for r in content_index.index_records},
         )
         for label, s in summary["per_ns"].items():
             print(f"  {label:5} {s['pages']:7} pages  "

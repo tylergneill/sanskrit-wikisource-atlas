@@ -563,13 +563,27 @@ def build_page_node(
 def build_index_item_node(bare_title: str, content_index: ContentIndex, index_ns_name: str) -> dict:
     size = content_index.index_sizes.get(bare_title)
     rec_timestamp = content_index.index_timestamps.get(bare_title, "")
+    # Its pageid, so the has_text lookup needs no namespace-prefix matching.
+    pageid = next((r.pageid for r in content_index.index_records
+                   if r.title.split(":", 1)[-1] == bare_title), None)
+    has_text = _HAS_TEXT is not None and pageid in _HAS_TEXT
     own_stats = _stats_dict(
         size.raw_wikitext_bytes if size else 0,
         size.content_bytes if size else 0,
         size.transliterated_bytes if size else 0,
         1,
         rec_timestamp,
-        text_count=1,
+        # **A scan whose pages were never populated is not a text.** 76 Index
+        # items here have no content anywhere -- nothing transcluded, no
+        # proofread leaves, only an uploaded file -- so counting them made
+        # `text_count` a count of things-we-list rather than of texts. They
+        # stay listed and browsable; they simply stop claiming to be texts.
+        #
+        # Same judgment e-bhāratīsampat makes about its scan-only works, which
+        # it excludes from text_count and hides behind "also show PDF-only".
+        #
+        # This moved the published figure 3805 -> 3729 on 2026-08-29.
+        text_count=1 if has_text else 0,
     )
     # The Index page's own wikitext is just proofreading-status scaffolding
     # (near-zero content by design) -- the real scanned/proofread text lives
@@ -578,17 +592,13 @@ def build_index_item_node(bare_title: str, content_index: ContentIndex, index_ns
     # scan, not just the Index page shell.
     page_rollup = content_index.index_page_rollup.get(bare_title)
     stats = _merge_stats(own_stats, page_rollup) if page_rollup else own_stats
-    # Its pageid, so the has_text lookup needs no namespace-prefix matching.
-    pageid = next((r.pageid for r in content_index.index_records
-                   if r.title.split(":", 1)[-1] == bare_title), None)
     return {
         "id": f"index-item:{bare_title}",
         "type": "index-item",
         "title": bare_title,
         "url": index_url(bare_title, index_ns_name),
         # An untranscluded scan whose leaves were folded into a file for it.
-        **({"has_text": True}
-           if _HAS_TEXT is not None and pageid in _HAS_TEXT else {}),
+        **({"has_text": True} if has_text else {}),
         "stats": stats,
     }
 

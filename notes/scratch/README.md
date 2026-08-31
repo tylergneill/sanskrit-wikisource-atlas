@@ -1,19 +1,16 @@
 # scratch/
 
-**Nothing here is a commitment, and nothing here is current.**
+**Tasks in flight.** A new task is written here — a plan, a scoped design, a
+measurement under way. When it finishes, any insight worth keeping is promoted
+into a top-level `notes/*.md` about the structure it explains (or into a code
+comment beside it), and **the scratch file is deleted.**
 
-`notes/*.md` is the working backlog: open work, plus the evidence needed to act
-on it. This subfolder is the other thing that accumulates — designs that were
-scoped and not built, approaches tried and rejected, analyses whose conclusion
-already lives in the code. They are kept because the *reasoning* was expensive
-and is easy to re-derive wrongly, not because the plan is live.
+Nothing is kept because it was expensive to write.
 
-**Before acting on anything in here, check it against the code.** These
-documents are dated and were not maintained after their status line was
-written. Where one contradicts the pipeline, the pipeline is right.
-
-Delete a file once its reasoning is either absorbed into code comments or no
-longer true.
+So everything below is either still live, or is waiting on the promote-and-
+delete step. **Check any of it against the code before acting** — these
+documents stopped being maintained when their status line was written, and
+where one contradicts the pipeline, the pipeline is right.
 
 | File | Status |
 | --- | --- |

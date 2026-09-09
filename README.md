@@ -24,3 +24,9 @@ A Makefile provides key commands:
 - `make serve` — serves `docs/` locally
 
 The site's own About page documents how the collection is modeled and what the data reports mean. See `CLAUDE.md` for full architecture, pipeline stages, and data shape details.
+
+# license
+
+[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.en),
+matching `Sāgarasaṅgama`. Applies to this atlas's own code and derived metadata;
+the texts themselves belong to sa.wikisource.org and its contributors.

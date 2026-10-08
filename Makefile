@@ -39,13 +39,6 @@ audit:
 audit-update-about:
 	python -m pipeline.audit --update-about
 
-# Check that the generated artifacts committed under docs/ agree with each
-# other -- most importantly that changelog.json actually covers the dump
-# VERSION claims to be publishing. Offline and fast; the deploy workflow runs
-# this as a gate, so running it before pushing catches the same problems early.
-verify:
-	python -m pipeline.verify_publish
-
 # Walk the full historical range and rebuild docs/data/changelog.json from
 # scratch. Safe to interrupt and rerun; already-downloaded/materialized
 # months are reused, not redone. Takes hours on a full run. See CLAUDE.md
@@ -61,6 +54,13 @@ backfill:
 regen-changelog:
 	rm -f docs/data/changelog.json
 	python -m pipeline.backfill --months $(shell ls data/dump/_backfill_snapshots | sed -E 's/^tree-(.+)\.json(\.gz)?$$/\1/' | sort -u)
+
+# Check that the generated artifacts committed under docs/ agree with each
+# other -- most importantly that changelog.json actually covers the dump
+# VERSION claims to be publishing. Offline and fast; the deploy workflow runs
+# this as a gate, so running it before pushing catches the same problems early.
+verify:
+	python -m pipeline.verify_publish
 
 # Serve the frontend (docs/) locally, on port 8001. Unlike plain
 # `python -m http.server`, gzip-compresses JSON/JS/HTML/CSS responses and

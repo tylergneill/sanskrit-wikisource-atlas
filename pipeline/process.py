@@ -1251,7 +1251,7 @@ def _stamp_data_version(dump_date: str, all_stats: dict) -> None:
     if dump_date:
         all_stats["sourced"] = dump_date
     version_path = Path(__file__).resolve().parent.parent / "docs" / "VERSION"
-    today = time.strftime("%Y-%m-%d", time.gmtime())
+    today = time.strftime("%Y-%m-%d")  # local date, as the sibling Atlases stamp it
     lines = version_path.read_text(encoding="utf-8").splitlines() if version_path.exists() else ['__code_version__ = "0.1.0"']
     lines = [
         ln for ln in lines

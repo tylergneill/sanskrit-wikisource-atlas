@@ -1200,17 +1200,18 @@ def main() -> None:
     print("assembling tree...", file=sys.stderr)
     tree = build_tree_json(dump_index, graph, main_nodes, transclusion_map, content_index, reverse_transclusion_map)
 
+    dump_date_match = re.search(r"sawikisource-(\d{4}-\d{2}-\d{2})-", xml_path.name)
+    dump_date = dump_date_match.group(1) if dump_date_match else ""
+
+    # Before the tree is written: the date lands in it as well as in docs/VERSION.
+    _stamp_data_version(dump_date, tree["all_stats"])
+
     args.out.parent.mkdir(parents=True, exist_ok=True)
     with open(args.out, "w", encoding="utf-8") as f:
         json.dump(tree, f, ensure_ascii=False, separators=(",", ":"))
 
     print(f"wrote {args.out}", file=sys.stderr)
     print(f"root stats: {tree['root']['stats']}", file=sys.stderr)
-
-    dump_date_match = re.search(r"sawikisource-(\d{4}-\d{2}-\d{2})-", xml_path.name)
-    dump_date = dump_date_match.group(1) if dump_date_match else ""
-
-    _stamp_data_version(dump_date)
 
     # Also cache build_tree_json's inputs, same as pipeline.backfill does for
     # every other month -- otherwise pipeline.backfill's "reuse live
@@ -1232,14 +1233,23 @@ def main() -> None:
     print(f"total run time: {elapsed:.0f}s ({elapsed / 60:.1f}m)", file=sys.stderr)
 
 
-def _stamp_data_version(dump_date: str) -> None:
+def _stamp_data_version(dump_date: str, all_stats: dict) -> None:
     """Record today's date as __data_version__ (pipeline-run date) and the
     Wikimedia dump export's own date (parsed from the source XML filename,
     e.g. sawikisource-2026-07-01-....xml -> "2026-07-01") as
     __content_version__ in docs/VERSION, alongside __code_version__ (bumped
     manually/separately). __content_version__ is deliberately just the
     dump's snapshot date -- not a rollup over page-edit timestamps, which
-    the main panel already surfaces per-item on its own."""
+    the main panel already surfaces per-item on its own.
+
+    The same dump date goes into `all_stats.sourced`, beside the figures it
+    dates, which is where Sāgarasaṅgama reads it (its CONTRACT.md): one value
+    in one function, so the home card's "as of" and the About page's "data
+    last sourced" cannot disagree. Call it before the tree is written.
+    (pipeline.backfill never calls this, so a snapshot carries no `sourced`;
+    only the live tree is published.)"""
+    if dump_date:
+        all_stats["sourced"] = dump_date
     version_path = Path(__file__).resolve().parent.parent / "docs" / "VERSION"
     today = time.strftime("%Y-%m-%d", time.gmtime())
     lines = version_path.read_text(encoding="utf-8").splitlines() if version_path.exists() else ['__code_version__ = "0.1.0"']

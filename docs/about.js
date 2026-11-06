@@ -86,9 +86,11 @@ function fmtDate(s) {
   return s.slice(0, 10);
 }
 
+// Decimal units throughout this file (1 MB = 1,000,000 bytes), matching the
+// tree page and Sāgarasaṅgama.
 function fmtBytes(n) {
   if (n === null || n === undefined) return "n/a";
-  return (n / 1024 / 1024).toFixed(1) + " MB";
+  return (n / 1e6).toFixed(1) + " MB";
 }
 
 // Compact size formatter for per-item deltas -- picks B/KB/MB by magnitude
@@ -97,9 +99,9 @@ function fmtBytes(n) {
 function fmtBytesCompact(n) {
   if (n === null || n === undefined) return "n/a";
   if (n === 0) return "0";
-  if (n < 1024) return `${n} B`;
-  if (n < 1024 * 1024) return `${(n / 1024).toFixed(0)} KB`;
-  return `${(n / 1024 / 1024).toFixed(1)} MB`;
+  if (n < 1e3) return `${n} B`;
+  if (n < 1e6) return `${(n / 1e3).toFixed(0)} KB`;
+  return `${(n / 1e6).toFixed(1)} MB`;
 }
 
 // "(0→400 KB)" for a new item, "(400 KB → 480 KB, ↑ 20.0%)" for a size change.
@@ -533,8 +535,8 @@ function fixedStepTicks(min, max, step) {
 }
 
 function fmtAxisBytes(n) {
-  const mb = n / 1024 / 1024;
-  if (mb >= 1000) return (mb / 1024).toFixed(1) + " GB";
+  const mb = n / 1e6;
+  if (mb >= 1000) return (mb / 1000).toFixed(1) + " GB";
   return Math.round(mb) + " MB";
 }
 
@@ -844,7 +846,7 @@ function renderChangelogCharts() {
     getValue: (p) => p.bytes,
     fmtValue: fmtBytes,
     fmtAxis: fmtAxisBytes,
-    tickStep: 100 * 1024 * 1024,
+    tickStep: 100e6,
   });
 
   // text_count is absent on snapshots from before that stat existed --
